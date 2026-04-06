@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { KutootLogo } from "@/components/branding";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { semanticClasses } from "@/lib/utils/colors";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -60,13 +62,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="font-mono text-3xl font-bold tracking-tighter text-foreground">
-            KUTOOT
-          </h1>
-          <p className="mt-1 font-mono text-xs tracking-widest text-muted-foreground uppercase">
+          <div className="flex justify-center mb-4">
+            <KutootLogo size="lg" />
+          </div>
+          <p className="mt-2 font-mono text-xs tracking-widest text-muted-foreground uppercase">
             Merchant Performance Terminal
           </p>
-          <div className="mt-4 mx-auto h-px w-16 bg-accent" />
+          <div className="mt-4 mx-auto h-px w-16 bg-primary" />
         </div>
 
         <Card className="p-6">
@@ -91,12 +93,12 @@ export default function LoginPage() {
             />
 
             {error && (
-              <div className="rounded-md border border-loss/30 bg-loss/10 px-3 py-2 font-mono text-xs text-loss">
+              <div className={`rounded-md border ${semanticClasses.error.border}/30 ${semanticClasses.error.bgLight} px-3 py-2 font-mono text-xs ${semanticClasses.error.text}`}>
                 {error}
               </div>
             )}
 
-            <Button type="submit" loading={loading} className="w-full">
+            <Button type="submit" loading={loading} className="w-full bg-primary hover:bg-primary/90 text-white">
               Sign In
             </Button>
           </form>
@@ -129,7 +131,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="mt-4 text-center font-mono text-[10px] text-muted-foreground">
-          v1.0.0 &middot; Demo Mode
+          v1.0.0 &middot; <span className="text-primary font-semibold">Powered by Kutoot</span>
         </p>
       </div>
     </div>

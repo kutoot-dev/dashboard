@@ -3,13 +3,18 @@
 /* =============================================================================
  * Kutoot Trading Terminal Theme
  * 
+ * Brand Colors:
+ * - Primary (Crimson): #AE1E3F
+ * - Secondary (Orange): #EA6B1E
+ * - Accent (Gold): #EBC500
+ * - Dark (Brown): #3B322B
+ * 
  * Design Language: "Merchant Performance as a Trading Terminal"
- * - Dark backgrounds with neon green/red gain/loss indicators
- * - Monospace numbers with tabular-nums for financial data alignment
- * - Rank tier badges: Platinum, Gold, Silver, Bronze
+ * - Kutoot brand colors with semantic overlays
+ * - Supports light and dark modes
  * ============================================================================= */
 
-/* --- Light mode (non-default) --- */
+/* --- Light mode --- */
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -18,14 +23,30 @@
   --border: #e2e8f0;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #3b82f6;
+  
+  /* Kutoot Brand Colors */
+  --primary: #AE1E3F;
+  --secondary: #EA6B1E;
+  --accent: #EBC500;
+  --dark: #3B322B;
+  
+  /* Semantic Colors */
+  --success: #16a34a;
+  --error: #dc2626;
+  --warning: #d97706;
+  --info: #0ea5e9;
+  
+  /* Legacy alias for compatibility */
   --gain: #16a34a;
   --loss: #dc2626;
-  --warning: #d97706;
+  
+  /* Tier Badges */
   --platinum: #94a3b8;
   --gold: #ca8a04;
   --silver: #64748b;
   --bronze: #92400e;
+  
+  /* Chart Colors */
   --chart-bg: #ffffff;
   --chart-grid: #e2e8f0;
   --chart-text: #64748b;
@@ -41,14 +62,30 @@
   --border: #1e293b;
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
-  --accent: #3b82f6;
+  
+  /* Kutoot Brand Colors - Dark Mode Enhanced */
+  --primary: #E63D5C;
+  --secondary: #FF8C3D;
+  --accent: #FFD700;
+  --dark: #2B2420;
+  
+  /* Semantic Colors - Dark Mode */
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --info: #06b6d4;
+  
+  /* Legacy alias for compatibility */
   --gain: #22c55e;
   --loss: #ef4444;
-  --warning: #f59e0b;
+  
+  /* Tier Badges */
   --platinum: #e5e7eb;
   --gold: #fbbf24;
   --silver: #94a3b8;
   --bronze: #d97706;
+  
+  /* Chart Colors */
   --chart-bg: #0a0e17;
   --chart-grid: #1e293b;
   --chart-text: #94a3b8;
@@ -63,14 +100,29 @@
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  
+  /* Kutoot Brand */
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
   --color-accent: var(--accent);
+  --color-dark: var(--dark);
+  
+  /* Semantic */
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  
+  /* Legacy */
   --color-gain: var(--gain);
   --color-loss: var(--loss);
-  --color-warning: var(--warning);
+  
+  /* Tiers */
   --color-platinum: var(--platinum);
   --color-gold: var(--gold);
   --color-silver: var(--silver);
   --color-bronze: var(--bronze);
+  
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
