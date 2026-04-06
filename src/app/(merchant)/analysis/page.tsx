@@ -55,7 +55,7 @@ export default function AnalysisPage() {
 
   const periodOptions = (periods ?? []).map((p) => ({
     value: p.period_id,
-    label: `${p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)}`,
+    label: `${p.period_type === "daily" ? "D" : p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)}`,
   }));
 
   // Build score trend data from candlestick closes

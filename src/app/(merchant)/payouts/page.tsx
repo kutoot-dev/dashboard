@@ -39,7 +39,7 @@ export default function PayoutsPage() {
       return {
         time: c.time,
         period_label: period
-          ? `${period.period_type === "weekly" ? "Week" : "Biweek"} ${period.period_id.slice(-3)}`
+          ? `${period.period_type === "daily" ? "Day" : period.period_type === "weekly" ? "Week" : "Biweek"} ${period.period_id.slice(-3)}`
           : c.time,
         score,
         rank,
@@ -94,7 +94,10 @@ export default function PayoutsPage() {
           )}
           <div className="mt-3 space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Periods rewarded</span>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                Periods rewarded
+                <InfoTooltip text="Number of scoring periods where you earned a cash reward (score above 55). Each qualifying period, you receive your share from the daily reward pool distributed at 11 PM." />
+              </span>
               <span className="font-mono text-foreground">
                 {payoutHistory.filter((p) => p.status === "paid").length}
               </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils/cn";
 
 interface InfoTooltipProps {
@@ -10,7 +11,11 @@ interface InfoTooltipProps {
 
 export function InfoTooltip({ text, className }: InfoTooltipProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<"top" | "bottom">("top");
+  const [coords, setCoords] = useState<{ top: number; left: number; position: "top" | "bottom" }>({
+    top: 0,
+    left: 0,
+    position: "top",
+  });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -35,12 +40,16 @@ export function InfoTooltip({ text, className }: InfoTooltipProps) {
   useEffect(() => {
     if (!open || !triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    // If not enough space above, show below
-    setPosition(rect.top < 80 ? "bottom" : "top");
+    const showBelow = rect.top < 80;
+    setCoords({
+      top: showBelow ? rect.bottom + 6 : rect.top - 6,
+      left: rect.left + rect.width / 2,
+      position: showBelow ? "bottom" : "top",
+    });
   }, [open]);
 
   return (
-    <span className={cn("relative inline-flex items-center", className)}>
+    <span className={cn("inline-flex items-center", className)}>
       <button
         ref={triggerRef}
         type="button"
@@ -53,22 +62,31 @@ export function InfoTooltip({ text, className }: InfoTooltipProps) {
         i
       </button>
 
-      {open && (
-        <div
-          ref={tooltipRef}
-          role="tooltip"
-          className={cn(
-            "absolute z-50 max-w-[280px] rounded-md px-2 py-1.5 text-xs text-white shadow-lg",
-            "transition-opacity duration-150 ease-in-out",
-            "bg-[#1e293b]",
-            position === "top"
-              ? "bottom-full mb-1.5 left-1/2 -translate-x-1/2"
-              : "top-full mt-1.5 left-1/2 -translate-x-1/2"
-          )}
-        >
-          {text}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            ref={tooltipRef}
+            role="tooltip"
+            style={{
+              position: "fixed",
+              top: coords.position === "top" ? undefined : coords.top,
+              bottom:
+                coords.position === "top"
+                  ? `${window.innerHeight - coords.top}px`
+                  : undefined,
+              left: coords.left,
+              transform: "translateX(-50%)",
+            }}
+            className={cn(
+              "z-[9999] max-w-[280px] rounded-md px-2 py-1.5 text-xs text-white shadow-lg pointer-events-auto",
+              "transition-opacity duration-150 ease-in-out",
+              "bg-[#1e293b]"
+            )}
+          >
+            {text}
+          </div>,
+          document.body,
+        )}
     </span>
   );
 }

@@ -29,7 +29,7 @@ export default function PayoutSimulationPage() {
 
   const periodOptions = (periods ?? []).map((p) => ({
     value: p.period_id,
-    label: `${p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)} — ${p.status}`,
+    label: `${p.period_type === "daily" ? "D" : p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)} — ${p.status}`,
   }));
 
   const handleRunSimulation = () => {

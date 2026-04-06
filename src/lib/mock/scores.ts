@@ -1,7 +1,7 @@
 /**
  * Mock Data: Merchant Scores
  *
- * Generates 600 score records (50 merchants × 12 periods) with deterministic
+ * Generates score records (50 merchants × 30 daily periods) with deterministic
  * seeded randomness. Each merchant has a "personality" — trending up, down,
  * volatile, or stable — to create realistic candlestick patterns.
  *
@@ -150,8 +150,8 @@ function generateScoreTrajectory(
     const momScore = round2(breakdown.momentum);
     const ecoScore = round2(breakdown.ecosystem_contribution);
 
-    // Fatigue: top performers in consecutive periods
-    const isFatigued = merchantIndex < 5 && p > 6;
+    // Fatigue: top performers in consecutive periods (3+ weeks = 21+ daily periods)
+    const isFatigued = merchantIndex < 5 && p > 20;
     const fatigueValue = isFatigued ? round2(0.03 + rng() * 0.10) : 0;
 
     // Payout: top-half get payouts

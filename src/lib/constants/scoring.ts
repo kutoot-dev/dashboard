@@ -11,7 +11,7 @@ export const SCORING_PARAMETER_DEFINITIONS: Record<string, { description: string
   weight_margin_efficiency: { description: "How well you manage your profit margins", defaultValue: 0.20, merchantHint: "Maintain healthy margins without overpricing" },
   weight_location_opportunity: { description: "Bonus for serving underserved areas — smaller towns get higher boost", defaultValue: 0.20, merchantHint: "Merchants in Tier 3/4 cities get a natural advantage" },
   weight_transaction_quality: { description: "How consistent and genuine your transactions are", defaultValue: 0.10, merchantHint: "Avoid round-number-only billing and keep refunds low" },
-  weight_momentum: { description: "Whether your performance is trending upward week over week", defaultValue: 0.10, merchantHint: "Grow steadily — even small weekly improvements count" },
+  weight_momentum: { description: "Whether your performance is trending upward day over day", defaultValue: 0.10, merchantHint: "Grow steadily — even small daily improvements count" },
   weight_ecosystem: { description: "Bonus for referring other merchants and helping the community", defaultValue: 0.05, merchantHint: "Refer new merchants to Kutoot to earn extra points" },
   momentum_ema_alpha: { description: "Speed at which recent performance weighs more than past", defaultValue: 0.3, merchantHint: "Recent weeks matter more — keep improving" },
   ecosystem_credit_halflife_days: { description: "How long referral bonus lasts (in days)", defaultValue: 30, merchantHint: "Referral credit fades over 30 days — keep referring" },
@@ -49,7 +49,7 @@ export const SUB_SCORE_DESCRIPTIONS: Record<string, string> = {
   margin_efficiency: "Measures if your pricing is healthy. Fair margins without overcharging.",
   location_opportunity: "Bonus score for merchants in smaller towns and underserved areas.",
   transaction_quality: "Checks if your bills are genuine — consistent amounts, low refunds.",
-  momentum: "Are you improving week over week? Even small gains count.",
+  momentum: "Are you improving day over day? Even small gains count.",
   ecosystem_contribution: "Extra points for referring other merchants to Kutoot.",
 };
 
@@ -86,7 +86,7 @@ export const IMPROVEMENT_TIPS: Record<string, string[]> = {
     "Maintain consistent daily transaction patterns",
   ],
   momentum: [
-    "Try to improve your score even by 1-2 points each week",
+    "Try to improve your score even by 1-2 points each day",
     "Consistent small improvements beat one-time spikes",
     "Don't let sales drop suddenly — smooth growth is rewarded",
   ],

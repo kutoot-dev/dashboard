@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
   const periodOptions = (periods ?? []).map((p) => ({
     value: p.period_id,
-    label: `${p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)} — ${p.status}`,
+    label: `${p.period_type === "daily" ? "D" : p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)} — ${p.status}`,
   }));
 
   // Slice chart data by time range
@@ -137,12 +137,30 @@ export default function DashboardPage() {
             </h2>
             <InfoTooltip text="The KMI shows the combined performance of all merchants on Kutoot. When most merchants do well, the index goes up. It updates live every few seconds." />
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-gain" />
-            </span>
-            <span className="font-mono text-[10px] uppercase text-gain">Live</span>
+          <div className="flex items-center gap-4">
+            {/* Your personal index */}
+            {score && (
+              <div className="flex items-center gap-2 rounded-md bg-accent/5 px-3 py-1 border border-accent/10">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Your Index</span>
+                <span className="font-mono text-sm font-bold text-accent">
+                  {(1000 + liveScore.current * 2.47).toFixed(0)}
+                </span>
+                <span className={cn(
+                  "font-mono text-[10px] font-semibold",
+                  liveScore.change >= 0 ? "text-gain" : "text-loss"
+                )}>
+                  {liveScore.change >= 0 ? "▲" : "▼"} {Math.abs(liveScore.change * 2.47).toFixed(1)}
+                </span>
+                <InfoTooltip text="Your personal index derived from your composite score. Higher score = higher index. Compare it with the platform-wide KMI to see where you stand." />
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-gain" />
+              </span>
+              <span className="font-mono text-[10px] uppercase text-gain">Live</span>
+            </div>
           </div>
         </div>
         <KMIChart height={180} />
@@ -340,11 +358,17 @@ export default function DashboardPage() {
           </div>
           {score ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <span className="text-muted-foreground">Total Sales</span>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                Total Sales
+                <InfoTooltip text="Total number of transactions during this period. More transactions improve your Shop Activity score (35% weight). Values are log-normalized before scoring to keep the scale fair across small and large merchants." />
+              </span>
               <span className="font-mono text-foreground text-right">
                 {formatINR(score.raw_transaction_volume)}
               </span>
-              <span className="text-muted-foreground">Revenue</span>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                Revenue
+                <InfoTooltip text="Sum of all transaction amounts (₹) for this period. Combined with transaction count, this forms your trading performance — the highest-weighted parameter at 35%. Both values are log-normalized: Revenue Score = log(revenue + 1)." />
+              </span>
               <span className="font-mono text-foreground text-right">
                 {formatINR(score.raw_revenue)}
               </span>
@@ -364,17 +388,17 @@ export default function DashboardPage() {
               </span>
               <span className="flex items-center gap-1 text-muted-foreground">
                 Growth Speed
-                <InfoTooltip text="Your momentum score — how much you're improving week over week." />
+                <InfoTooltip text="Your momentum score — how much you're improving day over day." />
               </span>
               <span className="font-mono text-foreground text-right">
-                {formatScore(score.momentum_score)}/20
+                {formatScore(score.momentum_score)}/100
               </span>
               <span className="flex items-center gap-1 text-muted-foreground">
                 Community Points
                 <InfoTooltip text="Extra score from referring other merchants. Max 5% of your total score." />
               </span>
               <span className="font-mono text-foreground text-right">
-                {formatScore(score.ecosystem_contribution_score)}/20
+                {formatScore(score.ecosystem_contribution_score)}/100
               </span>
             </div>
           ) : (

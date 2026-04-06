@@ -44,7 +44,7 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 /**
- * Transform weekly scores into OHLC candlestick format for a given merchant.
+ * Transform daily scores into OHLC candlestick format for a given merchant.
  * Returns one candlestick per scoring period.
  */
 export function getMerchantCandlesticks(merchantId: string): ScoreCandlestick[] {

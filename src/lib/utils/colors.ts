@@ -7,7 +7,7 @@ export const colors = {
   primary: "#AE1E3F",
   secondary: "#EA6B1E",
   accent: "#EBC500",
-  dark: "#3B322B",
+  darkBrand: "#3B322B",
 
   // Semantic colors (light mode)
   light: {

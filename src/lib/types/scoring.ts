@@ -20,7 +20,7 @@
  * CONSTRAINTS: FK to merchants, FK to scoring_periods
  */
 
-export type PeriodType = "weekly" | "biweekly";
+export type PeriodType = "daily" | "weekly" | "biweekly";
 export type PeriodStatus = "open" | "calculating" | "closed";
 
 export interface ScoringPeriod {
