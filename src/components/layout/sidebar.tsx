@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { KutootIcon, KutootLogo } from "@/components/branding";
 import { MERCHANT_NAV, ADMIN_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -22,17 +23,16 @@ export function Sidebar() {
       )}
     >
       {/* Brand */}
-      <div className="flex h-12 items-center border-b border-border px-4">
-        <span
-          className={cn(
-            "font-mono text-lg font-bold tracking-widest text-accent",
-            sidebarCollapsed && "sr-only"
-          )}
-        >
-          KUTOOT
-        </span>
-        {sidebarCollapsed && (
-          <span className="font-mono text-lg font-bold text-accent">K</span>
+      <div
+        className={cn(
+          "flex h-12 items-center border-b border-border",
+          sidebarCollapsed ? "justify-center px-2" : "px-4"
+        )}
+      >
+        {sidebarCollapsed ? (
+          <KutootIcon size="md" />
+        ) : (
+          <KutootLogo size="sm" className="max-w-35" />
         )}
       </div>
 

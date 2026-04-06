@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/components/providers/auth-provider";
-import { KutootIcon, KutootLogo } from "@/components/branding";
 import { useTicker } from "@/lib/hooks";
 import { useKMI } from "@/lib/hooks/use-kmi";
 import { cn } from "@/lib/utils/cn";
@@ -25,12 +24,6 @@ export function Topbar() {
 
   return (
     <header className="flex h-12 items-center border-b border-border bg-card">
-      {/* Kutoot Brand */}
-      <div className="flex shrink-0 items-center gap-2 border-r border-border px-3">
-        <KutootIcon size="sm" className="sm:hidden" />
-        <KutootLogo size="sm" className="hidden sm:block" />
-      </div>
-
       {/* KMI Badge */}
       <div className="flex shrink-0 items-center gap-2 border-r border-border px-3">
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-primary">
