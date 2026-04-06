@@ -1,26 +1,113 @@
 @import "tailwindcss";
 
+/* =============================================================================
+ * Kutoot Trading Terminal Theme
+ * 
+ * Design Language: "Merchant Performance as a Trading Terminal"
+ * - Dark backgrounds with neon green/red gain/loss indicators
+ * - Monospace numbers with tabular-nums for financial data alignment
+ * - Rank tier badges: Platinum, Gold, Silver, Bronze
+ * ============================================================================= */
+
+/* --- Light mode (non-default) --- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #3b82f6;
+  --gain: #16a34a;
+  --loss: #dc2626;
+  --warning: #d97706;
+  --platinum: #94a3b8;
+  --gold: #ca8a04;
+  --silver: #64748b;
+  --bronze: #92400e;
+  --chart-bg: #ffffff;
+  --chart-grid: #e2e8f0;
+  --chart-text: #64748b;
+  --chart-crosshair: #94a3b8;
+}
+
+/* --- Dark mode (default) --- */
+.dark {
+  --background: #0a0e17;
+  --foreground: #e2e8f0;
+  --card: #111827;
+  --card-foreground: #e2e8f0;
+  --border: #1e293b;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #3b82f6;
+  --gain: #22c55e;
+  --loss: #ef4444;
+  --warning: #f59e0b;
+  --platinum: #e5e7eb;
+  --gold: #fbbf24;
+  --silver: #94a3b8;
+  --bronze: #d97706;
+  --chart-bg: #0a0e17;
+  --chart-grid: #1e293b;
+  --chart-text: #94a3b8;
+  --chart-crosshair: #475569;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-warning: var(--warning);
+  --color-platinum: var(--platinum);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Tabular numbers for financial data alignment */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ticker tape animation */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: ticker-scroll 60s linear infinite;
+}
+
+/* Custom scrollbar for dark theme */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #0a0e17;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #334155;
 }
