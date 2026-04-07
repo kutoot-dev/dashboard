@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { AuthUser } from "@/lib/types";
 import { login as loginService, logout as logoutService, getMe } from "@/lib/api/services/auth.service";
+import { useQueryClientInstance } from "./query-provider";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClientInstance();
 
   useEffect(() => {
     getMe()
@@ -45,20 +47,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string) => {
       const res = await loginService(email, password);
       if (res.success) {
+        queryClient.clear();
         setUser(res.data);
         router.push("/dashboard");
       } else {
         throw new Error(res.error?.message ?? "Login failed");
       }
     },
-    [router],
+    [router, queryClient],
   );
 
   const logout = useCallback(async () => {
     await logoutService();
+    queryClient.clear();
     setUser(null);
     router.push("/login");
-  }, [router]);
+  }, [router, queryClient]);
 
   return (
     <AuthContext.Provider

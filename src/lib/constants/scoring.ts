@@ -96,3 +96,96 @@ export const IMPROVEMENT_TIPS: Record<string, string[]> = {
     "Maximum 5% of your score can come from referrals",
   ],
 };
+
+/**
+ * Detailed parameter examples for admin info tooltips.
+ * Each key maps to a concrete example showing how the parameter affects scoring.
+ */
+export const PARAMETER_EXAMPLES: Record<string, string> = {
+  weight_trading_performance:
+    "Example: If a kirana store makes 50 transactions/day (score 80) and weight is 0.35, this contributes 80 × 0.35 = 28 points to the composite score.",
+  weight_margin_efficiency:
+    "Example: A pharmacy with 22% margin (score 70) and weight 0.20 contributes 70 × 0.20 = 14 points. Overpricing or heavy discounts reduce this.",
+  weight_location_opportunity:
+    "Example: A Tier 3 merchant in Shimla gets 3× location multiplier. With score 60 and weight 0.20, that's 60 × 0.20 = 12 points — plus the multiplier boosts the raw sub-score itself.",
+  weight_transaction_quality:
+    "Example: A merchant with 5% refund rate and varied bill amounts scores 85. At weight 0.10, contributes 85 × 0.10 = 8.5 points.",
+  weight_momentum:
+    "Example: If a merchant's 7-day EMA score rose from 55 to 62 (growth), momentum score = 75. At weight 0.10, contributes 7.5 points.",
+  weight_ecosystem:
+    "Example: A merchant who referred 3 active merchants gets ecosystem score 60. At weight 0.05, contributes 60 × 0.05 = 3 bonus points.",
+  momentum_ema_alpha:
+    "Example: With alpha = 0.3, today's score counts 30% and the smoothed historical average counts 70%. A sudden spike from 50 to 80 would show EMA moving to ~59 (not jumping straight to 80).",
+  ecosystem_credit_halflife_days:
+    "Example: A referral made on March 1 gives full 100% credit. After 30 days (half-life), it drops to 50%. After 60 days, 25%. After 90 days, ~12%.",
+  ecosystem_cap_percentage:
+    "Example: Even if a merchant refers 50 merchants, the maximum ecosystem bonus is capped at 5% of composite score — so max ~5 extra points on a 100-point scale.",
+  fatigue_threshold_consecutive_periods:
+    "Example: If threshold = 3 and a merchant stays in Top 10 for 3 consecutive weeks, a dampener starts applying from week 4 onwards. Leaving Top 10 for any period resets the counter.",
+  fatigue_dampener_max:
+    "Example: If max = 0.15 (15%), a merchant who's been #1 for 8 straight weeks might see a 12% score reduction. The dampener scales from 3% (week 4) to max 15% (week 8+).",
+  fraud_velocity_multiplier_threshold:
+    "Example: If threshold = 2.0 and a merchant's sector average is 25 transactions/day, any merchant hitting 50+ transactions in a day gets auto-flagged for review.",
+  fraud_reversal_rate_threshold:
+    "Example: If threshold = 0.15 (15%) and a merchant has 100 transactions with 18 reversals (18%), they get a fraud flag for abnormal refund patterns.",
+  fraud_round_number_concentration_threshold:
+    "Example: If threshold = 0.60 and 65% of a merchant's bills are exactly ₹100, ₹200, ₹500 etc., they get flagged. Real transactions typically have varied amounts.",
+  location_multiplier_floor:
+    "Example: A Mumbai (metro) merchant gets 1.0× multiplier — no extra boost. Their high footfall and market access is already reflected in their raw scores.",
+  location_multiplier_ceiling:
+    "Example: A Port Blair (Tier 3) merchant gets up to 3.0× location score boost, compensating for lower footfall and fewer customers in remote areas.",
+  minimum_cohort_size:
+    "Example: If minimum = 10 and only 7 electronics shops exist in Jaipur, the system widens the cohort to include neighboring cities until 10+ merchants are grouped for fair comparison.",
+  bayesian_prior_weight_initial:
+    "Example: A brand-new merchant (week 1) with prior = 0.8 gets 80% platform-average score + 20% own performance. This prevents unfairly low scores from limited data.",
+  bayesian_prior_weight_decay_per_week:
+    "Example: With decay = 0.1 per week, a new merchant's protection goes: Week 1 = 80%, Week 2 = 70%, Week 3 = 60% ... Week 8 = 0% (fully own performance).",
+  payout_curve_alpha:
+    "Example: With alpha = 1.8, Rank #1 gets ~3.2× more than Rank #10, and ~8× more than Rank #25. Higher alpha = steeper reward concentration toward top ranks.",
+  payout_minimum_threshold_inr:
+    "Example: If threshold = ₹50, a merchant whose calculated payout is ₹35 receives a non-monetary reward (badge/recognition) instead of cash. ₹50+ gets direct bank transfer.",
+};
+
+/**
+ * Force Majeure explanations and examples for admin info tooltips.
+ */
+export const FORCE_MAJEURE_INFO = {
+  concept:
+    "Force Majeure events are exceptional external circumstances beyond merchants' control that unfairly affect their scoring. When an admin declares a Force Majeure event, affected merchants receive scoring adjustments so they are not penalized for situations outside their control.",
+  event_types: {
+    natural_disaster:
+      "Natural disasters like floods, cyclones, earthquakes that physically prevent merchants from operating. Example: Cyclone Mandous II floods coastal Tamil Nadu — 200+ merchants can't open shops for 2 weeks. Their scores are protected during this period.",
+    civil_disruption:
+      "Civil unrest, protests, curfews, bandhs that restrict business operations. Example: A state-wide bandh in Kerala shuts down markets for 3 days — merchants in affected districts get scoring tolerance.",
+    platform_outage:
+      "Technical failures in Kutoot's platform, payment gateways, or telecom infrastructure. Example: A telecom outage in North-East India blocks digital payments for a week — merchants can't record transactions, so baseline correction is applied.",
+    macro_economic:
+      "Government regulations, tax changes, festive restrictions affecting specific sectors. Example: Gold purchase restrictions during Holi affect jewellery merchants — their expected revenue dip is accounted for in scoring.",
+  },
+  adjustment_types: {
+    pause:
+      "Scoring is completely frozen for affected merchants. No score changes (up or down) during the event period. Example: During Bihar floods, merchants in Patna district have scores paused — their last pre-flood score is maintained until the event ends.",
+    baseline_correction:
+      "Merchants' baseline scores are recalculated excluding the affected period. Example: After a 2-week telecom outage, the system recalculates baselines using pre-outage + post-recovery data only, ignoring the disrupted period.",
+    tolerance_widening:
+      "Score drop thresholds are relaxed — merchants aren't penalized for expected dips. Example: During Holi gold restrictions, jewellery merchants can drop up to 30% in revenue without triggering a negative momentum signal (normal threshold is 10%).",
+  },
+} as const;
+
+/**
+ * Cohort Health explanations for admin info tooltips.
+ */
+export const COHORT_HEALTH_INFO = {
+  concept:
+    "Cohort Health monitors scoring fairness at the sector level. Each sector (e.g., Grocery, Electronics, Pharmacy) forms a cohort of similar merchants. The health metrics reveal whether scoring is fair across the cohort or if there are systematic biases favoring certain merchants.",
+  spread:
+    "The spread (Δ) measures the gap between top-quartile average and bottom-quartile average scores. A healthy cohort has low spread (≤10 = green), meaning top and bottom merchants are relatively close. High spread (>25 = red) suggests scoring may be unfair — perhaps location advantage or transaction patterns are creating systemic bias.",
+  metrics: {
+    avg_score: "The mean composite score across all merchants in this sector. A healthy sector typically averages 45–65. Very high (>75) or very low (<30) sector averages warrant investigation.",
+    merchant_count: "Total active merchants in this sector. Sectors with fewer than 10 merchants may have unreliable statistics due to small sample size.",
+    median_score: "The middle score when all merchants are sorted. If median is much lower than average, a few top performers are skewing the average up.",
+    dormant_count: "Merchants with zero or near-zero transaction activity in recent periods. High dormancy may indicate platform engagement issues in this sector.",
+    top_quartile_avg: "Average score of merchants in the top 25% of this sector. Represents what strong performance looks like in this business category.",
+    bottom_quartile_avg: "Average score of merchants in the bottom 25%. If this is very low, bottom performers may need targeted support or the scoring formula may disadvantage certain business models.",
+  },
+} as const;

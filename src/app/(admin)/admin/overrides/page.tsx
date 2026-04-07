@@ -1,14 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { MOCK_MERCHANTS } from "@/lib/mock/merchants";
+import { MOCK_SCORING_PERIODS } from "@/lib/mock/scoring-periods";
+import { formatPeriodRange } from "@/lib/utils/format";
 
 export default function ManualOverridesPage() {
-  const [search, setSearch] = useState("");
+  const [selectedMerchants, setSelectedMerchants] = useState<string[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState(MOCK_SCORING_PERIODS[0]?.period_id ?? "");
+  const [overrideScore, setOverrideScore] = useState("");
+  const [reason, setReason] = useState("");
+
+  const merchantOptions = useMemo(
+    () =>
+      MOCK_MERCHANTS.map((m) => ({
+        value: m.merchant_id,
+        label: `${m.business_name} (${m.merchant_id})`,
+      })),
+    []
+  );
+
+  const periodOptions = useMemo(
+    () =>
+      MOCK_SCORING_PERIODS.map((p) => ({
+        value: p.period_id,
+        label: formatPeriodRange(p.period_start, p.period_end),
+      })),
+    []
+  );
+
+  const handleApply = () => {
+    // TODO: wire to real API
+    alert(
+      `Override applied:\nMerchants: ${selectedMerchants.join(", ")}\nPeriod: ${selectedPeriod}\nScore: ${overrideScore}\nReason: ${reason}`
+    );
+    setSelectedMerchants([]);
+    setOverrideScore("");
+    setReason("");
+  };
 
   const columns = [
     { key: "merchant", header: "Merchant" },
@@ -21,15 +59,78 @@ export default function ManualOverridesPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Manual Overrides" subtitle="Adjust merchant scores for exceptional circumstances" />
+      <PageHeader
+        title="Manual Overrides"
+        subtitle="Adjust merchant scores for exceptional circumstances"
+      >
+        <InfoTooltip text="Select one or more merchants from the dropdown, choose the scoring period, enter the override score (0–100), and provide a reason. All overrides are logged for audit." />
+      </PageHeader>
 
-      {/* Search */}
-      <Input
-        label="Search merchant by name"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Enter merchant name..."
-      />
+      {/* Create Override */}
+      <Card>
+        <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          New Override
+        </h2>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              Select Merchants
+              <InfoTooltip text="Choose one or more merchants to apply the same override score. Use search to filter the list." />
+            </label>
+            <MultiSelect
+              options={merchantOptions}
+              value={selectedMerchants}
+              onChange={setSelectedMerchants}
+              placeholder="Search and select merchants..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                Scoring Period
+                <InfoTooltip text="Select the scoring period to apply the override for." />
+              </label>
+              <Select
+                options={periodOptions}
+                value={selectedPeriod}
+                onChange={setSelectedPeriod}
+              />
+            </div>
+            <div>
+              <Input
+                label="Override Score (0–100)"
+                type="number"
+                min={0}
+                max={100}
+                step={0.01}
+                value={overrideScore}
+                onChange={(e) => setOverrideScore(e.target.value)}
+                placeholder="e.g. 75.5"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Reason</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              placeholder="Explain why this override is necessary..."
+              className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50"
+            />
+          </div>
+
+          <Button
+            size="sm"
+            onClick={handleApply}
+            disabled={selectedMerchants.length === 0 || !overrideScore || !reason}
+          >
+            Apply Override to {selectedMerchants.length || "…"} Merchant{selectedMerchants.length !== 1 ? "s" : ""}
+          </Button>
+        </div>
+      </Card>
 
       {/* Override History Table */}
       <div>

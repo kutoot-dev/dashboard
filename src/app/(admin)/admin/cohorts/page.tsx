@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { useCohortHealth } from "@/lib/hooks/use-admin";
+import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { cn } from "@/lib/utils/cn";
-import { formatScore } from "@/lib/utils/format";
+import { formatScore, formatPeriodRange } from "@/lib/utils/format";
+import { COHORT_HEALTH_INFO } from "@/lib/constants/scoring";
 import type { CohortHealthMetric } from "@/lib/api/services/admin.service";
 
 function getHealthColor(spread: number): string {
@@ -25,7 +28,9 @@ function getHealthIndicatorBg(spread: number): string {
 
 export default function CohortHealthPage() {
   const [sectorFilter, setSectorFilter] = useState("");
+  const [periodFilter, setPeriodFilter] = useState("");
   const { data: cohorts, isLoading } = useCohortHealth(sectorFilter || undefined);
+  const { data: periods } = useScoringPeriods();
 
   const sectorOptions = [
     { value: "", label: "All Sectors" },
@@ -35,9 +40,24 @@ export default function CohortHealthPage() {
     })) ?? []),
   ];
 
+  const periodOptions = [
+    { value: "", label: "Latest Period" },
+    ...(periods ?? []).map((p) => ({
+      value: p.period_id,
+      label: formatPeriodRange(p.period_start, p.period_end),
+    })),
+  ];
+
   return (
     <div className="space-y-4">
       <PageHeader title="Cohort Health" subtitle="Sector-level performance monitoring">
+        <InfoTooltip text={COHORT_HEALTH_INFO.concept} />
+        <Select
+          options={periodOptions}
+          value={periodFilter}
+          onChange={setPeriodFilter}
+          placeholder="Date range"
+        />
         <Select
           options={sectorOptions}
           value={sectorFilter}
@@ -64,37 +84,58 @@ export default function CohortHealthPage() {
 
                 <div className="flex items-start justify-between">
                   <h3 className="font-mono text-sm font-bold text-foreground">{cohort.sector_name}</h3>
-                  <span className={cn("font-mono text-xs font-semibold", getHealthColor(spread))}>
-                    Δ {spread.toFixed(1)}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn("font-mono text-xs font-semibold", getHealthColor(spread))}>
+                      Δ {spread.toFixed(1)}
+                    </span>
+                    <InfoTooltip text={COHORT_HEALTH_INFO.spread} />
+                  </div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Avg Score</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Avg Score</p>
+                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.avg_score} />
+                    </div>
                     <p className="font-mono text-xl font-bold text-foreground">{formatScore(cohort.avg_score)}</p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchants</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchants</p>
+                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.merchant_count} />
+                    </div>
                     <p className="font-mono text-xl font-bold text-foreground">{cohort.merchant_count}</p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Median</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Median</p>
+                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.median_score} />
+                    </div>
                     <p className="font-mono text-sm text-foreground">{formatScore(cohort.median_score)}</p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Dormant</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Dormant</p>
+                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.dormant_count} />
+                    </div>
                     <p className="font-mono text-sm text-foreground">{cohort.dormant_count}</p>
                   </div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-2">
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Top Q Avg</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Top Q Avg</p>
+                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.top_quartile_avg} />
+                    </div>
                     <p className="font-mono text-sm text-gain">{formatScore(cohort.top_quartile_avg)}</p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Bottom Q Avg</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Bottom Q Avg</p>
+                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.bottom_quartile_avg} />
+                    </div>
                     <p className="font-mono text-sm text-loss">{formatScore(cohort.bottom_quartile_avg)}</p>
                   </div>
                 </div>

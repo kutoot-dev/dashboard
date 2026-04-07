@@ -10,8 +10,9 @@ import { Modal } from "@/components/ui/modal";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ScoringParameter } from "@/lib/types";
-import { SCORING_PARAMETER_DEFINITIONS } from "@/lib/constants/scoring";
+import { SCORING_PARAMETER_DEFINITIONS, PARAMETER_EXAMPLES } from "@/lib/constants/scoring";
 import { formatDate } from "@/lib/utils/format";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 type Row = Record<string, unknown>;
 
@@ -67,10 +68,14 @@ export default function ParametersPage() {
       header: "Description",
       render: (_: unknown, row: Row) => {
         const key = String(row.parameter_key);
+        const example = PARAMETER_EXAMPLES[key];
         return (
-          <span className="text-xs text-muted-foreground">
-            {String(row.parameter_description || SCORING_PARAMETER_DEFINITIONS[key]?.description || "—")}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">
+              {String(row.parameter_description || SCORING_PARAMETER_DEFINITIONS[key]?.description || "—")}
+            </span>
+            {example && <InfoTooltip text={example} />}
+          </div>
         );
       },
     },
@@ -105,7 +110,9 @@ export default function ParametersPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Scoring Parameters" subtitle="Manage 21 scoring configuration values" />
+      <PageHeader title="Scoring Parameters" subtitle="Manage 21 scoring configuration values">
+        <InfoTooltip text="These 21 parameters control every aspect of the scoring algorithm — from how much weight each sub-score carries to fraud detection thresholds. Changes take effect from the next scoring period." />
+      </PageHeader>
 
       {isLoading ? (
         <Card>
@@ -140,6 +147,14 @@ export default function ParametersPage() {
                 {editingParam.parameter_description || SCORING_PARAMETER_DEFINITIONS[editingParam.parameter_key]?.description || "—"}
               </p>
             </div>
+            {PARAMETER_EXAMPLES[editingParam.parameter_key] && (
+              <div className="rounded-md border border-accent/20 bg-accent/5 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-accent mb-1">Example</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {PARAMETER_EXAMPLES[editingParam.parameter_key]}
+                </p>
+              </div>
+            )}
             <Input
               label="Value"
               type="number"

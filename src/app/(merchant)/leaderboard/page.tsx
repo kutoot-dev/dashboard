@@ -16,7 +16,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { SparklineChart } from "@/components/charts/sparkline-chart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
-import { formatScore, formatINR } from "@/lib/utils/format";
+import { formatScore, formatINR, formatPeriodRange } from "@/lib/utils/format";
 import type { LeaderboardFilters } from "@/lib/types";
 
 const CITY_TIERS = [
@@ -59,7 +59,7 @@ export default function LeaderboardPage() {
     { value: "", label: "Latest Period" },
     ...(periods ?? []).map((p) => ({
       value: p.period_id,
-      label: `${p.period_type === "daily" ? "D" : p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)}`,
+      label: formatPeriodRange(p.period_start, p.period_end),
     })),
   ];
 

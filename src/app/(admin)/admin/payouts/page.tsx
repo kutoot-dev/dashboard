@@ -13,7 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AreaChart } from "@/components/charts/area-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatINR, formatScore } from "@/lib/utils/format";
+import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { PayoutSimulationResult, PayoutSimulationEntry } from "@/lib/api/services/admin.service";
 
 type Row = Record<string, unknown>;
@@ -29,7 +30,7 @@ export default function PayoutSimulationPage() {
 
   const periodOptions = (periods ?? []).map((p) => ({
     value: p.period_id,
-    label: `${p.period_type === "daily" ? "D" : p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)} — ${p.status}`,
+    label: formatPeriodRange(p.period_start, p.period_end),
   }));
 
   const handleRunSimulation = () => {
@@ -91,7 +92,9 @@ export default function PayoutSimulationPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Payout Simulation" subtitle="Model payout distributions before committing" />
+      <PageHeader title="Payout Simulation" subtitle="Model payout distributions before committing">
+        <InfoTooltip text="Simulate how the reward pool would be distributed among merchants for a specific period. Adjust the pool amount, power-law alpha, and minimum threshold to see projected payouts before committing." />
+      </PageHeader>
 
       {/* Controls */}
       <Card>

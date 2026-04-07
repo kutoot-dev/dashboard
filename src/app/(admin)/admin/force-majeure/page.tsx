@@ -15,6 +15,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { ForceMajeureEvent, ForceMajeureEventType, ScoringAdjustmentType } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { FORCE_MAJEURE_INFO } from "@/lib/constants/scoring";
 
 type Row = Record<string, unknown>;
 
@@ -117,7 +119,10 @@ export default function ForceMajeurePage() {
       key: "scoring_adjustment_type",
       header: "Adjustment",
       render: (_: unknown, row: Row) => (
-        <Badge variant="neutral">{String(row.scoring_adjustment_type).replace(/_/g, " ")}</Badge>
+        <div className="flex items-center gap-1.5">
+          <Badge variant="neutral">{String(row.scoring_adjustment_type).replace(/_/g, " ")}</Badge>
+          <InfoTooltip text={FORCE_MAJEURE_INFO.adjustment_types[row.scoring_adjustment_type as keyof typeof FORCE_MAJEURE_INFO.adjustment_types] ?? ""} />
+        </div>
       ),
     },
   ];
@@ -125,6 +130,7 @@ export default function ForceMajeurePage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Force Majeure" subtitle="Manage exceptional events affecting scoring">
+        <InfoTooltip text={FORCE_MAJEURE_INFO.concept} />
         <Button onClick={() => setShowCreate(true)}>New Event</Button>
       </PageHeader>
 
@@ -147,7 +153,10 @@ export default function ForceMajeurePage() {
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{EVENT_TYPE_ICONS[event.event_type]}</span>
                     <div>
-                      <h3 className="font-mono text-sm font-bold text-foreground">{event.event_name}</h3>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-mono text-sm font-bold text-foreground">{event.event_name}</h3>
+                        <InfoTooltip text={FORCE_MAJEURE_INFO.event_types[event.event_type]} />
+                      </div>
                       <p className="text-xs text-muted-foreground">{event.event_type.replace(/_/g, " ")}</p>
                     </div>
                   </div>
@@ -162,10 +171,11 @@ export default function ForceMajeurePage() {
                     <span className="font-mono">Period:</span>{" "}
                     {formatDate(event.start_timestamp)} – {formatDate(event.end_timestamp)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="font-mono">Adjustment:</span>{" "}
                     {event.scoring_adjustment_type.replace(/_/g, " ")}
-                  </p>
+                    <InfoTooltip text={FORCE_MAJEURE_INFO.adjustment_types[event.scoring_adjustment_type]} />
+                  </div>
                 </div>
               </Card>
             ))}

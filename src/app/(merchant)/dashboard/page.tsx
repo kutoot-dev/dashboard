@@ -27,7 +27,7 @@ import { MultiChart } from "@/components/charts/multi-chart";
 import { VolumeChart } from "@/components/charts/volume-chart";
 import { KMIChart } from "@/components/charts/kmi-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatINR, formatScore } from "@/lib/utils/format";
+import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
 import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
 
 type ChartType = "candle" | "line" | "area" | "baseline";
@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
   const periodOptions = (periods ?? []).map((p) => ({
     value: p.period_id,
-    label: `${p.period_type === "daily" ? "D" : p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)} — ${p.status}`,
+    label: formatPeriodRange(p.period_start, p.period_end),
   }));
 
   // Slice chart data by time range

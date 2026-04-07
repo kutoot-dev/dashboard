@@ -19,7 +19,7 @@ import { MultiChart } from "@/components/charts/multi-chart";
 import { BaselineChart } from "@/components/charts/baseline-chart";
 import { AreaChart } from "@/components/charts/area-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatScore, formatDate } from "@/lib/utils/format";
+import { formatScore, formatDate, formatPeriodRange } from "@/lib/utils/format";
 import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS } from "@/lib/constants/scoring";
 import type { ScoreBreakdown } from "@/lib/types";
 
@@ -55,7 +55,7 @@ export default function AnalysisPage() {
 
   const periodOptions = (periods ?? []).map((p) => ({
     value: p.period_id,
-    label: `${p.period_type === "daily" ? "D" : p.period_type === "weekly" ? "W" : "BW"} ${p.period_id.slice(-3)}`,
+    label: formatPeriodRange(p.period_start, p.period_end),
   }));
 
   // Build score trend data from candlestick closes

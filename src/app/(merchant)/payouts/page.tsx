@@ -13,7 +13,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { RewardPoolCard } from "@/components/ui/reward-pool-card";
 import { AreaChart } from "@/components/charts/area-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatINR, formatScore } from "@/lib/utils/format";
+import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
 
 export default function PayoutsPage() {
   const { user } = useAuth();
@@ -39,7 +39,7 @@ export default function PayoutsPage() {
       return {
         time: c.time,
         period_label: period
-          ? `${period.period_type === "daily" ? "Day" : period.period_type === "weekly" ? "Week" : "Biweek"} ${period.period_id.slice(-3)}`
+          ? formatPeriodRange(period.period_start, period.period_end)
           : c.time,
         score,
         rank,

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils/cn";
 import { formatINR, formatScore, formatDate } from "@/lib/utils/format";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import Link from "next/link";
 
 export default function AdminOverviewPage() {
@@ -43,9 +44,12 @@ export default function AdminOverviewPage() {
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Active Merchants
-          </p>
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Active Merchants
+            </p>
+            <InfoTooltip text="Total merchants actively transacting on the platform in the current scoring period. Excludes suspended and dormant merchants." />
+          </div>
           {leaderboardLoading ? (
             <Skeleton className="h-10 w-20" />
           ) : (
@@ -54,9 +58,12 @@ export default function AdminOverviewPage() {
         </Card>
 
         <Card>
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Fraud Flags Open
-          </p>
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Fraud Flags Open
+            </p>
+            <InfoTooltip text="Number of unresolved fraud flags needing investigation. Flags are auto-generated when transaction patterns exceed velocity, reversal, or round-number thresholds." />
+          </div>
           {fraudLoading ? (
             <Skeleton className="h-10 w-16" />
           ) : (
@@ -67,9 +74,12 @@ export default function AdminOverviewPage() {
         </Card>
 
         <Card>
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Force Majeure Active
-          </p>
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Force Majeure Active
+            </p>
+            <InfoTooltip text="Currently active exceptional events (natural disasters, outages, economic disruptions) that are affecting merchant scoring. Affected merchants receive scoring adjustments during these events." />
+          </div>
           {forceLoading ? (
             <Skeleton className="h-10 w-16" />
           ) : (
@@ -80,9 +90,12 @@ export default function AdminOverviewPage() {
         </Card>
 
         <Card>
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Pool This Period
-          </p>
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Pool This Period
+            </p>
+            <InfoTooltip text="Total reward money allocated for distribution in the current scoring period. Distributed among qualified merchants based on rank and score using a power-law curve." />
+          </div>
           {periodsLoading ? (
             <Skeleton className="h-10 w-28" />
           ) : (
@@ -148,9 +161,12 @@ export default function AdminOverviewPage() {
       {/* Platform Health */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Avg Composite Score
-          </p>
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Avg Composite Score
+            </p>
+            <InfoTooltip text="Mean composite score across all active merchants. A healthy platform averages 45–65. Very high or very low averages may indicate scoring calibration issues." />
+          </div>
           {cohortLoading ? (
             <Skeleton className="h-8 w-20" />
           ) : (
@@ -161,9 +177,12 @@ export default function AdminOverviewPage() {
         </Card>
 
         <Card>
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Score Std Deviation
-          </p>
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Score Std Deviation
+            </p>
+            <InfoTooltip text="Standard deviation of composite scores. Low StdDev (<8) means scores are clustered together. High StdDev (>15) means wide gap between top and bottom performers." />
+          </div>
           {cohortLoading ? (
             <Skeleton className="h-8 w-20" />
           ) : (
@@ -174,9 +193,12 @@ export default function AdminOverviewPage() {
         </Card>
 
         <Card>
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Flagged Rate
-          </p>
+          <div className="mb-1 flex items-center gap-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Flagged Rate
+            </p>
+            <InfoTooltip text="Percentage of active merchants with open fraud flags. Above 10% is concerning and may indicate overly sensitive fraud detection thresholds that need tuning." />
+          </div>
           {isLoading ? (
             <Skeleton className="h-8 w-16" />
           ) : (
