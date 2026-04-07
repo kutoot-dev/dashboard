@@ -1,16 +1,16 @@
 /**
- * Mock Data: Merchant Scores
+ * Mock Data: Branch Scores
  *
- * Generates score records (50 merchants × 30 daily periods) with deterministic
- * seeded randomness. Each merchant has a "personality" — trending up, down,
+ * Generates score records (50 branches × 30 daily periods) with deterministic
+ * seeded randomness. Each branch has a "personality" — trending up, down,
  * volatile, or stable — to create realistic candlestick patterns.
  *
  * composite_index_score ranges 0–100.
  * Weighted formula: 0.35*trading + 0.20*margin + 0.20*location + 0.10*txn_quality + 0.10*momentum + 0.05*ecosystem
  */
 
-import type { MerchantScore, ScoreBreakdown } from "@/lib/types";
-import { MOCK_MERCHANTS } from "./merchants";
+import type { BranchScore, ScoreBreakdown } from "@/lib/types";
+import { MOCK_BRANCHES } from "./branches";
 import { MOCK_SCORING_PERIODS } from "./scoring-periods";
 
 // ── Deterministic seeded PRNG (mulberry32) ───────────────────────────
@@ -42,7 +42,7 @@ function round2(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
-// ── Merchant personality archetypes ──────────────────────────────────
+// ── Branch personality archetypes ──────────────────────────────────
 
 type Archetype = "bull" | "bear" | "volatile" | "steady" | "comeback" | "fader";
 
@@ -114,16 +114,16 @@ function generateBreakdown(composite: number, rng: () => number): ScoreBreakdown
 // ── Score trajectory generation ──────────────────────────────────────
 
 function generateScoreTrajectory(
-  merchantId: string,
-  merchantIndex: number,
-): MerchantScore[] {
-  const rng = mulberry32(seedFromString(merchantId + "-scores"));
-  const archetype = getArchetype(merchantIndex);
+  branchId: string,
+  branchIndex: number,
+): BranchScore[] {
+  const rng = mulberry32(seedFromString(branchId + "-scores"));
+  const archetype = getArchetype(branchIndex);
   const drift = getDrift(archetype);
   const vol = getVolatility(archetype);
 
   let currentScore = getBaseScore(archetype, rng);
-  const scores: MerchantScore[] = [];
+  const scores: BranchScore[] = [];
 
   for (let p = 0; p < MOCK_SCORING_PERIODS.length; p++) {
     const period = MOCK_SCORING_PERIODS[p];
@@ -151,15 +151,15 @@ function generateScoreTrajectory(
     const ecoScore = round2(breakdown.ecosystem_contribution);
 
     // Fatigue: top performers in consecutive periods (3+ weeks = 21+ daily periods)
-    const isFatigued = merchantIndex < 5 && p > 20;
+    const isFatigued = branchIndex < 5 && p > 20;
     const fatigueValue = isFatigued ? round2(0.03 + rng() * 0.10) : 0;
 
     // Payout: top-half get payouts
     const payout = composite > 55 ? Math.round(100 + (composite - 55) * 50) : 0;
 
     scores.push({
-      score_id: `sc-${merchantId}-${period.period_id}`,
-      merchant_id: merchantId,
+      score_id: `sc-${branchId}-${period.period_id}`,
+      branch_id: branchId,
       period_id: period.period_id,
       raw_transaction_volume: rawVolume,
       raw_revenue: rawRevenue,
@@ -192,11 +192,11 @@ function generateScoreTrajectory(
 
 // ── Generate all scores ──────────────────────────────────────────────
 
-function generateAllScores(): MerchantScore[] {
-  const allScores: MerchantScore[] = [];
+function generateAllScores(): BranchScore[] {
+  const allScores: BranchScore[] = [];
 
-  for (let i = 0; i < MOCK_MERCHANTS.length; i++) {
-    const trajectory = generateScoreTrajectory(MOCK_MERCHANTS[i].merchant_id, i);
+  for (let i = 0; i < MOCK_BRANCHES.length; i++) {
+    const trajectory = generateScoreTrajectory(MOCK_BRANCHES[i].branch_id, i);
     allScores.push(...trajectory);
   }
 
@@ -219,7 +219,7 @@ function generateAllScores(): MerchantScore[] {
     for (const score of allScores) {
       if (score.period_id !== currPeriod) continue;
       const prev = allScores.find(
-        (s) => s.merchant_id === score.merchant_id && s.period_id === prevPeriod,
+        (s) => s.branch_id === score.branch_id && s.period_id === prevPeriod,
       );
       if (prev) {
         score.rank_movement = prev.final_rank - score.final_rank; // positive = moved up
@@ -230,22 +230,22 @@ function generateAllScores(): MerchantScore[] {
   return allScores;
 }
 
-export const MOCK_SCORES: MerchantScore[] = generateAllScores();
+export const MOCK_SCORES: BranchScore[] = generateAllScores();
 
 // ── Query helpers ────────────────────────────────────────────────────
 
-/** Get scores for a specific merchant across all periods */
-export function getMerchantScores(merchantId: string): MerchantScore[] {
-  return MOCK_SCORES.filter((s) => s.merchant_id === merchantId);
+/** Get scores for a specific branch across all periods */
+export function getBranchScores(branchId: string): BranchScore[] {
+  return MOCK_SCORES.filter((s) => s.branch_id === branchId);
 }
 
 /** Get all scores for a specific period */
-export function getPeriodScores(periodId: string): MerchantScore[] {
+export function getPeriodScores(periodId: string): BranchScore[] {
   return MOCK_SCORES.filter((s) => s.period_id === periodId);
 }
 
 /** Get the latest finalized period's scores */
-export function getLatestScores(): MerchantScore[] {
+export function getLatestScores(): BranchScore[] {
   const finalized = MOCK_SCORING_PERIODS.filter((p) => p.status === "closed");
   const latest = finalized[finalized.length - 1];
   return latest ? getPeriodScores(latest.period_id) : [];

@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE = "kutoot_auth";
 
-const PROTECTED_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts"];
+const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts"];
+const HO_ROUTES = ["/ho"];
 const ADMIN_ROUTES = ["/admin"];
+
+function getHomeForRole(role: string): string {
+  switch (role) {
+    case "admin": return "/admin";
+    case "ho": return "/ho";
+    default: return "/dashboard";
+  }
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,29 +28,30 @@ export function middleware(request: NextRequest) {
   }
 
   const isAuthenticated = user !== null;
-  const isAdmin = user?.role === "admin";
+  const role = user?.role;
 
   // Redirect authenticated users away from login
   if (pathname === "/login" && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
   }
 
   // Protect admin routes
   if (ADMIN_ROUTES.some((route) => pathname.startsWith(route))) {
-    if (!isAuthenticated) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    if (!isAuthenticated) return NextResponse.redirect(new URL("/login", request.url));
+    if (role !== "admin") return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
     return NextResponse.next();
   }
 
-  // Protect authenticated routes
-  if (PROTECTED_ROUTES.some((route) => pathname.startsWith(route))) {
-    if (!isAuthenticated) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
+  // Protect HO routes
+  if (HO_ROUTES.some((route) => pathname.startsWith(route))) {
+    if (!isAuthenticated) return NextResponse.redirect(new URL("/login", request.url));
+    if (role !== "ho") return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
+    return NextResponse.next();
+  }
+
+  // Protect branch routes (accessible by branch and ho roles)
+  if (BRANCH_ROUTES.some((route) => pathname.startsWith(route))) {
+    if (!isAuthenticated) return NextResponse.redirect(new URL("/login", request.url));
     return NextResponse.next();
   }
 
@@ -54,6 +64,7 @@ export const config = {
     "/leaderboard/:path*",
     "/analysis/:path*",
     "/payouts/:path*",
+    "/ho/:path*",
     "/admin/:path*",
     "/login",
   ],

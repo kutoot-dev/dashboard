@@ -3,9 +3,9 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
-  useMerchantScore,
-  useMerchantCandlesticks,
-} from "@/lib/hooks/use-merchant-data";
+  useBranchScore,
+  useBranchCandlesticks,
+} from "@/lib/hooks/use-branch-data";
 import { useScoringPeriods, usePeriodScores } from "@/lib/hooks/use-scores";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
@@ -42,15 +42,15 @@ const SUB_SCORE_KEYS: (keyof ScoreBreakdown)[] = [
 
 export default function AnalysisPage() {
   const { user } = useAuth();
-  const merchantId = user?.merchant_id ?? "m-001";
+  const branchId = user?.branch_id ?? "m-001";
   const [activeTab, setActiveTab] = useState("trend");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [chartType, setChartType] = useState<ChartType>("area");
 
   const { data: periods, isLoading: periodsLoading } = useScoringPeriods();
   const { data: candlesticks, isLoading: candlesticksLoading } =
-    useMerchantCandlesticks(merchantId);
-  const { data: score } = useMerchantScore(merchantId);
+    useBranchCandlesticks(branchId);
+  const { data: score } = useBranchScore(branchId);
   const { data: periodScores } = usePeriodScores(selectedPeriod || (periods?.[0]?.period_id ?? ""));
 
   const periodOptions = (periods ?? []).map((p) => ({
@@ -86,7 +86,7 @@ export default function AnalysisPage() {
     });
   }, [candlesticks, score]);
 
-  // Peer comparison: merchant score vs sector average
+  // Peer comparison: branch score vs sector average
   const peerData = useMemo(
     () =>
       (candlesticks ?? []).map((c) => ({

@@ -2,21 +2,21 @@
  * Types: Transaction entity
  *
  * DB TABLE: transactions
- * COLUMNS: transaction_id (UUID PK), merchant_id (FK), transaction_timestamp,
+ * COLUMNS: transaction_id (UUID PK), branch_id (FK), transaction_timestamp,
  *   amount_gross (decimal), amount_net (decimal),
  *   customer_identifier_hash (hashed string),
  *   transaction_type (enum), bundle_unit_count (nullable int),
  *   is_platform_originated (bool), is_flagged (bool),
  *   flag_reason (nullable), created_at
- * INDEXES: transaction_id, merchant_id, transaction_timestamp
- * CONSTRAINTS: FK to merchants(merchant_id)
+ * INDEXES: transaction_id, branch_id, transaction_timestamp
+ * CONSTRAINTS: FK to branches(branch_id)
  */
 
 export type TransactionType = "standard" | "subscription" | "bundle" | "refund" | "reversal";
 
 export interface Transaction {
   transaction_id: string;
-  merchant_id: string;
+  branch_id: string;
   transaction_timestamp: string;
   amount_gross: number;
   amount_net: number;

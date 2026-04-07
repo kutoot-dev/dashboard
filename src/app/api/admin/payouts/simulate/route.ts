@@ -3,12 +3,12 @@
  *
  * BACKEND SPEC: Run the payout distribution formula for the given period
  *   without persisting results. Accept optional pool_override and top_n params.
- *   Formula: payout_i = pool * (score_i / sum(scores)) for top N merchants.
+ *   Formula: payout_i = pool * (score_i / sum(scores)) for top N branches.
  *   Requires admin role.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { MOCK_SCORES } from "@/lib/mock/scores";
-import { MOCK_MERCHANTS } from "@/lib/mock/merchants";
+import { MOCK_BRANCHES } from "@/lib/mock/branches";
 import { MOCK_SCORING_PERIODS } from "@/lib/mock/scoring-periods";
 
 export async function POST(request: NextRequest) {
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     );
 
     const entries = periodScores.map((s) => {
-      const merchant = MOCK_MERCHANTS.find(
-        (m) => m.merchant_id === s.merchant_id,
+      const branch = MOCK_BRANCHES.find(
+        (m) => m.branch_id === s.branch_id,
       );
       const payout =
         totalScore > 0
@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
           : 0;
 
       return {
-        merchant_id: s.merchant_id,
-        business_name: merchant?.business_name ?? "Unknown",
+        branch_id: s.branch_id,
+        business_name: branch?.business_name ?? "Unknown",
         rank: s.final_rank,
         composite_score: s.composite_index_score,
         payout_amount: payout,

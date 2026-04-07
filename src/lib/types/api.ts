@@ -50,7 +50,7 @@ export interface LeaderboardFilters {
 export interface LeaderboardEntry {
   rank: number;
   rank_movement: number;
-  merchant_id: string;
+  branch_id: string;
   business_name: string;
   city_name: string;
   state: string;

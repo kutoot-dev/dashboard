@@ -3,10 +3,10 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
-  useMerchantScore,
-  useMerchantCandlesticks,
-  useMerchantVolume,
-} from "@/lib/hooks/use-merchant-data";
+  useBranchScore,
+  useBranchCandlesticks,
+  useBranchVolume,
+} from "@/lib/hooks/use-branch-data";
 import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { useLiveScore } from "@/lib/hooks/use-live-data";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -29,6 +29,7 @@ import { KMIChart } from "@/components/charts/kmi-chart";
 import { cn } from "@/lib/utils/cn";
 import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
 import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
+import { BRANCH_DASHBOARD, COMMON } from "@/lib/constants/strings";
 
 type ChartType = "candle" | "line" | "area" | "baseline";
 
@@ -39,25 +40,25 @@ const TIME_RANGES = [
   { label: "All", value: -1 },
 ];
 
-const TOTAL_MERCHANTS = 50;
+const TOTAL_BRANCHES = 50;
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const merchantId = user?.merchant_id ?? "m-001";
+  const branchId = user?.branch_id ?? "m-001";
   const [chartType, setChartType] = useState<ChartType>("candle");
 
   const { selectedPeriodId, setSelectedPeriodId, chartTimeRange, setChartTimeRange } =
     useUIStore();
 
   const { data: periods, isLoading: periodsLoading } = useScoringPeriods();
-  const { data: score, isLoading: scoreLoading } = useMerchantScore(
-    merchantId,
+  const { data: score, isLoading: scoreLoading } = useBranchScore(
+    branchId,
     selectedPeriodId ?? undefined,
   );
   const { data: candlesticks, isLoading: candlesticksLoading } =
-    useMerchantCandlesticks(merchantId);
+    useBranchCandlesticks(branchId);
   const { data: volume, isLoading: volumeLoading } =
-    useMerchantVolume(merchantId);
+    useBranchVolume(branchId);
 
   // Live score simulation
   const liveScore = useLiveScore(score?.composite_index_score ?? 0);
@@ -118,7 +119,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <PageHeader title="My Shop" subtitle="Your complete performance overview">
+      <PageHeader title={BRANCH_DASHBOARD.TITLE} subtitle={BRANCH_DASHBOARD.SUBTITLE}>
         <Select
           options={periodOptions}
           value={selectedPeriodId ?? ""}
@@ -128,20 +129,20 @@ export default function DashboardPage() {
         />
       </PageHeader>
 
-      {/* KMI (Kutoot Merchant Index) — platform-wide chart */}
+      {/* KBI (Kutoot Branch Index) — platform-wide chart */}
       <Card className="overflow-hidden p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-2">
           <div className="flex items-center gap-2">
             <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Kutoot Merchant Index (KMI)
+              {COMMON.INDEX_NAME}
             </h2>
-            <InfoTooltip text="The KMI shows the combined performance of all merchants on Kutoot. When most merchants do well, the index goes up. It updates live every few seconds." />
+            <InfoTooltip text="The KBI shows the combined performance of all branches on Kutoot. When most branches do well, the index goes up. It updates live every few seconds." />
           </div>
           <div className="flex items-center gap-4">
             {/* Your personal index */}
             {score && (
               <div className="flex items-center gap-2 rounded-md bg-accent/5 px-3 py-1 border border-accent/10">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Your Index</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{BRANCH_DASHBOARD.YOUR_INDEX}</span>
                 <span className="font-mono text-sm font-bold text-accent">
                   {(1000 + liveScore.current * 2.47).toFixed(0)}
                 </span>
@@ -172,7 +173,7 @@ export default function DashboardPage() {
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Your Score
+              {BRANCH_DASHBOARD.YOUR_SCORE}
             </p>
             <InfoTooltip text="Your overall performance score out of 100. Based on 6 different parameters like daily sales, profit health, and location advantage." />
           </div>
@@ -193,9 +194,9 @@ export default function DashboardPage() {
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Your Rank
+              {BRANCH_DASHBOARD.YOUR_RANK}
             </p>
-            <InfoTooltip text="Your position among all merchants. Higher score = lower rank number. Top ranks earn bigger daily rewards." />
+            <InfoTooltip text="Your position among all branches. Higher score = lower rank number. Top ranks earn bigger daily rewards." />
           </div>
           {scoreLoading ? (
             <Skeleton className="h-10 w-20" />
@@ -205,7 +206,7 @@ export default function DashboardPage() {
                 #{score.final_rank}
               </span>
               <div className="flex flex-col gap-1">
-                <RankBadge rank={score.final_rank} totalMerchants={TOTAL_MERCHANTS} />
+                <RankBadge rank={score.final_rank} totalBranches={TOTAL_BRANCHES} />
                 <ChangeIndicator value={score.rank_movement} suffix="" />
               </div>
             </div>
@@ -234,7 +235,7 @@ export default function DashboardPage() {
                   <p className="font-mono text-[10px] text-warning">
                     Fatigue applied ({(score.fatigue_dampener_value * 100).toFixed(0)}%)
                   </p>
-                  <InfoTooltip text="You've been in the top 10 for 3+ weeks. A small reduction is applied to give other merchants a fair chance. Keep performing — you still earn top rewards!" />
+                  <InfoTooltip text="You've been in the top 10 for 3+ weeks. A small reduction is applied to give other branches a fair chance. Keep performing — you still earn top rewards!" />
                 </div>
               )}
             </div>

@@ -6,7 +6,7 @@
  * (green for gain periods, red for loss periods).
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getMerchantVolume } from "@/lib/mock/candlesticks";
+import { getBranchVolume } from "@/lib/mock/candlesticks";
 
 export async function GET(
   _request: NextRequest,
@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const volume = getMerchantVolume(id);
+    const volume = getBranchVolume(id);
 
     if (volume.length === 0) {
       return NextResponse.json(
@@ -28,7 +28,7 @@ export async function GET(
           },
           error: {
             code: "NOT_FOUND",
-            message: `No volume data for merchant ${id}`,
+            message: `No volume data for branch ${id}`,
           },
         },
         { status: 404 },

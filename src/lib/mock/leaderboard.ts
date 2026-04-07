@@ -1,13 +1,13 @@
 /**
  * Mock Data: Leaderboard Computation
  *
- * Computes a filtered, sorted leaderboard from scores, merchants,
+ * Computes a filtered, sorted leaderboard from scores, branches,
  * sectors, and locations. Supports filtering by period, sector, and location.
  * Returns data matching the LeaderboardEntry API shape.
  */
 
 import type { LeaderboardEntry } from "@/lib/types";
-import { MOCK_MERCHANTS } from "./merchants";
+import { MOCK_BRANCHES } from "./branches";
 import { MOCK_SCORES } from "./scores";
 import { MOCK_SECTORS } from "./sectors";
 import { MOCK_LOCATIONS } from "./locations";
@@ -42,17 +42,17 @@ export function computeLeaderboard(
 
   // Apply filters
   if (sectorId) {
-    const merchantIds = new Set(
-      MOCK_MERCHANTS.filter((m) => m.sector_id === sectorId).map((m) => m.merchant_id),
+    const branchIds = new Set(
+      MOCK_BRANCHES.filter((m) => m.sector_id === sectorId).map((m) => m.branch_id),
     );
-    periodScores = periodScores.filter((s) => merchantIds.has(s.merchant_id));
+    periodScores = periodScores.filter((s) => branchIds.has(s.branch_id));
   }
 
   if (locationId) {
-    const merchantIds = new Set(
-      MOCK_MERCHANTS.filter((m) => m.location_id === locationId).map((m) => m.merchant_id),
+    const branchIds = new Set(
+      MOCK_BRANCHES.filter((m) => m.location_id === locationId).map((m) => m.branch_id),
     );
-    periodScores = periodScores.filter((s) => merchantIds.has(s.merchant_id));
+    periodScores = periodScores.filter((s) => branchIds.has(s.branch_id));
   }
 
   // Sort by composite score descending
@@ -63,29 +63,29 @@ export function computeLeaderboard(
     prevPeriodId
       ? MOCK_SCORES
           .filter((s) => s.period_id === prevPeriodId)
-          .map((s) => [s.merchant_id, s])
+          .map((s) => [s.branch_id, s])
       : [],
   );
 
-  // Build sparkline from all period scores for each merchant
+  // Build sparkline from all period scores for each branch
   const sparklineMap = new Map<string, number[]>();
-  for (const merchant of MOCK_MERCHANTS) {
+  for (const branch of MOCK_BRANCHES) {
     const trajectory = MOCK_SCORES
-      .filter((s) => s.merchant_id === merchant.merchant_id)
+      .filter((s) => s.branch_id === branch.branch_id)
       .sort((a, b) => {
         const aIdx = MOCK_SCORING_PERIODS.findIndex((p) => p.period_id === a.period_id);
         const bIdx = MOCK_SCORING_PERIODS.findIndex((p) => p.period_id === b.period_id);
         return aIdx - bIdx;
       })
       .map((s) => s.composite_index_score);
-    sparklineMap.set(merchant.merchant_id, trajectory);
+    sparklineMap.set(branch.branch_id, trajectory);
   }
 
   return periodScores.map((score, idx) => {
-    const merchant = MOCK_MERCHANTS.find((m) => m.merchant_id === score.merchant_id);
-    const sector = MOCK_SECTORS.find((s) => s.sector_id === merchant?.sector_id);
-    const location = MOCK_LOCATIONS.find((l) => l.location_id === merchant?.location_id);
-    const prevScore = prevScoresMap.get(score.merchant_id);
+    const branch = MOCK_BRANCHES.find((m) => m.branch_id === score.branch_id);
+    const sector = MOCK_SECTORS.find((s) => s.sector_id === branch?.sector_id);
+    const location = MOCK_LOCATIONS.find((l) => l.location_id === branch?.location_id);
+    const prevScore = prevScoresMap.get(score.branch_id);
 
     const rank = idx + 1;
     const prevRank = prevScore?.final_rank ?? rank;
@@ -109,8 +109,8 @@ export function computeLeaderboard(
     return {
       rank,
       rank_movement: prevRank - rank,
-      merchant_id: score.merchant_id,
-      business_name: merchant?.business_name ?? "Unknown",
+      branch_id: score.branch_id,
+      business_name: branch?.business_name ?? "Unknown",
       city_name: location?.city_name ?? "Unknown",
       state: location?.state ?? "Unknown",
       sector_name: sector?.sector_name ?? "Unknown",
@@ -127,7 +127,7 @@ export function computeLeaderboard(
       },
       payout_status: payoutStatus,
       payout_amount: score.payout_amount,
-      sparkline_data: sparklineMap.get(score.merchant_id) ?? [],
+      sparkline_data: sparklineMap.get(score.branch_id) ?? [],
     };
   });
 }

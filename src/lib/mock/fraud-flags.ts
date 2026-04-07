@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mock Data: Fraud Flags
  *
  * 18 fraud flags across different merchants, flag types, severities,
@@ -9,13 +9,13 @@
 import type { FraudFlag } from "@/lib/types";
 
 export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
-  // ── fake_transaction ──
+  // â”€â”€ fake_transaction â”€â”€
   {
     flag_id: "ff-001",
-    merchant_id: "m-012",
+    branch_id: "m-012",
     period_id: "sp-008",
     flag_type: "fake_transaction",
-    detection_signal: "Transaction velocity 3.2× above sector mean within 4-hour window; 87% of transactions below ₹50",
+    detection_signal: "Transaction velocity 3.2Ã— above sector mean within 4-hour window; 87% of transactions below â‚¹50",
     severity: "high",
     action_taken: "score_hold",
     investigation_status: "under_review",
@@ -23,10 +23,10 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-002",
-    merchant_id: "m-050",
+    branch_id: "m-050",
     period_id: "sp-006",
     flag_type: "fake_transaction",
-    detection_signal: "Sequential transaction IDs with identical amounts (₹99) from 3 unique device fingerprints",
+    detection_signal: "Sequential transaction IDs with identical amounts (â‚¹99) from 3 unique device fingerprints",
     severity: "critical",
     action_taken: "exclusion",
     investigation_status: "resolved_fraudulent",
@@ -34,7 +34,7 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-003",
-    merchant_id: "m-033",
+    branch_id: "m-033",
     period_id: "sp-010",
     flag_type: "fake_transaction",
     detection_signal: "Burst of 45 transactions in 12 minutes; all from same IP subnet",
@@ -44,13 +44,13 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
     created_at: "2026-03-25T18:45:00Z",
   },
 
-  // ── referral_loop ──
+  // â”€â”€ referral_loop â”€â”€
   {
     flag_id: "ff-004",
-    merchant_id: "m-042",
+    branch_id: "m-042",
     period_id: "sp-007",
     flag_type: "referral_loop",
-    detection_signal: "Circular referral chain detected: m-042 → m-044 → m-043 → m-042 within 48 hours",
+    detection_signal: "Circular referral chain detected: m-042 â†’ m-044 â†’ m-043 â†’ m-042 within 48 hours",
     severity: "high",
     action_taken: "score_reduction",
     investigation_status: "resolved_fraudulent",
@@ -58,7 +58,7 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-005",
-    merchant_id: "m-044",
+    branch_id: "m-044",
     period_id: "sp-007",
     flag_type: "referral_loop",
     detection_signal: "Part of circular referral chain with m-042 and m-043",
@@ -68,10 +68,10 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
     created_at: "2026-03-04T11:30:00Z",
   },
 
-  // ── artificial_spike ──
+  // â”€â”€ artificial_spike â”€â”€
   {
     flag_id: "ff-006",
-    merchant_id: "m-009",
+    branch_id: "m-009",
     period_id: "sp-009",
     flag_type: "artificial_spike",
     detection_signal: "Revenue spike of 420% week-over-week; no corresponding footfall increase in location data",
@@ -82,10 +82,10 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-007",
-    merchant_id: "m-031",
+    branch_id: "m-031",
     period_id: "sp-005",
     flag_type: "artificial_spike",
-    detection_signal: "Transaction volume 2.8× above 4-week rolling average; concentrated in final 2 days of period",
+    detection_signal: "Transaction volume 2.8Ã— above 4-week rolling average; concentrated in final 2 days of period",
     severity: "medium",
     action_taken: "monitor",
     investigation_status: "resolved_genuine",
@@ -93,20 +93,20 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-008",
-    merchant_id: "m-022",
+    branch_id: "m-022",
     period_id: "sp-010",
     flag_type: "artificial_spike",
-    detection_signal: "Sudden 5× increase in ₹500 denomination transactions; possible festival bump or manipulation",
+    detection_signal: "Sudden 5Ã— increase in â‚¹500 denomination transactions; possible festival bump or manipulation",
     severity: "low",
     action_taken: "monitor",
     investigation_status: "resolved_genuine",
     created_at: "2026-03-26T10:30:00Z",
   },
 
-  // ── discount_manipulation ──
+  // â”€â”€ discount_manipulation â”€â”€
   {
     flag_id: "ff-009",
-    merchant_id: "m-016",
+    branch_id: "m-016",
     period_id: "sp-008",
     flag_type: "discount_manipulation",
     detection_signal: "Consistent 99% discount applied on high-value items; effective sale price matches minimum threshold",
@@ -117,7 +117,7 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-010",
-    merchant_id: "m-035",
+    branch_id: "m-035",
     period_id: "sp-009",
     flag_type: "discount_manipulation",
     detection_signal: "Discount codes applied to 78% of transactions vs sector avg of 12%; revenue unchanged",
@@ -127,13 +127,13 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
     created_at: "2026-03-19T15:45:00Z",
   },
 
-  // ── price_inflation ──
+  // â”€â”€ price_inflation â”€â”€
   {
     flag_id: "ff-011",
-    merchant_id: "m-034",
+    branch_id: "m-034",
     period_id: "sp-010",
     flag_type: "price_inflation",
-    detection_signal: "Average ticket size jumped from ₹12,000 to ₹48,000 without seasonal justification",
+    detection_signal: "Average ticket size jumped from â‚¹12,000 to â‚¹48,000 without seasonal justification",
     severity: "high",
     action_taken: "score_hold",
     investigation_status: "under_review",
@@ -141,23 +141,23 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-012",
-    merchant_id: "m-013",
+    branch_id: "m-013",
     period_id: "sp-006",
     flag_type: "price_inflation",
-    detection_signal: "Consistent ₹500 surcharge added to all transactions; possible fee-padding",
+    detection_signal: "Consistent â‚¹500 surcharge added to all transactions; possible fee-padding",
     severity: "medium",
     action_taken: "monitor",
     investigation_status: "resolved_genuine",
     created_at: "2026-02-25T14:00:00Z",
   },
 
-  // ── category_abuse ──
+  // â”€â”€ category_abuse â”€â”€
   {
     flag_id: "ff-013",
-    merchant_id: "m-041",
+    branch_id: "m-041",
     period_id: "sp-009",
     flag_type: "category_abuse",
-    detection_signal: "Merchant categorized as General Merchandise but 92% of SKUs match Electronics sector profile",
+    detection_signal: "Branch categorized as General Merchandise but 92% of SKUs match Electronics sector profile",
     severity: "medium",
     action_taken: "score_reduction",
     investigation_status: "under_review",
@@ -165,7 +165,7 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-014",
-    merchant_id: "m-048",
+    branch_id: "m-048",
     period_id: "sp-008",
     flag_type: "category_abuse",
     detection_signal: "Transaction patterns inconsistent with General Merchandise; matches Restaurant & Food profile",
@@ -175,13 +175,13 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
     created_at: "2026-03-13T11:30:00Z",
   },
 
-  // ── dormancy_gaming ──
+  // â”€â”€ dormancy_gaming â”€â”€
   {
     flag_id: "ff-015",
-    merchant_id: "m-008",
+    branch_id: "m-008",
     period_id: "sp-011",
     flag_type: "dormancy_gaming",
-    detection_signal: "Merchant dormant for 6 periods then sudden activity burst matching top-performer pattern",
+    detection_signal: "Branch dormant for 6 periods then sudden activity burst matching top-performer pattern",
     severity: "medium",
     action_taken: "score_hold",
     investigation_status: "open",
@@ -189,10 +189,10 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-016",
-    merchant_id: "m-030",
+    branch_id: "m-030",
     period_id: "sp-011",
     flag_type: "dormancy_gaming",
-    detection_signal: "New merchant with suspiciously perfect transaction distribution matching engagement criteria",
+    detection_signal: "New branch with suspiciously perfect transaction distribution matching engagement criteria",
     severity: "low",
     action_taken: "monitor",
     investigation_status: "open",
@@ -200,10 +200,10 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-017",
-    merchant_id: "m-047",
+    branch_id: "m-047",
     period_id: "sp-010",
     flag_type: "artificial_spike",
-    detection_signal: "Remote location merchant showing metro-level transaction density; IP geolocation mismatch",
+    detection_signal: "Remote location branch showing metro-level transaction density; IP geolocation mismatch",
     severity: "high",
     action_taken: "score_hold",
     investigation_status: "under_review",
@@ -211,7 +211,7 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
   },
   {
     flag_id: "ff-018",
-    merchant_id: "m-006",
+    branch_id: "m-006",
     period_id: "sp-004",
     flag_type: "referral_loop",
     detection_signal: "Network analysis shows 8 referred merchants all referring each other within same week",
@@ -221,3 +221,4 @@ export const MOCK_FRAUD_FLAGS: FraudFlag[] = [
     created_at: "2026-02-11T12:00:00Z",
   },
 ];
+

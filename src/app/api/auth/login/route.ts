@@ -10,12 +10,22 @@ import { cookies } from "next/headers";
 
 const MOCK_USERS = [
   {
-    id: "user-merchant-001",
+    id: "user-branch-001",
     name: "Rajesh Sharma",
-    email: "merchant@kutoot.com",
+    email: "branch@kutoot.com",
     password: "password",
-    role: "merchant" as const,
-    merchant_id: "m-001",
+    role: "branch" as const,
+    branch_id: "m-001",
+    ho_id: null,
+  },
+  {
+    id: "user-ho-001",
+    name: "Sharma Group HO",
+    email: "ho@kutoot.com",
+    password: "password",
+    role: "ho" as const,
+    branch_id: null,
+    ho_id: "ho-001",
   },
   {
     id: "user-admin-001",
@@ -23,7 +33,8 @@ const MOCK_USERS = [
     email: "admin@kutoot.com",
     password: "password",
     role: "admin" as const,
-    merchant_id: null,
+    branch_id: null,
+    ho_id: null,
   },
 ];
 
@@ -79,7 +90,8 @@ export async function POST(request: NextRequest) {
       name: user.name,
       email: user.email,
       role: user.role,
-      merchant_id: user.merchant_id,
+      branch_id: user.branch_id,
+      ho_id: user.ho_id,
     };
 
     const jar = await cookies();

@@ -38,11 +38,11 @@ const STATES = [
 ];
 
 const PAGE_SIZE = 20;
-const TOTAL_MERCHANTS = 50;
+const TOTAL_BRANCHES = 50;
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
-  const currentMerchantId = user?.merchant_id ?? "m-001";
+  const currentBranchId = user?.branch_id ?? "m-001";
 
   const [filters, setFilters] = useState<LeaderboardFilters>({
     page: 1,
@@ -123,10 +123,10 @@ export default function LeaderboardPage() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-3 py-2 text-left font-mono text-xs font-medium text-muted-foreground">
-                    <span className="flex items-center gap-1"># <InfoTooltip text="Merchant ranking based on overall score. Updates live." /></span>
+                    <span className="flex items-center gap-1"># <InfoTooltip text="Branch ranking based on overall score. Updates live." /></span>
                   </th>
                   <th className="px-3 py-2 text-left font-mono text-xs font-medium text-muted-foreground">
-                    <span className="flex items-center gap-1">Dukaan <InfoTooltip text="Business name of the merchant." /></span>
+                    <span className="flex items-center gap-1">Dukaan <InfoTooltip text="Business name of the branch." /></span>
                   </th>
                   <th className="px-3 py-2 text-left font-mono text-xs font-medium text-muted-foreground">
                     <span className="flex items-center gap-1">Category <InfoTooltip text="Type of business — kirana, pharmacy, electronics, etc." /></span>
@@ -150,10 +150,10 @@ export default function LeaderboardPage() {
               </thead>
               <tbody>
                 {items.map((entry) => {
-                  const isMe = entry.merchant_id === currentMerchantId;
+                  const isMe = entry.branch_id === currentBranchId;
                   return (
                     <tr
-                      key={entry.merchant_id}
+                      key={entry.branch_id}
                       className={cn(
                         "border-b border-border transition-colors",
                         isMe
@@ -170,7 +170,7 @@ export default function LeaderboardPage() {
                           <ChangeIndicator value={entry.rank_movement} suffix="" />
                           <RankBadge
                             rank={entry.rank}
-                            totalMerchants={TOTAL_MERCHANTS}
+                            totalBranches={TOTAL_BRANCHES}
                           />
                         </div>
                       </td>

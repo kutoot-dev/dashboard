@@ -125,10 +125,10 @@ export default function FraudQueuePage() {
       ),
     },
     {
-      key: "merchant_id",
-      header: "Merchant",
+      key: "branch_id",
+      header: "Branch",
       render: (_: unknown, row: Row) => (
-        <span className="font-mono text-xs text-foreground">{String(row.merchant_id)}</span>
+        <span className="font-mono text-xs text-foreground">{String(row.branch_id)}</span>
       ),
     },
     {
@@ -218,8 +218,8 @@ export default function FraudQueuePage() {
                 <p className="font-mono text-sm text-foreground">{selectedFlag.flag_id}</p>
               </div>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchant</p>
-                <p className="font-mono text-sm text-foreground">{selectedFlag.merchant_id}</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Branch</p>
+                <p className="font-mono text-sm text-foreground">{selectedFlag.branch_id}</p>
               </div>
             </div>
 
@@ -320,7 +320,7 @@ export default function FraudQueuePage() {
                 onClick={() => handleAction("exclusion", "resolved_fraudulent")}
                 loading={updateMutation.isPending}
               >
-                Suspend Merchant
+                Suspend Branch
               </Button>
             </div>
           </div>

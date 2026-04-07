@@ -1,7 +1,8 @@
 /**
  * Barrel export for all Kutoot types
  */
-export * from "./merchant";
+export * from "./branch";
+export * from "./ho";
 export * from "./sector";
 export * from "./location";
 export * from "./transaction";

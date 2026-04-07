@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils/cn";
 import { formatINR, formatScore, formatDate } from "@/lib/utils/format";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { ADMIN_OVERVIEW } from "@/lib/constants/strings";
 import Link from "next/link";
 
 export default function AdminOverviewPage() {
@@ -25,7 +26,7 @@ export default function AdminOverviewPage() {
   ) ?? [];
   const currentPeriod = periods?.find((p) => p.status === "open") ?? periods?.[0];
   const entries = leaderboard?.items ?? [];
-  const merchantCount = entries.length;
+  const branchCount = entries.length;
 
   // Platform health metrics
   const scores = entries.map((m) => m.composite_score).filter(Boolean);
@@ -33,36 +34,36 @@ export default function AdminOverviewPage() {
   const stdDev = scores.length > 0
     ? Math.sqrt(scores.reduce((sum, s) => sum + Math.pow(s - avgScore, 2), 0) / scores.length)
     : 0;
-  const flaggedPercent = merchantCount > 0 ? ((openFraudFlags.length / merchantCount) * 100) : 0;
+  const flaggedPercent = branchCount > 0 ? ((openFraudFlags.length / branchCount) * 100) : 0;
 
   const isLoading = fraudLoading || forceLoading || leaderboardLoading || periodsLoading;
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Admin Overview" subtitle="Platform health & management" />
+      <PageHeader title={ADMIN_OVERVIEW.TITLE} subtitle={ADMIN_OVERVIEW.SUBTITLE} />
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Active Merchants
+              {ADMIN_OVERVIEW.ACTIVE_BRANCHES}
             </p>
-            <InfoTooltip text="Total merchants actively transacting on the platform in the current scoring period. Excludes suspended and dormant merchants." />
+            <InfoTooltip text={ADMIN_OVERVIEW.ACTIVE_BRANCHES_TIP} />
           </div>
           {leaderboardLoading ? (
             <Skeleton className="h-10 w-20" />
           ) : (
-            <span className="font-mono text-4xl font-bold text-foreground">{merchantCount}</span>
+            <span className="font-mono text-4xl font-bold text-foreground">{branchCount}</span>
           )}
         </Card>
 
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Fraud Flags Open
+              {ADMIN_OVERVIEW.FRAUD_FLAGS_OPEN}
             </p>
-            <InfoTooltip text="Number of unresolved fraud flags needing investigation. Flags are auto-generated when transaction patterns exceed velocity, reversal, or round-number thresholds." />
+            <InfoTooltip text={ADMIN_OVERVIEW.FRAUD_FLAGS_OPEN_TIP} />
           </div>
           {fraudLoading ? (
             <Skeleton className="h-10 w-16" />
@@ -76,9 +77,9 @@ export default function AdminOverviewPage() {
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Force Majeure Active
+              {ADMIN_OVERVIEW.FORCE_MAJEURE_ACTIVE}
             </p>
-            <InfoTooltip text="Currently active exceptional events (natural disasters, outages, economic disruptions) that are affecting merchant scoring. Affected merchants receive scoring adjustments during these events." />
+            <InfoTooltip text={ADMIN_OVERVIEW.FORCE_MAJEURE_ACTIVE_TIP} />
           </div>
           {forceLoading ? (
             <Skeleton className="h-10 w-16" />
@@ -92,9 +93,9 @@ export default function AdminOverviewPage() {
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Pool This Period
+              {ADMIN_OVERVIEW.POOL_THIS_PERIOD}
             </p>
-            <InfoTooltip text="Total reward money allocated for distribution in the current scoring period. Distributed among qualified merchants based on rank and score using a power-law curve." />
+            <InfoTooltip text={ADMIN_OVERVIEW.POOL_THIS_PERIOD_TIP} />
           </div>
           {periodsLoading ? (
             <Skeleton className="h-10 w-28" />
@@ -109,7 +110,7 @@ export default function AdminOverviewPage() {
       {/* Quick Actions */}
       <Card>
         <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Activity & Quick Actions
+          {ADMIN_OVERVIEW.ACTIVITY_TITLE}
         </h2>
         <div className="space-y-2">
           {isLoading ? (
@@ -126,7 +127,7 @@ export default function AdminOverviewPage() {
                   className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-card-hover transition-colors"
                 >
                   <Badge variant="loss">{openFraudFlags.length}</Badge>
-                  <span className="text-foreground">fraud flags need review</span>
+                  <span className="text-foreground">{ADMIN_OVERVIEW.FRAUD_FLAGS_NEED_REVIEW}</span>
                 </Link>
               )}
               {currentPeriod && (
@@ -143,7 +144,7 @@ export default function AdminOverviewPage() {
                   className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-card-hover transition-colors"
                 >
                   <Badge variant="warning">{activeForceEvents.length}</Badge>
-                  <span className="text-foreground">force majeure events active</span>
+                  <span className="text-foreground">{ADMIN_OVERVIEW.FORCE_MAJEURE_EVENTS_ACTIVE}</span>
                 </Link>
               )}
               <Link
@@ -151,7 +152,7 @@ export default function AdminOverviewPage() {
                 className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-card-hover transition-colors"
               >
                 <Badge variant="neutral">→</Badge>
-                <span className="text-foreground">Run payout simulation</span>
+                <span className="text-foreground">{ADMIN_OVERVIEW.RUN_PAYOUT_SIM}</span>
               </Link>
             </>
           )}
@@ -163,9 +164,9 @@ export default function AdminOverviewPage() {
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Avg Composite Score
+              {ADMIN_OVERVIEW.AVG_COMPOSITE_SCORE}
             </p>
-            <InfoTooltip text="Mean composite score across all active merchants. A healthy platform averages 45–65. Very high or very low averages may indicate scoring calibration issues." />
+            <InfoTooltip text={ADMIN_OVERVIEW.AVG_COMPOSITE_SCORE_TIP} />
           </div>
           {cohortLoading ? (
             <Skeleton className="h-8 w-20" />
@@ -179,9 +180,9 @@ export default function AdminOverviewPage() {
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Score Std Deviation
+              {ADMIN_OVERVIEW.SCORE_STD_DEVIATION}
             </p>
-            <InfoTooltip text="Standard deviation of composite scores. Low StdDev (<8) means scores are clustered together. High StdDev (>15) means wide gap between top and bottom performers." />
+            <InfoTooltip text={ADMIN_OVERVIEW.SCORE_STD_DEVIATION_TIP} />
           </div>
           {cohortLoading ? (
             <Skeleton className="h-8 w-20" />
@@ -195,9 +196,9 @@ export default function AdminOverviewPage() {
         <Card>
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Flagged Rate
+              {ADMIN_OVERVIEW.FLAGGED_RATE}
             </p>
-            <InfoTooltip text="Percentage of active merchants with open fraud flags. Above 10% is concerning and may indicate overly sensitive fraud detection thresholds that need tuning." />
+            <InfoTooltip text={ADMIN_OVERVIEW.FLAGGED_RATE_TIP} />
           </div>
           {isLoading ? (
             <Skeleton className="h-8 w-16" />

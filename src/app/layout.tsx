@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kutoot — Merchant Performance Terminal",
-  description: "Universal merchant performance competition platform for India",
+  title: "Kutoot — Branch Performance Terminal",
+  description: "Universal branch performance competition platform for India",
   icons: {
     icon: "/vercel.svg",
   },

@@ -6,7 +6,7 @@
 import type {
   ApiResponse,
   ScoringPeriod,
-  MerchantScore,
+  BranchScore,
 } from "@/lib/types";
 import apiClient from "../client";
 
@@ -23,13 +23,13 @@ export async function getScoringPeriods() {
 }
 
 /**
- * Get all merchant scores for a given period.
+ * Get all branch scores for a given period.
  * @endpoint GET /api/scores/:periodId
- * BACKEND SPEC: SELECT * FROM merchant_scores WHERE period_id = :periodId
+ * BACKEND SPEC: SELECT * FROM branch_scores WHERE period_id = :periodId
  *   ORDER BY final_rank ASC
  */
 export async function getPeriodScores(periodId: string) {
-  const res = await apiClient.get<ApiResponse<MerchantScore[]>>(
+  const res = await apiClient.get<ApiResponse<BranchScore[]>>(
     `/scores/${periodId}`,
   );
   return res.data;

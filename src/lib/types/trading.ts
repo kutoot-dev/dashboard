@@ -23,7 +23,7 @@ export interface VolumeBar {
 
 /** Ticker tape item showing top movers */
 export interface TickerItem {
-  merchant_id: string;
+  branch_id: string;
   business_name: string;
   score: number;
   change: number;

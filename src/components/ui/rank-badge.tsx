@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils/cn";
 
 interface RankBadgeProps {
   rank: number;
-  totalMerchants: number;
+  totalBranches: number;
+  showLevel?: boolean;
 }
 
 function computeTier(rank: number, total: number): RankTier {
@@ -16,11 +17,11 @@ function computeTier(rank: number, total: number): RankTier {
   return "none";
 }
 
-export function RankBadge({ rank, totalMerchants }: RankBadgeProps) {
-  const tier = computeTier(rank, totalMerchants);
-  if (tier === "none") return null;
-
+export function RankBadge({ rank, totalBranches, showLevel }: RankBadgeProps) {
+  const tier = computeTier(rank, totalBranches);
   const config = RANK_TIERS[tier];
+
+  if (tier === "none" && !showLevel) return null;
 
   return (
     <span
@@ -29,7 +30,7 @@ export function RankBadge({ rank, totalMerchants }: RankBadgeProps) {
         config.color,
         config.bg,
         config.border,
-        tier === "platinum" && "animate-pulse"
+        config.neonClass,
       )}
     >
       {tier === "platinum" && (
@@ -37,7 +38,7 @@ export function RankBadge({ rank, totalMerchants }: RankBadgeProps) {
           <path d="M6 1l1.545 3.13L11 4.635 8.5 7.07l.59 3.43L6 8.885 2.91 10.5l.59-3.43L1 4.635l3.455-.505z" />
         </svg>
       )}
-      {config.label}
+      {showLevel ? config.levelLabel : config.label}
     </span>
   );
 }

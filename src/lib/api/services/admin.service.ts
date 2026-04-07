@@ -111,7 +111,7 @@ export async function createForceMajeure(
 export interface CohortHealthMetric {
   sector_id: string;
   sector_name: string;
-  merchant_count: number;
+  branch_count: number;
   avg_score: number;
   median_score: number;
   top_quartile_avg: number;
@@ -122,7 +122,7 @@ export interface CohortHealthMetric {
 /**
  * Get cohort health metrics, optionally filtered by sector.
  * @endpoint GET /api/admin/cohorts?sector_id=
- * BACKEND SPEC: Aggregate merchant_scores by sector with percentile breakdowns.
+ * BACKEND SPEC: Aggregate branch_scores by sector with percentile breakdowns.
  */
 export async function getCohortHealth(sectorId?: string) {
   const params = sectorId ? { sector_id: sectorId } : {};
@@ -135,9 +135,9 @@ export async function getCohortHealth(sectorId?: string) {
 
 // ── Payout Simulation ──────────────────────────────────────────────
 
-/** Simulated payout entry for a single merchant */
+/** Simulated payout entry for a single branch */
 export interface PayoutSimulationEntry {
-  merchant_id: string;
+  branch_id: string;
   business_name: string;
   rank: number;
   composite_score: number;

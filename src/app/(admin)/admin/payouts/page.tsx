@@ -67,9 +67,9 @@ export default function PayoutSimulationPage() {
     },
     {
       key: "business_name",
-      header: "Merchant",
+      header: "Branch",
       render: (_: unknown, row: Row) => (
-        <span className="text-sm text-foreground">{String(row.business_name ?? row.merchant_id ?? "—")}</span>
+        <span className="text-sm text-foreground">{String(row.business_name ?? row.branch_id ?? "—")}</span>
       ),
     },
     {

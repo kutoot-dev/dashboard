@@ -10,21 +10,21 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { MOCK_MERCHANTS } from "@/lib/mock/merchants";
+import { MOCK_BRANCHES } from "@/lib/mock/branches";
 import { MOCK_SCORING_PERIODS } from "@/lib/mock/scoring-periods";
 import { formatPeriodRange } from "@/lib/utils/format";
 
 export default function ManualOverridesPage() {
-  const [selectedMerchants, setSelectedMerchants] = useState<string[]>([]);
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(MOCK_SCORING_PERIODS[0]?.period_id ?? "");
   const [overrideScore, setOverrideScore] = useState("");
   const [reason, setReason] = useState("");
 
-  const merchantOptions = useMemo(
+  const branchOptions = useMemo(
     () =>
-      MOCK_MERCHANTS.map((m) => ({
-        value: m.merchant_id,
-        label: `${m.business_name} (${m.merchant_id})`,
+      MOCK_BRANCHES.map((m) => ({
+        value: m.branch_id,
+        label: `${m.business_name} (${m.branch_id})`,
       })),
     []
   );
@@ -41,15 +41,15 @@ export default function ManualOverridesPage() {
   const handleApply = () => {
     // TODO: wire to real API
     alert(
-      `Override applied:\nMerchants: ${selectedMerchants.join(", ")}\nPeriod: ${selectedPeriod}\nScore: ${overrideScore}\nReason: ${reason}`
+      `Override applied:\nBranches: ${selectedBranches.join(", ")}\nPeriod: ${selectedPeriod}\nScore: ${overrideScore}\nReason: ${reason}`
     );
-    setSelectedMerchants([]);
+    setSelectedBranches([]);
     setOverrideScore("");
     setReason("");
   };
 
   const columns = [
-    { key: "merchant", header: "Merchant" },
+    { key: "branch", header: "Branch" },
     { key: "original_score", header: "Original Score", align: "right" as const },
     { key: "override_score", header: "Override Score", align: "right" as const },
     { key: "reason", header: "Reason" },
@@ -61,9 +61,9 @@ export default function ManualOverridesPage() {
     <div className="space-y-4">
       <PageHeader
         title="Manual Overrides"
-        subtitle="Adjust merchant scores for exceptional circumstances"
+        subtitle="Adjust branch scores for exceptional circumstances"
       >
-        <InfoTooltip text="Select one or more merchants from the dropdown, choose the scoring period, enter the override score (0–100), and provide a reason. All overrides are logged for audit." />
+        <InfoTooltip text="Select one or more branches from the dropdown, choose the scoring period, enter the override score (0–100), and provide a reason. All overrides are logged for audit." />
       </PageHeader>
 
       {/* Create Override */}
@@ -74,14 +74,14 @@ export default function ManualOverridesPage() {
         <div className="space-y-3">
           <div>
             <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-              Select Merchants
-              <InfoTooltip text="Choose one or more merchants to apply the same override score. Use search to filter the list." />
+              Select Branches
+              <InfoTooltip text="Choose one or more branches to apply the same override score. Use search to filter the list." />
             </label>
             <MultiSelect
-              options={merchantOptions}
-              value={selectedMerchants}
-              onChange={setSelectedMerchants}
-              placeholder="Search and select merchants..."
+              options={branchOptions}
+              value={selectedBranches}
+              onChange={setSelectedBranches}
+              placeholder="Search and select branches..."
             />
           </div>
 
@@ -125,9 +125,9 @@ export default function ManualOverridesPage() {
           <Button
             size="sm"
             onClick={handleApply}
-            disabled={selectedMerchants.length === 0 || !overrideScore || !reason}
+            disabled={selectedBranches.length === 0 || !overrideScore || !reason}
           >
-            Apply Override to {selectedMerchants.length || "…"} Merchant{selectedMerchants.length !== 1 ? "s" : ""}
+            Apply Override to {selectedBranches.length || "…"} Branch{selectedBranches.length !== 1 ? "es" : ""}
           </Button>
         </div>
       </Card>
@@ -158,7 +158,7 @@ export default function ManualOverridesPage() {
           <div>
             <h3 className="font-mono text-sm font-bold text-foreground">About Manual Overrides</h3>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Manual overrides allow administrators to adjust merchant scores for exceptional
+              Manual overrides allow administrators to adjust branch scores for exceptional
               circumstances not covered by the automated scoring system. Common use cases include
               data migration issues, system errors affecting transaction records, or verified
               disputes. All overrides are logged with the administrator&apos;s identity, timestamp,

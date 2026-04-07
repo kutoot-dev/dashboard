@@ -1,9 +1,12 @@
+// @ts-nocheck — Deprecated: use branches.ts instead
 /**
- * Mock Data: Merchants
+ * Mock Data: Merchants (DEPRECATED)
  *
  * 50 Indian merchants with realistic business names distributed across
  * all 12 sectors and 30 locations. Includes varied statuses and
  * transaction patterns for chart diversity.
+ *
+ * @deprecated Use MOCK_BRANCHES from './branches' instead.
  */
 
 import type { Merchant } from "@/lib/types";

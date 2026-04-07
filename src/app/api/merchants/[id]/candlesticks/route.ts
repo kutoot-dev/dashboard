@@ -6,7 +6,7 @@
  * high/low derived from intra-period peaks. One candle per scoring period.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getMerchantCandlesticks } from "@/lib/mock/candlesticks";
+import { getBranchCandlesticks } from "@/lib/mock/candlesticks";
 
 export async function GET(
   _request: NextRequest,
@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const candles = getMerchantCandlesticks(id);
+    const candles = getBranchCandlesticks(id);
 
     if (candles.length === 0) {
       return NextResponse.json(
@@ -28,7 +28,7 @@ export async function GET(
           },
           error: {
             code: "NOT_FOUND",
-            message: `No candlestick data for merchant ${id}`,
+            message: `No candlestick data for branch ${id}`,
           },
         },
         { status: 404 },

@@ -1,9 +1,9 @@
 /**
  * Route: GET /api/scores/[periodId]
  *
- * BACKEND SPEC: SELECT * FROM merchant_scores WHERE period_id = :periodId
+ * BACKEND SPEC: SELECT * FROM branch_scores WHERE period_id = :periodId
  *   ORDER BY final_rank ASC.
- * Returns all merchant scores for the given scoring period.
+ * Returns all branch scores for the given scoring period.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { MOCK_SCORES } from "@/lib/mock/scores";

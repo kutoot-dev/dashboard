@@ -122,10 +122,10 @@ export default function CohortHealthPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchants</p>
-                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.merchant_count} />
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Branches</p>
+                      <InfoTooltip text={COHORT_HEALTH_INFO.metrics.branch_count} />
                     </div>
-                    <p className="font-mono text-xl font-bold text-foreground">{cohort.merchant_count}</p>
+                    <p className="font-mono text-xl font-bold text-foreground">{cohort.branch_count}</p>
                   </div>
                   <div>
                     <div className="flex items-center gap-1">

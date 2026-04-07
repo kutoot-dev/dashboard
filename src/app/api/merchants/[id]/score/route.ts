@@ -28,7 +28,7 @@ export async function GET(
     }
 
     const score = MOCK_SCORES.find(
-      (s) => s.merchant_id === id && s.period_id === periodId,
+      (s) => s.branch_id === id && s.period_id === periodId,
     );
 
     if (!score) {
@@ -43,7 +43,7 @@ export async function GET(
           },
           error: {
             code: "NOT_FOUND",
-            message: `Score not found for merchant ${id} in period ${periodId}`,
+            message: `Score not found for branch ${id} in period ${periodId}`,
           },
         },
         { status: 404 },
@@ -72,7 +72,7 @@ export async function GET(
         },
         error: {
           code: "INTERNAL_ERROR",
-          message: "Failed to fetch merchant score",
+          message: "Failed to fetch branch score",
         },
       },
       { status: 500 },

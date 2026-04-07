@@ -7,7 +7,7 @@
 import type {
   ApiResponse,
   Merchant,
-  MerchantScore,
+  BranchScore,
   ScoreCandlestick,
   VolumeBar,
 } from "@/lib/types";
@@ -31,7 +31,7 @@ export async function getMerchant(id: string) {
  */
 export async function getMerchantScore(id: string, periodId?: string) {
   const params = periodId ? { period_id: periodId } : {};
-  const res = await apiClient.get<ApiResponse<MerchantScore>>(
+  const res = await apiClient.get<ApiResponse<BranchScore>>(
     `/merchants/${id}/score`,
     { params },
   );

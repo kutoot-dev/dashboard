@@ -1,7 +1,7 @@
 /**
  * Mock Data: Candlesticks & Volume
  *
- * Transforms merchant score trajectories into OHLC candlestick format
+ * Transforms branch score trajectories into OHLC candlestick format
  * and volume histogram bars for TradingView-style chart consumption.
  *
  * OHLC logic:
@@ -44,13 +44,13 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 /**
- * Transform daily scores into OHLC candlestick format for a given merchant.
+ * Transform daily scores into OHLC candlestick format for a given branch.
  * Returns one candlestick per scoring period.
  */
-export function getMerchantCandlesticks(merchantId: string): ScoreCandlestick[] {
-  const rng = mulberry32(seedHash(merchantId + "-candle"));
-  const merchantScores = MOCK_SCORES
-    .filter((s) => s.merchant_id === merchantId)
+export function getBranchCandlesticks(branchId: string): ScoreCandlestick[] {
+  const rng = mulberry32(seedHash(branchId + "-candle"));
+  const branchScores = MOCK_SCORES
+    .filter((s) => s.branch_id === branchId)
     .sort((a, b) => {
       const aIdx = MOCK_SCORING_PERIODS.findIndex((p) => p.period_id === a.period_id);
       const bIdx = MOCK_SCORING_PERIODS.findIndex((p) => p.period_id === b.period_id);
@@ -59,8 +59,8 @@ export function getMerchantCandlesticks(merchantId: string): ScoreCandlestick[] 
 
   const candles: ScoreCandlestick[] = [];
 
-  for (let i = 0; i < merchantScores.length; i++) {
-    const score = merchantScores[i];
+  for (let i = 0; i < branchScores.length; i++) {
+    const score = branchScores[i];
     const period = MOCK_SCORING_PERIODS.find((p) => p.period_id === score.period_id);
     if (!period) continue;
 
@@ -85,21 +85,21 @@ export function getMerchantCandlesticks(merchantId: string): ScoreCandlestick[] 
 }
 
 /**
- * Generate volume bars (raw transaction volume per period) for a merchant.
+ * Generate volume bars (raw transaction volume per period) for a branch.
  * Green bars = score went up, Red bars = score went down.
  */
-export function getMerchantVolume(merchantId: string): VolumeBar[] {
-  const merchantScores = MOCK_SCORES
-    .filter((s) => s.merchant_id === merchantId)
+export function getBranchVolume(branchId: string): VolumeBar[] {
+  const branchScores = MOCK_SCORES
+    .filter((s) => s.branch_id === branchId)
     .sort((a, b) => {
       const aIdx = MOCK_SCORING_PERIODS.findIndex((p) => p.period_id === a.period_id);
       const bIdx = MOCK_SCORING_PERIODS.findIndex((p) => p.period_id === b.period_id);
       return aIdx - bIdx;
     });
 
-  return merchantScores.map((score, i) => {
+  return branchScores.map((score, i) => {
     const period = MOCK_SCORING_PERIODS.find((p) => p.period_id === score.period_id);
-    const prevScore = i > 0 ? merchantScores[i - 1].composite_index_score : score.composite_index_score;
+    const prevScore = i > 0 ? branchScores[i - 1].composite_index_score : score.composite_index_score;
     const isUp = score.composite_index_score >= prevScore;
 
     return {

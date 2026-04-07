@@ -5,6 +5,8 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTicker } from "@/lib/hooks";
 import { useKMI } from "@/lib/hooks/use-kmi";
+import { MarketIndicator, computeTrend } from "@/components/ui/market-indicator";
+import { usePreferencesStore } from "@/lib/stores/preferences.store";
 import { cn } from "@/lib/utils/cn";
 
 export function Topbar() {
@@ -12,6 +14,7 @@ export function Topbar() {
   const { user, logout } = useAuth();
   const { data: tickerItems } = useTicker();
   const kmi = useKMI();
+  const { soundEnabled, toggleSound } = usePreferencesStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -27,7 +30,7 @@ export function Topbar() {
       {/* KMI Badge */}
       <div className="flex shrink-0 items-center gap-2 border-r border-border px-3">
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-primary">
-          KMI
+          KBI
         </span>
         <span className="font-mono text-sm font-bold text-secondary">
           {kmi.value.toFixed(1)}
@@ -35,12 +38,13 @@ export function Topbar() {
         <span
           className={cn(
             "font-mono text-xs font-semibold",
-            kmi.isPositive ? "text-success" : "text-error",
+            kmi.isPositive ? "neon-gain" : "neon-loss",
           )}
         >
           {kmi.isPositive ? "▲" : "▼"}
           {kmi.changePercent.toFixed(1)}%
         </span>
+        <MarketIndicator trend={computeTrend(kmi.changePercent)} />
       </div>
 
       {/* Ticker tape */}
@@ -50,7 +54,7 @@ export function Topbar() {
             <div className="animate-ticker flex shrink-0 items-center gap-6 px-4">
               {[...tickerItems, ...tickerItems].map((item, i) => (
                 <span
-                  key={`${item.merchant_id}-${i}`}
+                  key={`${item.branch_id}-${i}`}
                   className="flex shrink-0 items-center gap-1.5 font-mono text-xs"
                 >
                   <span className="text-muted-foreground">{item.business_name}</span>
@@ -75,6 +79,32 @@ export function Topbar() {
 
       {/* Actions */}
       <div className="flex items-center gap-2 px-4">
+        {/* Sound toggle */}
+        {mounted && (
+          <button
+            onClick={toggleSound}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+              soundEnabled
+                ? "text-accent hover:bg-card-hover"
+                : "text-muted-foreground hover:bg-card-hover hover:text-foreground",
+            )}
+            aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
+            title={soundEnabled ? "Sounds on" : "Sounds off"}
+          >
+            {soundEnabled ? (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+              </svg>
+            )}
+          </button>
+        )}
+
         {/* Theme toggle - only render after hydration */}
         {mounted && (
           <button

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useMerchantCandlesticks, useMerchantScore } from "@/lib/hooks/use-merchant-data";
+import { useBranchCandlesticks, useBranchScore } from "@/lib/hooks/use-branch-data";
 import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
@@ -17,12 +17,12 @@ import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
 
 export default function PayoutsPage() {
   const { user } = useAuth();
-  const merchantId = user?.merchant_id ?? "m-001";
+  const branchId = user?.branch_id ?? "m-001";
 
   const { data: candlesticks, isLoading: candlesticksLoading } =
-    useMerchantCandlesticks(merchantId);
+    useBranchCandlesticks(branchId);
   const { data: currentScore, isLoading: scoreLoading } =
-    useMerchantScore(merchantId);
+    useBranchScore(branchId);
   const { data: periods, isLoading: periodsLoading } = useScoringPeriods();
 
   // Simulate payout history from candlestick data + periods

@@ -1,22 +1,22 @@
 /**
  * Route: GET /api/admin/cohorts
  *
- * BACKEND SPEC: Aggregate merchant_scores by sector for the latest closed period.
- *   For each sector: count merchants, compute avg/median/top-quartile/bottom-quartile
- *   composite_index_score, count dormant merchants.
+ * BACKEND SPEC: Aggregate branch_scores by sector for the latest closed period.
+ *   For each sector: count branches, compute avg/median/top-quartile/bottom-quartile
+ *   composite_index_score, count dormant branches.
  *   Optional ?sector_id= filter for single-sector view.
  *   Requires admin role.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { MOCK_SCORES } from "@/lib/mock/scores";
-import { MOCK_MERCHANTS } from "@/lib/mock/merchants";
+import { MOCK_BRANCHES } from "@/lib/mock/branches";
 import { MOCK_SECTORS } from "@/lib/mock/sectors";
 import { MOCK_SCORING_PERIODS } from "@/lib/mock/scoring-periods";
 
 interface CohortHealthMetric {
   sector_id: string;
   sector_name: string;
-  merchant_count: number;
+  branch_count: number;
   avg_score: number;
   median_score: number;
   top_quartile_avg: number;
@@ -74,15 +74,15 @@ export async function GET(request: NextRequest) {
     }
 
     const metrics: CohortHealthMetric[] = sectors.map((sector) => {
-      const sectorMerchants = MOCK_MERCHANTS.filter(
+      const sectorBranches = MOCK_BRANCHES.filter(
         (m) => m.sector_id === sector.sector_id,
       );
-      const merchantIds = new Set(sectorMerchants.map((m) => m.merchant_id));
+      const branchIds = new Set(sectorBranches.map((m) => m.branch_id));
       const scores = periodScores
-        .filter((s) => merchantIds.has(s.merchant_id))
+        .filter((s) => branchIds.has(s.branch_id))
         .map((s) => s.composite_index_score);
 
-      const dormant = sectorMerchants.filter(
+      const dormant = sectorBranches.filter(
         (m) => m.status === "dormant",
       ).length;
 
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       return {
         sector_id: sector.sector_id,
         sector_name: sector.sector_name,
-        merchant_count: sectorMerchants.length,
+        branch_count: sectorBranches.length,
         avg_score: avg,
         median_score: Math.round(median(scores) * 100) / 100,
         top_quartile_avg: Math.round(quartileAvg(scores, true) * 100) / 100,

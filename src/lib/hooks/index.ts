@@ -1,9 +1,16 @@
 export {
-  useMerchant,
-  useMerchantScore,
-  useMerchantCandlesticks,
-  useMerchantVolume,
-} from "./use-merchant-data";
+  useBranch,
+  useBranchScore,
+  useBranchCandlesticks,
+  useBranchVolume,
+} from "./use-branch-data";
+export {
+  useHeadOffice,
+  useHOBranches,
+  useHOBranchScores,
+  useHOBranchDetail,
+  useHOPortfolio,
+} from "./use-ho";
 export { useLeaderboard, useTicker } from "./use-leaderboard";
 export { useScoringPeriods, usePeriodScores } from "./use-scores";
 export {

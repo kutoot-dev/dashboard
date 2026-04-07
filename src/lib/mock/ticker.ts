@@ -6,7 +6,7 @@
  */
 
 import type { TickerItem } from "@/lib/types";
-import { MOCK_MERCHANTS } from "./merchants";
+import { MOCK_BRANCHES } from "./branches";
 import { MOCK_SCORES } from "./scores";
 import { MOCK_SCORING_PERIODS } from "./scoring-periods";
 
@@ -30,18 +30,18 @@ export function getTickerData(): TickerItem[] {
   const items: TickerItem[] = [];
 
   for (const score of currentScores) {
-    const merchant = MOCK_MERCHANTS.find((m) => m.merchant_id === score.merchant_id);
-    if (!merchant || merchant.status === "suspended") continue;
+    const branch = MOCK_BRANCHES.find((m) => m.branch_id === score.branch_id);
+    if (!branch || branch.status === "suspended") continue;
 
-    const prev = prevScores.find((s) => s.merchant_id === score.merchant_id);
+    const prev = prevScores.find((s) => s.branch_id === score.branch_id);
     const prevComposite = prev ? prev.composite_index_score : score.composite_index_score;
     const prevRank = prev ? prev.final_rank : score.final_rank;
     const change = score.composite_index_score - prevComposite;
     const changePct = prevComposite !== 0 ? (change / prevComposite) * 100 : 0;
 
     items.push({
-      merchant_id: score.merchant_id,
-      business_name: merchant.business_name,
+      branch_id: score.branch_id,
+      business_name: branch.business_name,
       score: score.composite_index_score,
       change: Math.round(change * 100) / 100,
       change_percent: Math.round(changePct * 100) / 100,

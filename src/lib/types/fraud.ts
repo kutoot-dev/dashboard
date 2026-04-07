@@ -2,11 +2,11 @@
  * Types: Fraud Flag entity
  *
  * DB TABLE: fraud_flags
- * COLUMNS: flag_id (PK), merchant_id (FK), period_id (FK),
+ * COLUMNS: flag_id (PK), branch_id (FK), period_id (FK),
  *   flag_type (enum), detection_signal (text), severity (enum),
  *   action_taken (enum), investigation_status (enum), created_at
- * INDEXES: flag_id, merchant_id, period_id, severity
- * CONSTRAINTS: FK to merchants, FK to scoring_periods
+ * INDEXES: flag_id, branch_id, period_id, severity
+ * CONSTRAINTS: FK to branches, FK to scoring_periods
  */
 
 export type FraudFlagType =
@@ -26,7 +26,7 @@ export type InvestigationStatus = "open" | "under_review" | "resolved_genuine" |
 
 export interface FraudFlag {
   flag_id: string;
-  merchant_id: string;
+  branch_id: string;
   period_id: string;
   flag_type: FraudFlagType;
   detection_signal: string;

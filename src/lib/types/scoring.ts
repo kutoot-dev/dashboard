@@ -1,12 +1,12 @@
 /**
- * Types: Scoring Period & Merchant Score entities
+ * Types: Scoring Period & Branch Score entities
  *
  * DB TABLE: scoring_periods
  * COLUMNS: period_id (PK), period_start, period_end,
  *   period_type (enum), pool_amount (decimal), status (enum), created_at
  *
- * DB TABLE: merchant_scores
- * COLUMNS: score_id (PK), merchant_id (FK), period_id (FK),
+ * DB TABLE: branch_scores
+ * COLUMNS: score_id (PK), branch_id (FK), period_id (FK),
  *   raw_transaction_volume, raw_revenue, log_normalized_volume,
  *   log_normalized_revenue, percentile_scale_score, sector_zscore,
  *   sector_percentile_rank, margin_efficiency_ratio, margin_neutralized_score,
@@ -16,8 +16,8 @@
  *   composite_index_score (0–100), final_rank, rank_movement,
  *   fatigue_dampener_applied (bool), fatigue_dampener_value (decimal),
  *   payout_amount (decimal), score_breakdown_json (JSON), created_at
- * INDEXES: score_id, merchant_id, period_id, final_rank, composite_index_score
- * CONSTRAINTS: FK to merchants, FK to scoring_periods
+ * INDEXES: score_id, branch_id, period_id, final_rank, composite_index_score
+ * CONSTRAINTS: FK to branches, FK to scoring_periods
  */
 
 export type PeriodType = "daily" | "weekly" | "biweekly";
@@ -42,9 +42,9 @@ export interface ScoreBreakdown {
   ecosystem_contribution: number;
 }
 
-export interface MerchantScore {
+export interface BranchScore {
   score_id: string;
-  merchant_id: string;
+  branch_id: string;
   period_id: string;
   raw_transaction_volume: number;
   raw_revenue: number;

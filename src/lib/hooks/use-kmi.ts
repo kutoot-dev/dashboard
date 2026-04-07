@@ -21,7 +21,7 @@ function generateHistory(baseValue: number, points: number) {
 }
 
 /**
- * useKMI — generates and live-updates the Kutoot Merchant Index
+ * useKMI — generates and live-updates the Kutoot Branch Index
  * Base value: 1000 + average composite score offset (~247)
  */
 export function useKMI(): {

@@ -53,14 +53,15 @@
   --chart-crosshair: #94a3b8;
 }
 
-/* --- Dark mode (default) --- */
+/* --- Dark mode (default) — Gamified Trading Floor --- */
 .dark {
-  --background: #0a0e17;
+  --background: #050810;
   --foreground: #e2e8f0;
-  --card: #111827;
+  --card: #0c1120;
   --card-foreground: #e2e8f0;
-  --border: #1e293b;
-  --muted: #1e293b;
+  --card-hover: #111b2e;
+  --border: #162035;
+  --muted: #162035;
   --muted-foreground: #94a3b8;
   
   /* Kutoot Brand Colors - Dark Mode Enhanced */
@@ -69,25 +70,31 @@
   --accent: #FFD700;
   --dark: #2B2420;
   
-  /* Semantic Colors - Dark Mode */
+  /* Semantic Colors — Neon */
   --success: #22c55e;
   --error: #ef4444;
   --warning: #f59e0b;
   --info: #06b6d4;
   
-  /* Legacy alias for compatibility */
-  --gain: #22c55e;
-  --loss: #ef4444;
+  /* Neon gain/loss */
+  --gain: #00ff88;
+  --loss: #ff3366;
   
-  /* Tier Badges */
-  --platinum: #e5e7eb;
-  --gold: #fbbf24;
-  --silver: #94a3b8;
-  --bronze: #d97706;
+  /* Gamified Tier Colors */
+  --tier-legend: #e0b0ff;
+  --tier-elite: #fbbf24;
+  --tier-pro: #94a3b8;
+  --tier-rising: #d97706;
+  
+  /* Legacy aliases */
+  --platinum: var(--tier-legend);
+  --gold: var(--tier-elite);
+  --silver: var(--tier-pro);
+  --bronze: var(--tier-rising);
   
   /* Chart Colors */
-  --chart-bg: #0a0e17;
-  --chart-grid: #1e293b;
+  --chart-bg: #050810;
+  --chart-grid: #162035;
   --chart-text: #94a3b8;
   --chart-crosshair: #475569;
 }
@@ -154,12 +161,63 @@ body {
   height: 6px;
 }
 .dark ::-webkit-scrollbar-track {
-  background: #0a0e17;
+  background: #050810;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #162035;
   border-radius: 3px;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #1e3050;
+}
+
+/* ── Gamified Neon Effects ────────────────────────────────────────────── */
+
+/* Neon text glow for gain values */
+.neon-gain {
+  color: var(--gain);
+  text-shadow: 0 0 6px rgba(0, 255, 136, 0.4), 0 0 20px rgba(0, 255, 136, 0.15);
+}
+
+/* Neon text glow for loss values */
+.neon-loss {
+  color: var(--loss);
+  text-shadow: 0 0 6px rgba(255, 51, 102, 0.4), 0 0 20px rgba(255, 51, 102, 0.15);
+}
+
+/* Neon border glow */
+.neon-border-gain {
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.15), inset 0 0 8px rgba(0, 255, 136, 0.05);
+}
+.neon-border-loss {
+  box-shadow: 0 0 8px rgba(255, 51, 102, 0.15), inset 0 0 8px rgba(255, 51, 102, 0.05);
+}
+
+/* Neon pulse animation for legend tier */
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; text-shadow: 0 0 6px rgba(224, 176, 255, 0.5); }
+  50% { opacity: 0.85; text-shadow: 0 0 12px rgba(224, 176, 255, 0.7), 0 0 24px rgba(224, 176, 255, 0.3); }
+}
+.animate-neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* XP progress bar glow */
+@keyframes xp-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+}
+.animate-xp-glow {
+  animation: xp-glow 3s ease-in-out infinite;
+}
+
+/* Level-up flash */
+@keyframes level-up-flash {
+  0% { opacity: 0; transform: scale(0.8); }
+  10% { opacity: 1; transform: scale(1.1); }
+  30% { transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+.animate-level-up {
+  animation: level-up-flash 1.5s ease-out forwards;
 }

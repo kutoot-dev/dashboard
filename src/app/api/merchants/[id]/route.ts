@@ -5,7 +5,7 @@
  * Join with sectors and locations for enriched data if needed.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { MOCK_MERCHANTS } from "@/lib/mock/merchants";
+import { MOCK_BRANCHES } from "@/lib/mock/branches";
 
 export async function GET(
   _request: NextRequest,
@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const merchant = MOCK_MERCHANTS.find((m) => m.merchant_id === id);
+    const merchant = MOCK_BRANCHES.find((m) => m.branch_id === id);
 
     if (!merchant) {
       return NextResponse.json(
@@ -27,7 +27,7 @@ export async function GET(
           },
           error: {
             code: "NOT_FOUND",
-            message: `Merchant ${id} not found`,
+            message: `Branch ${id} not found`,
           },
         },
         { status: 404 },
@@ -54,7 +54,7 @@ export async function GET(
           period_id: null,
           request_id: crypto.randomUUID(),
         },
-        error: { code: "INTERNAL_ERROR", message: "Failed to fetch merchant" },
+        error: { code: "INTERNAL_ERROR", message: "Failed to fetch branch" },
       },
       { status: 500 },
     );

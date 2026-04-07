@@ -7,7 +7,8 @@
 
 export * from "./sectors";
 export * from "./locations";
-export * from "./merchants";
+export * from "./branches";
+export * from "./head-offices";
 export * from "./scoring-periods";
 export * from "./scores";
 export * from "./candlesticks";

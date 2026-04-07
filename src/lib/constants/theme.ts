@@ -8,15 +8,15 @@
 import type { ChartThemeColors } from "@/lib/types/trading";
 
 export const CHART_THEME_DARK: ChartThemeColors = {
-  background: "#0a0e17",
+  background: "#050810",
   text: "#94a3b8",
-  grid: "#1e293b",
+  grid: "#162035",
   crosshair: "#475569",
-  gain: "#22c55e",
-  loss: "#ef4444",
+  gain: "#00ff88",
+  loss: "#ff3366",
   accent: "#3b82f6",
-  volume_up: "rgba(34, 197, 94, 0.5)",
-  volume_down: "rgba(239, 68, 68, 0.5)",
+  volume_up: "rgba(0, 255, 136, 0.4)",
+  volume_down: "rgba(255, 51, 102, 0.4)",
 };
 
 export const CHART_THEME_LIGHT: ChartThemeColors = {
@@ -31,13 +31,13 @@ export const CHART_THEME_LIGHT: ChartThemeColors = {
   volume_down: "rgba(220, 38, 38, 0.5)",
 };
 
-/** Rank tier thresholds (percentile boundaries) and display config */
+/** Rank tier thresholds (percentile boundaries) and gamified display config */
 export const RANK_TIERS = {
-  platinum: { maxPercentile: 1, label: "Platinum", color: "text-platinum", bg: "bg-platinum/10", border: "border-platinum/30" },
-  gold: { maxPercentile: 5, label: "Gold", color: "text-gold", bg: "bg-gold/10", border: "border-gold/30" },
-  silver: { maxPercentile: 15, label: "Silver", color: "text-silver", bg: "bg-silver/10", border: "border-silver/30" },
-  bronze: { maxPercentile: 30, label: "Bronze", color: "text-bronze", bg: "bg-bronze/10", border: "border-bronze/30" },
-  none: { maxPercentile: 100, label: "", color: "text-muted-foreground", bg: "", border: "" },
+  platinum: { maxPercentile: 1, label: "Legend", levelLabel: "Lv.5", color: "text-platinum", bg: "bg-platinum/10", border: "border-platinum/30", neonClass: "animate-neon-pulse" },
+  gold: { maxPercentile: 5, label: "Elite", levelLabel: "Lv.4", color: "text-gold", bg: "bg-gold/10", border: "border-gold/30", neonClass: "" },
+  silver: { maxPercentile: 15, label: "Pro", levelLabel: "Lv.3", color: "text-silver", bg: "bg-silver/10", border: "border-silver/30", neonClass: "" },
+  bronze: { maxPercentile: 30, label: "Rising", levelLabel: "Lv.2", color: "text-bronze", bg: "bg-bronze/10", border: "border-bronze/30", neonClass: "" },
+  none: { maxPercentile: 100, label: "Rookie", levelLabel: "Lv.1", color: "text-muted-foreground", bg: "bg-muted/20", border: "border-muted-foreground/20", neonClass: "" },
 } as const;
 
 /** Score range color coding (for progress bars and badges) */

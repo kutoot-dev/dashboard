@@ -77,8 +77,8 @@ export function getChangeColor(change: number): string {
 }
 
 /** Get rank tier based on percentile position */
-export function getRankTier(rank: number, totalMerchants: number): "platinum" | "gold" | "silver" | "bronze" | "none" {
-  const percentile = (rank / totalMerchants) * 100;
+export function getRankTier(rank: number, totalBranches: number): "platinum" | "gold" | "silver" | "bronze" | "none" {
+  const percentile = (rank / totalBranches) * 100;
   if (percentile <= 1) return "platinum";
   if (percentile <= 5) return "gold";
   if (percentile <= 15) return "silver";
