@@ -149,10 +149,10 @@ export default function ForceMajeurePage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {activeEvents.map((event) => (
               <Card key={event.event_id} className="border-warning/30">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1">
                     <span className="text-2xl">{EVENT_TYPE_ICONS[event.event_type]}</span>
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-1.5">
                         <h3 className="font-mono text-sm font-bold text-foreground">{event.event_name}</h3>
                         <InfoTooltip text={FORCE_MAJEURE_INFO.event_types[event.event_type]} />
@@ -160,7 +160,7 @@ export default function ForceMajeurePage() {
                       <p className="text-xs text-muted-foreground">{event.event_type.replace(/_/g, " ")}</p>
                     </div>
                   </div>
-                  <Badge variant="warning">Active</Badge>
+                  <Badge variant="warning" className="mt-1 shrink-0">Active</Badge>
                 </div>
                 <div className="mt-3 space-y-1">
                   <p className="text-xs text-muted-foreground">
@@ -172,9 +172,11 @@ export default function ForceMajeurePage() {
                     {formatDate(event.start_timestamp)} – {formatDate(event.end_timestamp)}
                   </p>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="font-mono">Adjustment:</span>{" "}
-                    {event.scoring_adjustment_type.replace(/_/g, " ")}
-                    <InfoTooltip text={FORCE_MAJEURE_INFO.adjustment_types[event.scoring_adjustment_type]} />
+                    <span className="font-mono">Adjustment:</span>
+                    <span className="flex items-center gap-1.5">
+                      {event.scoring_adjustment_type.replace(/_/g, " ")}
+                      <InfoTooltip text={FORCE_MAJEURE_INFO.adjustment_types[event.scoring_adjustment_type]} />
+                    </span>
                   </div>
                 </div>
               </Card>

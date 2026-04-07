@@ -8,6 +8,7 @@ export { Skeleton } from "./skeleton";
 export { DataTable } from "./data-table";
 export { Select } from "./select";
 export { MultiSelect } from "./multi-select";
+export { DateRangePicker } from "./date-range-picker";
 export { Input } from "./input";
 export { Modal } from "./modal";
 export { Tabs } from "./tabs";

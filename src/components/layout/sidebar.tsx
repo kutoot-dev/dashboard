@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { KutootIcon, KutootLogo } from "@/components/branding";
 import { MERCHANT_NAV, ADMIN_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -10,8 +11,13 @@ import { cn } from "@/lib/utils/cn";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navItems = user?.role === "admin" ? ADMIN_NAV : MERCHANT_NAV;
 
@@ -38,7 +44,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
-        {navItems.map((item) => {
+        {mounted && !isLoading && navItems.map((item) => {
           const isActive =
             item.href === "/admin"
               ? pathname === "/admin"

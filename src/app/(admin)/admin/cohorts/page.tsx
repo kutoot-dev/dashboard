@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCohortHealth } from "@/lib/hooks/use-admin";
 import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,9 +29,35 @@ function getHealthIndicatorBg(spread: number): string {
 
 export default function CohortHealthPage() {
   const [sectorFilter, setSectorFilter] = useState("");
-  const [periodFilter, setPeriodFilter] = useState("");
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
+    start: "",
+    end: "",
+  });
   const { data: cohorts, isLoading } = useCohortHealth(sectorFilter || undefined);
   const { data: periods } = useScoringPeriods();
+
+  const { minDate, maxDate } = useMemo(() => {
+    if (!periods || periods.length === 0) return { minDate: "", maxDate: "" };
+    const sorted = [...periods].sort(
+      (a, b) => new Date(a.period_start).getTime() - new Date(b.period_start).getTime()
+    );
+    return {
+      minDate: sorted[0]?.period_start?.split("T")[0] ?? "",
+      maxDate: sorted[sorted.length - 1]?.period_end?.split("T")[0] ?? "",
+    };
+  }, [periods]);
+
+  // Set default date range to latest period
+  const defaultDateRange = useMemo(() => {
+    if (!periods || periods.length === 0) return { start: "", end: "" };
+    const latest = periods[periods.length - 1];
+    return {
+      start: latest.period_start.split("T")[0],
+      end: latest.period_end.split("T")[0],
+    };
+  }, [periods]);
+
+  const activeRange = dateRange.start && dateRange.end ? dateRange : defaultDateRange;
 
   const sectorOptions = [
     { value: "", label: "All Sectors" },
@@ -40,23 +67,16 @@ export default function CohortHealthPage() {
     })) ?? []),
   ];
 
-  const periodOptions = [
-    { value: "", label: "Latest Period" },
-    ...(periods ?? []).map((p) => ({
-      value: p.period_id,
-      label: formatPeriodRange(p.period_start, p.period_end),
-    })),
-  ];
-
   return (
     <div className="space-y-4">
       <PageHeader title="Cohort Health" subtitle="Sector-level performance monitoring">
         <InfoTooltip text={COHORT_HEALTH_INFO.concept} />
-        <Select
-          options={periodOptions}
-          value={periodFilter}
-          onChange={setPeriodFilter}
-          placeholder="Date range"
+        <DateRangePicker
+          value={activeRange}
+          onChange={setDateRange}
+          min={minDate}
+          max={maxDate}
+          placeholder="Select date range"
         />
         <Select
           options={sectorOptions}
