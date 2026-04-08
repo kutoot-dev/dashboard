@@ -10,6 +10,7 @@ interface PhotoCaptureProps {
   onChange: (dataUrl: string) => void;
   required?: boolean;
   error?: string;
+  hint?: string;
   className?: string;
 }
 
@@ -23,6 +24,7 @@ export function PhotoCapture({
   onChange,
   required,
   error,
+  hint,
   className,
 }: PhotoCaptureProps) {
   const [capturing, setCapturing] = useState(false);
@@ -145,6 +147,7 @@ export function PhotoCapture({
       <p className="text-sm font-medium text-foreground">
         {label} {required && <span className="text-error">*</span>}
       </p>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
 
       {capturing ? (
         <div className="space-y-2">

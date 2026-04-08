@@ -11,6 +11,8 @@ import type {
   ApplicationChannel,
   CommissionModel,
   CommissionTier,
+  VisitOutcome,
+  FollowUpSchedule,
 } from "@/lib/types";
 import { WIZARD_STEPS } from "@/lib/types";
 
@@ -50,10 +52,13 @@ interface OnboardingFormData {
   gst_status: string;
   gst_business_name: string | null;
   gst_business_address: string | null;
+  gst_doc_photo_url: string | null;
   pan_number: string;
   pan_status: string;
   pan_holder_name: string | null;
+  pan_doc_photo_url: string | null;
   aadhaar_number: string;
+  aadhaar_doc_photo_url: string | null;
 
   // Step 5
   bank_account_name: string;
@@ -77,6 +82,11 @@ interface OnboardingFormData {
   terms_accepted: boolean;
   privacy_accepted: boolean;
 
+  // Visit record (FE non-interested flows)
+  visit_outcome: VisitOutcome | null;
+  visit_notes: string;
+  follow_up_schedules: FollowUpSchedule[];
+
   // Honeypot
   website_url: string;
 }
@@ -96,6 +106,7 @@ interface OnboardingState {
     exists: boolean;
     status: string;
     application_id: string | null;
+    visiting_exec_name: string | null;
     message: string;
   } | null;
 
@@ -143,10 +154,13 @@ const initialFormData: OnboardingFormData = {
   gst_status: "not_started",
   gst_business_name: null,
   gst_business_address: null,
+  gst_doc_photo_url: null,
   pan_number: "",
   pan_status: "not_started",
   pan_holder_name: null,
+  pan_doc_photo_url: null,
   aadhaar_number: "",
+  aadhaar_doc_photo_url: null,
 
   bank_account_name: "",
   bank_account_number: "",
@@ -166,6 +180,10 @@ const initialFormData: OnboardingFormData = {
 
   terms_accepted: false,
   privacy_accepted: false,
+
+  visit_outcome: null,
+  visit_notes: "",
+  follow_up_schedules: [],
 
   website_url: "",
 };

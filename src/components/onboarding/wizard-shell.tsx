@@ -2,21 +2,25 @@
 
 import { cn } from "@/lib/utils/cn";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
-import type { WizardStepId } from "@/lib/types";
+import type { WizardStepId, WizardStepConfig } from "@/lib/types";
 
 interface WizardShellProps {
   currentStep: WizardStepId;
   completedSteps: WizardStepId[];
+  stepConfig?: WizardStepConfig[];   // defaults to full WIZARD_STEP_CONFIG
   onStepClick?: (step: WizardStepId) => void;
   children: React.ReactNode;
 }
 
 /**
  * Wizard shell with step progress indicator and navigation.
+ * Pass a filtered `stepConfig` to show only the steps relevant
+ * to the current channel / visit flow.
  */
 export function WizardShell({
   currentStep,
   completedSteps,
+  stepConfig = WIZARD_STEP_CONFIG,
   onStepClick,
   children,
 }: WizardShellProps) {
@@ -26,7 +30,7 @@ export function WizardShell({
       <nav className="mb-8" aria-label="Wizard progress">
         {/* Mobile: compact */}
         <div className="flex sm:hidden items-center justify-between mb-4 px-1">
-          {WIZARD_STEP_CONFIG.map((step) => {
+          {stepConfig.map((step, idx) => {
             const isActive = step.id === currentStep;
             const isComplete = completedSteps.includes(step.id);
             return (
@@ -49,7 +53,7 @@ export function WizardShell({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  step.number
+                  idx + 1
                 )}
               </button>
             );
@@ -58,7 +62,7 @@ export function WizardShell({
 
         {/* Desktop: full labels */}
         <div className="hidden sm:flex items-start">
-          {WIZARD_STEP_CONFIG.map((step, idx) => {
+          {stepConfig.map((step, idx) => {
             const isActive = step.id === currentStep;
             const isComplete = completedSteps.includes(step.id);
             return (
@@ -90,7 +94,7 @@ export function WizardShell({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    step.number
+                    idx + 1
                   )}
                 </button>
                 <p

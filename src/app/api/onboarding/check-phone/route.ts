@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
           status: "active_merchant",
           application_id: existing.application_id,
           application_status: existing.status,
+          visiting_exec_name: existing.exec_name,
           message: "This merchant is already active on Kutoot.",
         };
       } else if (existing.submitted_at) {
@@ -61,7 +62,20 @@ export async function POST(request: NextRequest) {
           status: "already_submitted",
           application_id: existing.application_id,
           application_status: existing.status,
+          visiting_exec_name: existing.exec_name,
           message: `Application ${existing.application_id} already submitted for this number. Status: ${existing.status}`,
+        };
+      } else if (existing.channel === "field_executive" && existing.exec_id) {
+        // Another FE has already visited / started an application for this store
+        result = {
+          exists: true,
+          status: "existing_fe_visit",
+          application_id: existing.application_id,
+          application_status: existing.status,
+          visiting_exec_name: existing.exec_name,
+          message: existing.exec_name
+            ? `${existing.exec_name} has already visited this merchant.`
+            : "Another field executive has already visited this merchant.",
         };
       } else {
         result = {
@@ -69,6 +83,7 @@ export async function POST(request: NextRequest) {
           status: "existing_lead",
           application_id: existing.application_id,
           application_status: existing.status,
+          visiting_exec_name: null,
           message: "A draft application exists for this number. You can resume it.",
         };
       }
@@ -78,6 +93,7 @@ export async function POST(request: NextRequest) {
         status: "new",
         application_id: null,
         application_status: null,
+        visiting_exec_name: null,
         message: "This number is available for registration.",
       };
     }

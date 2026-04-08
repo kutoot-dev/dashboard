@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
+import { PhotoCapture } from "./photo-capture";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useVerifyGst, useVerifyPan } from "@/lib/hooks";
 import {
@@ -187,6 +188,16 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
         )}
       </FieldWithInfo>
 
+      {/* GST Document Photo */}
+      <PhotoCapture
+        label="GST Certificate Photo"
+        value={formData.gst_doc_photo_url}
+        onChange={(url) => updateFormData({ gst_doc_photo_url: url })}
+        required={false}
+        error={errors.gst_doc_photo}
+        hint="Take a clear photo of the GST registration certificate or printout."
+      />
+
       {/* PAN Number */}
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.pan_number} error={errors.pan_number}>
         <div className="flex items-center gap-2">
@@ -217,6 +228,16 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
         )}
       </FieldWithInfo>
 
+      {/* PAN Document Photo */}
+      <PhotoCapture
+        label="PAN Card Photo"
+        value={formData.pan_doc_photo_url}
+        onChange={(url) => updateFormData({ pan_doc_photo_url: url })}
+        required={false}
+        error={errors.pan_doc_photo}
+        hint="Take a clear photo of the PAN card (front side). Ensure all text is legible."
+      />
+
       {/* Aadhaar */}
       <FieldWithInfo
         fieldInfo={ONBOARDING_FIELDS.aadhaar_number}
@@ -237,6 +258,16 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
           Optional. Only last 4 digits are stored.
         </p>
       </FieldWithInfo>
+
+      {/* Aadhaar Document Photo */}
+      <PhotoCapture
+        label="Aadhaar Card Photo"
+        value={formData.aadhaar_doc_photo_url}
+        onChange={(url) => updateFormData({ aadhaar_doc_photo_url: url })}
+        required={false}
+        error={errors.aadhaar_doc_photo}
+        hint="Take a clear photo of the Aadhaar card (front side). Mask the first 8 digits if visible."
+      />
 
       {/* Navigation */}
       <div className="flex justify-between pt-4">

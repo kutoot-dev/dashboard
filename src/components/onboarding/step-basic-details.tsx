@@ -28,6 +28,12 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const checkPhone = useCheckPhone();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // FE visiting a non-interested (or any non-onboarding) merchant → relaxed rules
+  const isFeVisitOnly =
+    formData.channel === "field_executive" &&
+    formData.visit_outcome !== "interested" &&
+    formData.visit_outcome !== null;
+
   // Debounced phone check
   const handlePhoneChange = useCallback(
     (value: string) => {
@@ -43,6 +49,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
                     exists: true,
                     status: res.data.status,
                     application_id: res.data.application_id,
+                    visiting_exec_name: res.data.visiting_exec_name ?? null,
                     message: res.data.message,
                   }
                 : null,
@@ -79,15 +86,30 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const validate = (): boolean => {
     const e: Record<string, string> = {};
 
-    if (!VALIDATION_RULES.phone.pattern.test(formData.phone)) {
-      e.phone = "Enter a valid 10-digit Indian mobile number starting with 6-9.";
+    // Phone: required for merchant / FE-interested; optional for FE visit-only flows
+    if (!isFeVisitOnly) {
+      if (!VALIDATION_RULES.phone.pattern.test(formData.phone)) {
+        e.phone = "Enter a valid 10-digit Indian mobile number starting with 6-9.";
+      }
+    } else if (formData.phone && !VALIDATION_RULES.phone.pattern.test(formData.phone)) {
+      e.phone = "If entered, must be a valid 10-digit number starting with 6-9.";
     }
-    if (
-      formData.owner_name.length < 2 ||
+
+    // Owner name: required for merchant / FE-interested; optional for FE visit-only flows
+    if (!isFeVisitOnly) {
+      if (
+        formData.owner_name.length < 2 ||
+        !VALIDATION_RULES.owner_name.pattern.test(formData.owner_name)
+      ) {
+        e.owner_name = "Enter a valid name (letters and spaces only, min 2 chars).";
+      }
+    } else if (
+      formData.owner_name &&
       !VALIDATION_RULES.owner_name.pattern.test(formData.owner_name)
     ) {
-      e.owner_name = "Enter a valid name (letters and spaces only, min 2 chars).";
+      e.owner_name = "If entered, must contain only letters and spaces.";
     }
+
     if (formData.shop_name.length < 2) {
       e.shop_name = "Shop name must be at least 2 characters.";
     }
@@ -106,10 +128,15 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!formData.state) {
       e.state = "State is required.";
     }
-    if (!formData.storefront_photo_url) {
+    // Storefront photo: required only for interested / merchant flows
+    if (!isFeVisitOnly && !formData.storefront_photo_url) {
       e.storefront_photo = "Shop storefront photo is mandatory.";
     }
-    if (phoneCheckResult?.exists && phoneCheckResult.status !== "existing_lead") {
+    if (
+      phoneCheckResult?.exists &&
+      phoneCheckResult.status !== "existing_lead" &&
+      phoneCheckResult.status !== "existing_fe_visit"
+    ) {
       e.phone = "This number is already registered.";
     }
 
@@ -133,12 +160,18 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       <div>
         <h2 className="text-xl font-bold text-foreground">Basic Details</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Tell us about your shop and business. All fields marked with * are mandatory.
+          {isFeVisitOnly
+            ? "Capture basic shop details for the visit record. Phone and owner name are optional."
+            : "Tell us about your shop and business. All fields marked with * are mandatory."}
         </p>
       </div>
 
       {/* Phone Number */}
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.phone} required error={errors.phone}>
+      <FieldWithInfo
+        fieldInfo={ONBOARDING_FIELDS.phone}
+        required={!isFeVisitOnly}
+        error={errors.phone}
+      >
         <div className="flex gap-2">
           <div className="flex items-center px-3 bg-card border border-border rounded-md text-sm text-muted-foreground">
             +91
@@ -159,8 +192,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         </div>
       </FieldWithInfo>
 
-      {/* Duplicate alert */}
-      {phoneCheckResult?.exists && (
+      {/* Duplicate alert — shown for non-FE-visit cases */}
+      {phoneCheckResult?.exists &&
+        phoneCheckResult.status !== "existing_fe_visit" && (
         <DuplicateAlert
           status={phoneCheckResult.status as "active_merchant" | "existing_lead" | "already_submitted"}
           applicationId={phoneCheckResult.application_id}
@@ -169,8 +203,45 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       )}
 
+      {/* FE duplicate visit warning */}
+      {formData.channel === "field_executive" &&
+        phoneCheckResult?.status === "existing_fe_visit" && (
+          <div className="rounded-lg border border-warning/40 bg-warning/5 p-4">
+            <div className="flex gap-3">
+              <svg
+                className="h-5 w-5 flex-shrink-0 text-warning mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Another field executive already visited this store
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {phoneCheckResult.visiting_exec_name
+                    ? `This merchant was visited by ${phoneCheckResult.visiting_exec_name}.`
+                    : "A previous visit record exists for this number."}{" "}
+                  You can still log this visit, but please check with your manager before re-visiting.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
       {/* Owner Name */}
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.owner_name} required error={errors.owner_name}>
+      <FieldWithInfo
+        fieldInfo={ONBOARDING_FIELDS.owner_name}
+        required={!isFeVisitOnly}
+        error={errors.owner_name}
+      >
         <Input
           placeholder={ONBOARDING_FIELDS.owner_name.placeholder}
           value={formData.owner_name}
@@ -243,7 +314,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         </FieldWithInfo>
       </div>
 
-      {/* Storefront Photo */}
+      {/* Storefront Photo — optional for FE visit-only, required otherwise */}
       <PhotoCapture
         label="Shop Storefront Photo"
         value={formData.storefront_photo_url}
@@ -253,8 +324,13 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             storefront_photo_status: "uploaded",
           })
         }
-        required
+        required={!isFeVisitOnly}
         error={errors.storefront_photo}
+        hint={
+          isFeVisitOnly
+            ? "Optional for visit records. Take a photo if possible."
+            : undefined
+        }
       />
 
       {/* Navigation */}

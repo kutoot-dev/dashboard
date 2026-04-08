@@ -342,6 +342,129 @@ export const SECTOR_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
+// ── Available (Unassigned) QR Codes ───────────────────────────────
+
+export const AVAILABLE_QR_CODES = [
+  { serial: "KT-QR-00001003", label: "KT-QR-00001003" },
+  { serial: "KT-QR-00001004", label: "KT-QR-00001004" },
+  { serial: "KT-QR-00001006", label: "KT-QR-00001006" },
+  { serial: "KT-QR-00001007", label: "KT-QR-00001007" },
+  { serial: "KT-QR-00001008", label: "KT-QR-00001008" },
+  { serial: "KT-QR-00001009", label: "KT-QR-00001009" },
+];
+
+// ── Visit Outcome Options (Field Executive) ───────────────────────
+
+export const VISIT_OUTCOME_OPTIONS: Array<{
+  value: string;
+  label: string;
+  description: string;
+  icon: string;
+  isOnboarding: boolean;   // true = proceed to full form
+  supportsSchedule: boolean; // true = show date/time follow-up picker
+  color: string;
+}> = [
+  {
+    value: "interested",
+    label: "Interested — Onboard Now",
+    description: "Merchant agreed to join Kutoot",
+    icon: "✅",
+    isOnboarding: true,
+    supportsSchedule: false,
+    color: "border-success/50 bg-success/5 hover:bg-success/10",
+  },
+  {
+    value: "not_interested",
+    label: "Not Interested",
+    description: "Merchant explicitly declined",
+    icon: "🚫",
+    isOnboarding: false,
+    supportsSchedule: false,
+    color: "border-error/40 bg-error/5 hover:bg-error/10",
+  },
+  {
+    value: "follow_up",
+    label: "Follow Up Required",
+    description: "Needs another visit or callback",
+    icon: "🔄",
+    isOnboarding: false,
+    supportsSchedule: true,
+    color: "border-info/40 bg-info/5 hover:bg-info/10",
+  },
+  {
+    value: "owner_absent",
+    label: "Owner Absent",
+    description: "Shop open but owner not available",
+    icon: "👤",
+    isOnboarding: false,
+    supportsSchedule: true,
+    color: "border-warning/40 bg-warning/5 hover:bg-warning/10",
+  },
+  {
+    value: "shop_closed",
+    label: "Shop Closed",
+    description: "Shop was closed during visit",
+    icon: "🔒",
+    isOnboarding: false,
+    supportsSchedule: true,
+    color: "border-warning/40 bg-warning/5 hover:bg-warning/10",
+  },
+  {
+    value: "permanently_closed",
+    label: "Permanently Closed",
+    description: "Business has shut down",
+    icon: "🪦",
+    isOnboarding: false,
+    supportsSchedule: false,
+    color: "border-error/40 bg-error/5 hover:bg-error/10",
+  },
+  {
+    value: "competitor_user",
+    label: "Using Competitor",
+    description: "Already on a rival payment service",
+    icon: "⚔️",
+    isOnboarding: false,
+    supportsSchedule: true,
+    color: "border-border bg-muted/30 hover:bg-muted/50",
+  },
+  {
+    value: "already_registered",
+    label: "Already Registered",
+    description: "Already an active Kutoot merchant",
+    icon: "✔️",
+    isOnboarding: false,
+    supportsSchedule: false,
+    color: "border-success/30 bg-success/5 hover:bg-success/10",
+  },
+  {
+    value: "language_barrier",
+    label: "Language Barrier",
+    description: "Could not communicate effectively",
+    icon: "💬",
+    isOnboarding: false,
+    supportsSchedule: true,
+    color: "border-border bg-muted/30 hover:bg-muted/50",
+  },
+  {
+    value: "invalid_address",
+    label: "Invalid Address",
+    description: "Address does not exist or unreachable",
+    icon: "📍",
+    isOnboarding: false,
+    supportsSchedule: false,
+    color: "border-error/40 bg-error/5 hover:bg-error/10",
+  },
+  {
+    value: "called_back",
+    label: "Call Back Later",
+    description: "Merchant asked to call back at another time",
+    icon: "📞",
+    isOnboarding: false,
+    supportsSchedule: true,
+    color: "border-info/40 bg-info/5 hover:bg-info/10",
+  },
+];
+
 // ── Volume Range Options ───────────────────────────────────────────
 
 export const VOLUME_RANGES = [

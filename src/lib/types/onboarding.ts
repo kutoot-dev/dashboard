@@ -20,6 +20,30 @@ export type ApplicationStatus =
 
 export type ApplicationChannel = "merchant" | "field_executive";
 
+// ── Follow-up Schedule ─────────────────────────────────────────────
+
+export interface FollowUpSchedule {
+  id: string;                // uuid-like client-side id
+  date: string;              // ISO date portion: YYYY-MM-DD
+  time: string;              // HH:mm
+  notes: string;             // optional note for this slot
+}
+
+// ── Visit Outcome (Field Executive only) ──────────────────────────
+
+export type VisitOutcome =
+  | "interested"           // Merchant wants to onboard — proceed with full form
+  | "not_interested"       // Merchant explicitly declined
+  | "follow_up"            // Needs another visit / callback
+  | "owner_absent"         // Shop open but owner not present
+  | "shop_closed"          // Shop closed during visit
+  | "permanently_closed"   // Business has shut down
+  | "competitor_user"      // Already using a rival payment service
+  | "already_registered"   // Already an active Kutoot merchant
+  | "language_barrier"     // Could not communicate effectively
+  | "invalid_address"      // Address does not exist / unreachable
+  | "called_back";         // Merchant asked to call back later
+
 export type CommissionModel = "flat" | "tiered";
 
 export type KycVerificationStatus =
@@ -40,6 +64,7 @@ export type IncentiveStatus = "pending" | "approved" | "paid" | "hold";
 
 export type WizardStepId =
   | "identity"
+  | "visit_outcome"    // Field executive only
   | "basic_details"
   | "commission"
   | "kyc"
@@ -49,6 +74,7 @@ export type WizardStepId =
 
 export const WIZARD_STEPS: WizardStepId[] = [
   "identity",
+  "visit_outcome",
   "basic_details",
   "commission",
   "kyc",
@@ -66,12 +92,13 @@ export interface WizardStepConfig {
 
 export const WIZARD_STEP_CONFIG: WizardStepConfig[] = [
   { id: "identity", label: "Identity", description: "Who is filling this form?", number: 1 },
-  { id: "basic_details", label: "Basic Details", description: "Shop and owner information", number: 2 },
-  { id: "commission", label: "Commission", description: "Commission rate agreement", number: 3 },
-  { id: "kyc", label: "KYC Documents", description: "Business verification documents", number: 4 },
-  { id: "bank", label: "Bank Details", description: "Bank account for payouts", number: 5 },
-  { id: "qr_activation", label: "QR & Activation", description: "QR code setup", number: 6 },
-  { id: "review", label: "Review & Submit", description: "Review and submit application", number: 7 },
+  { id: "visit_outcome", label: "Visit Status", description: "Merchant interest and outcome", number: 2 },
+  { id: "basic_details", label: "Basic Details", description: "Shop and owner information", number: 3 },
+  { id: "commission", label: "Commission", description: "Commission rate agreement", number: 4 },
+  { id: "kyc", label: "KYC Documents", description: "Business verification documents", number: 5 },
+  { id: "bank", label: "Bank Details", description: "Bank account for payouts", number: 6 },
+  { id: "qr_activation", label: "QR & Activation", description: "QR code setup", number: 7 },
+  { id: "review", label: "Review & Submit", description: "Review and submit application", number: 8 },
 ];
 
 // ── Commission Tier ────────────────────────────────────────────────
@@ -124,10 +151,13 @@ export interface OnboardingApplication {
   gst_status: KycVerificationStatus;
   gst_business_name: string | null;
   gst_business_address: string | null;
+  gst_doc_photo_url: string | null;
   pan_number: string | null;
   pan_status: KycVerificationStatus;
   pan_holder_name: string | null;
+  pan_doc_photo_url: string | null;
   aadhaar_number_masked: string | null;
+  aadhaar_doc_photo_url: string | null;
 
   // Step 5: Bank
   bank_account_name: string | null;
@@ -155,8 +185,14 @@ export interface OnboardingApplication {
   updated_at: string;
   submitted_at: string | null;
   last_modified_by: ApplicationChannel;
+  submitted_by: ApplicationChannel;           // who actually submitted
   device_fingerprint: string | null;
   start_time: string;
+
+  // Visit record (Field Executive non-interested flows)
+  visit_outcome: VisitOutcome | null;
+  visit_notes: string | null;
+  follow_up_schedules: FollowUpSchedule[];  // multiple reschedule slots
 
   // Audit
   audit_trail: AuditEntry[];
@@ -209,9 +245,10 @@ export interface ExecutiveIncentive {
 
 export interface PhoneCheckResult {
   exists: boolean;
-  status: "active_merchant" | "existing_lead" | "already_submitted" | "new";
+  status: "active_merchant" | "existing_lead" | "already_submitted" | "existing_fe_visit" | "new";
   application_id: string | null;
   application_status: ApplicationStatus | null;
+  visiting_exec_name: string | null;   // name of FE who already visited, if any
   message: string;
 }
 
