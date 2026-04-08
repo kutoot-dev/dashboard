@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -48,8 +49,7 @@ export default function ForceMajeurePage() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<string>("natural_disaster");
-  const [formStartDate, setFormStartDate] = useState("");
-  const [formEndDate, setFormEndDate] = useState("");
+  const [formDateRange, setFormDateRange] = useState({ start: "", end: "" });
   const [formLocations, setFormLocations] = useState("");
   const [formAdjustment, setFormAdjustment] = useState<string>("pause");
 
@@ -60,21 +60,20 @@ export default function ForceMajeurePage() {
   const resetForm = () => {
     setFormName("");
     setFormType("natural_disaster");
-    setFormStartDate("");
-    setFormEndDate("");
+    setFormDateRange({ start: "", end: "" });
     setFormLocations("");
     setFormAdjustment("pause");
   };
 
   const handleCreate = () => {
-    if (!formName || !formStartDate || !formEndDate) return;
+    if (!formName || !formDateRange.start || !formDateRange.end) return;
     createMutation.mutate(
       {
         event_name: formName,
         event_type: formType as ForceMajeureEventType,
         affected_location_ids: formLocations.split(",").map((s) => s.trim()).filter(Boolean),
-        start_timestamp: new Date(formStartDate).toISOString(),
-        end_timestamp: new Date(formEndDate).toISOString(),
+        start_timestamp: new Date(formDateRange.start).toISOString(),
+        end_timestamp: new Date(formDateRange.end).toISOString(),
         scoring_adjustment_type: formAdjustment as ScoringAdjustmentType,
       },
       {
@@ -231,18 +230,11 @@ export default function ForceMajeurePage() {
               onChange={setFormType}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Start Date"
-              type="date"
-              value={formStartDate}
-              onChange={(e) => setFormStartDate(e.target.value)}
-            />
-            <Input
-              label="End Date"
-              type="date"
-              value={formEndDate}
-              onChange={(e) => setFormEndDate(e.target.value)}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Event Date Range</label>
+            <DateRangePicker
+              value={formDateRange}
+              onChange={setFormDateRange}
             />
           </div>
           <Input
@@ -266,7 +258,7 @@ export default function ForceMajeurePage() {
             <Button
               onClick={handleCreate}
               loading={createMutation.isPending}
-              disabled={!formName || !formStartDate || !formEndDate}
+              disabled={!formName || !formDateRange.start || !formDateRange.end}
             >
               Create Event
             </Button>

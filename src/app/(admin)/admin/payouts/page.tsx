@@ -1,43 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { usePayoutSimulation } from "@/lib/hooks/use-admin";
 import { useScoringPeriods } from "@/lib/hooks/use-scores";
+import { useDateRange, DEFAULT_DATE_RANGE } from "@/lib/hooks/use-date-range";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AreaChart } from "@/components/charts/area-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
+import { formatINR, formatScore } from "@/lib/utils/format";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { PayoutSimulationResult, PayoutSimulationEntry } from "@/lib/api/services/admin.service";
 
 type Row = Record<string, unknown>;
 
 export default function PayoutSimulationPage() {
-  const { data: periods, isLoading: periodsLoading } = useScoringPeriods();
+  const { data: periods } = useScoringPeriods();
   const simulationMutation = usePayoutSimulation();
 
-  const [selectedPeriod, setSelectedPeriod] = useState("");
+  const { dateRange, setDateRange } = useDateRange(DEFAULT_DATE_RANGE);
   const [poolAmount, setPoolAmount] = useState("500000");
   const [alpha, setAlpha] = useState("1.8");
   const [threshold, setThreshold] = useState("50");
 
-  const periodOptions = (periods ?? []).map((p) => ({
-    value: p.period_id,
-    label: formatPeriodRange(p.period_start, p.period_end),
-  }));
+  // Find the latest closed period within the selected date range
+  const resolvedPeriodId = useMemo(() => {
+    if (!periods) return undefined;
+    const rangeStart = dateRange.start ? new Date(`${dateRange.start}T00:00:00Z`) : new Date(0);
+    const rangeEnd = dateRange.end ? new Date(`${dateRange.end}T23:59:59Z`) : new Date();
+    const inRange = periods
+      .filter((p) => {
+        const pStart = new Date(p.period_start);
+        const pEnd = new Date(p.period_end);
+        return p.status === "closed" && pStart <= rangeEnd && pEnd >= rangeStart;
+      })
+      .sort((a, b) => b.period_start.localeCompare(a.period_start));
+    return inRange[0]?.period_id ?? periods.find((p) => p.status === "closed")?.period_id;
+  }, [periods, dateRange]);
 
   const handleRunSimulation = () => {
-    const periodId = selectedPeriod || periods?.[0]?.period_id;
-    if (!periodId) return;
+    if (!resolvedPeriodId) return;
     simulationMutation.mutate({
-      periodId,
+      periodId: resolvedPeriodId,
       params: {
         pool_override: parseFloat(poolAmount) || undefined,
         top_n: 20,
@@ -103,17 +113,11 @@ export default function PayoutSimulationPage() {
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Period</label>
-            {periodsLoading ? (
-              <Skeleton className="h-9" />
-            ) : (
-              <Select
-                options={periodOptions}
-                value={selectedPeriod}
-                onChange={setSelectedPeriod}
-                placeholder="Select period"
-              />
-            )}
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Date Range</label>
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
           </div>
           <Input
             label="Pool Amount (₹)"
@@ -139,7 +143,7 @@ export default function PayoutSimulationPage() {
           <Button
             onClick={handleRunSimulation}
             loading={simulationMutation.isPending}
-            disabled={!periods?.length}
+            disabled={!resolvedPeriodId}
           >
             Run Simulation
           </Button>

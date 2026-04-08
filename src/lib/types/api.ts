@@ -43,7 +43,8 @@ export interface LeaderboardFilters {
   limit?: number;
   city_tier?: string;
   state?: string;
-  period_id?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 /** Leaderboard entry as returned by the API */

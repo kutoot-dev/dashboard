@@ -2,21 +2,22 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { useLiveLeaderboard } from "@/lib/hooks/use-live-data";
+import { useDateRange, DEFAULT_DATE_RANGE } from "@/lib/hooks/use-date-range";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RankBadge } from "@/components/ui/rank-badge";
 import { ChangeIndicator } from "@/components/ui/change-indicator";
 import { Select } from "@/components/ui/select";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { SparklineChart } from "@/components/charts/sparkline-chart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
-import { formatScore, formatINR, formatPeriodRange } from "@/lib/utils/format";
+import { formatScore, formatINR } from "@/lib/utils/format";
 import type { LeaderboardFilters } from "@/lib/types";
 
 const CITY_TIERS = [
@@ -49,19 +50,15 @@ export default function LeaderboardPage() {
     limit: PAGE_SIZE,
     city_tier: "",
     state: "",
-    period_id: "",
   });
 
-  const { data: periods } = useScoringPeriods();
-  const { data: leaderboard, isLoading } = useLiveLeaderboard(filters);
+  const { dateRange, setDateRange } = useDateRange(DEFAULT_DATE_RANGE);
 
-  const periodOptions = [
-    { value: "", label: "Latest Period" },
-    ...(periods ?? []).map((p) => ({
-      value: p.period_id,
-      label: formatPeriodRange(p.period_start, p.period_end),
-    })),
-  ];
+  const { data: leaderboard, isLoading } = useLiveLeaderboard({
+    ...filters,
+    start_date: dateRange.start,
+    end_date: dateRange.end,
+  });
 
   const items = leaderboard ?? [];
   const totalPages = 1;
@@ -87,10 +84,10 @@ export default function LeaderboardPage() {
           value={filters.state ?? ""}
           onChange={(v) => updateFilter("state", v)}
         />
-        <Select
-          options={periodOptions}
-          value={filters.period_id ?? ""}
-          onChange={(v) => updateFilter("period_id", v)}
+        <DateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
+          className="w-60"
         />
       </Card>
 

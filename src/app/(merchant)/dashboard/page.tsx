@@ -7,7 +7,6 @@ import {
   useBranchCandlesticks,
   useBranchVolume,
 } from "@/lib/hooks/use-branch-data";
-import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { useLiveScore } from "@/lib/hooks/use-live-data";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { PageHeader } from "@/components/layout/page-header";
@@ -16,7 +15,7 @@ import { ScoreDisplay } from "@/components/ui/score-display";
 import { RankBadge } from "@/components/ui/rank-badge";
 import { ChangeIndicator } from "@/components/ui/change-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select } from "@/components/ui/select";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ChartTypeSwitcher } from "@/components/ui/chart-type-switcher";
@@ -27,18 +26,11 @@ import { MultiChart } from "@/components/charts/multi-chart";
 import { VolumeChart } from "@/components/charts/volume-chart";
 import { KMIChart } from "@/components/charts/kmi-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
+import { formatINR, formatScore } from "@/lib/utils/format";
 import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
 import { BRANCH_DASHBOARD, COMMON } from "@/lib/constants/strings";
 
 type ChartType = "candle" | "line" | "area" | "baseline";
-
-const TIME_RANGES = [
-  { label: "4W", value: 4 },
-  { label: "8W", value: 8 },
-  { label: "12W", value: 12 },
-  { label: "All", value: -1 },
-];
 
 const TOTAL_BRANCHES = 50;
 
@@ -47,14 +39,9 @@ export default function DashboardPage() {
   const branchId = user?.branch_id ?? "m-001";
   const [chartType, setChartType] = useState<ChartType>("candle");
 
-  const { selectedPeriodId, setSelectedPeriodId, chartTimeRange, setChartTimeRange } =
-    useUIStore();
+  const { dateRange, setDateRange } = useUIStore();
 
-  const { data: periods, isLoading: periodsLoading } = useScoringPeriods();
-  const { data: score, isLoading: scoreLoading } = useBranchScore(
-    branchId,
-    selectedPeriodId ?? undefined,
-  );
+  const { data: score, isLoading: scoreLoading } = useBranchScore(branchId);
   const { data: candlesticks, isLoading: candlesticksLoading } =
     useBranchCandlesticks(branchId);
   const { data: volume, isLoading: volumeLoading } =
@@ -63,20 +50,26 @@ export default function DashboardPage() {
   // Live score simulation
   const liveScore = useLiveScore(score?.composite_index_score ?? 0);
 
-  const periodOptions = (periods ?? []).map((p) => ({
-    value: p.period_id,
-    label: formatPeriodRange(p.period_start, p.period_end),
-  }));
+  // Filter chart data to the selected date range
+  const slicedCandles = useMemo(() => {
+    if (!candlesticks) return [];
+    if (!dateRange.start && !dateRange.end) return candlesticks;
+    return candlesticks.filter((c) => {
+      if (dateRange.start && c.time < dateRange.start) return false;
+      if (dateRange.end && c.time > dateRange.end) return false;
+      return true;
+    });
+  }, [candlesticks, dateRange]);
 
-  // Slice chart data by time range
-  const slicedCandles =
-    chartTimeRange > 0 && candlesticks
-      ? candlesticks.slice(-chartTimeRange)
-      : candlesticks ?? [];
-  const slicedVolume =
-    chartTimeRange > 0 && volume
-      ? volume.slice(-chartTimeRange)
-      : volume ?? [];
+  const slicedVolume = useMemo(() => {
+    if (!volume) return [];
+    if (!dateRange.start && !dateRange.end) return volume;
+    return volume.filter((v) => {
+      if (dateRange.start && v.time < dateRange.start) return false;
+      if (dateRange.end && v.time > dateRange.end) return false;
+      return true;
+    });
+  }, [volume, dateRange]);
 
   // Convert candlestick closes to line data for non-candle chart types
   const lineData = useMemo(
@@ -120,12 +113,10 @@ export default function DashboardPage() {
     <div className="space-y-4">
       {/* Header */}
       <PageHeader title={BRANCH_DASHBOARD.TITLE} subtitle={BRANCH_DASHBOARD.SUBTITLE}>
-        <Select
-          options={periodOptions}
-          value={selectedPeriodId ?? ""}
-          onChange={(v) => setSelectedPeriodId(v || null)}
-          placeholder="Latest period"
-          disabled={periodsLoading}
+        <DateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
+          className="w-60"
         />
       </PageHeader>
 
@@ -258,24 +249,6 @@ export default function DashboardPage() {
             <InfoTooltip text="Shows how your score changed over time. Green means your score went up, red means it went down. Switch chart types using the buttons on the right." />
           </div>
           <div className="flex items-center gap-3">
-            {/* Time Range */}
-            <div className="flex gap-1">
-              {TIME_RANGES.map((tr) => (
-                <button
-                  key={tr.value}
-                  onClick={() => setChartTimeRange(tr.value)}
-                  className={cn(
-                    "rounded px-2 py-1 font-mono text-[10px] font-medium transition-colors",
-                    chartTimeRange === tr.value
-                      ? "bg-accent/10 text-accent"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {tr.label}
-                </button>
-              ))}
-            </div>
-            {/* Chart Type */}
             <ChartTypeSwitcher value={chartType} onChange={setChartType} />
           </div>
         </div>

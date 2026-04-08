@@ -16,21 +16,38 @@ import { SUB_SCORE_LABELS } from "@/lib/constants/scoring";
 
 /**
  * Compute a leaderboard for a given period (defaults to latest closed).
- * Optionally filter by sector and/or location.
+ * Optionally filter by sector and/or location, or by a date range.
+ * When startDate/endDate are provided, the latest closed period overlapping
+ * that range is used as the reference period.
  */
 export function computeLeaderboard(
   periodId?: string,
   sectorId?: string,
   locationId?: string,
+  startDate?: string,
+  endDate?: string,
 ): LeaderboardEntry[] {
   // Resolve target period
   const targetPeriodId =
     periodId ??
     (() => {
-      const closed = MOCK_SCORING_PERIODS
-        .filter((p) => p.status === "closed")
-        .sort((a, b) => a.period_start.localeCompare(b.period_start));
-      return closed.length > 0 ? closed[closed.length - 1].period_id : MOCK_SCORING_PERIODS[0].period_id;
+      let candidates = MOCK_SCORING_PERIODS.filter((p) => p.status === "closed");
+
+      // Narrow to periods overlapping the requested date range
+      if (startDate || endDate) {
+        const rangeStart = startDate ? new Date(`${startDate}T00:00:00Z`) : new Date(0);
+        const rangeEnd = endDate ? new Date(`${endDate}T23:59:59Z`) : new Date();
+        const inRange = candidates.filter((p) => {
+          const pStart = new Date(p.period_start);
+          const pEnd = new Date(p.period_end);
+          return pStart <= rangeEnd && pEnd >= rangeStart;
+        });
+        // Use narrowed list if any periods found, otherwise fall back to all closed
+        if (inRange.length > 0) candidates = inRange;
+      }
+
+      const sorted = candidates.sort((a, b) => a.period_start.localeCompare(b.period_start));
+      return sorted.length > 0 ? sorted[sorted.length - 1].period_id : MOCK_SCORING_PERIODS[0].period_id;
     })();
 
   // Find previous period for change calculations

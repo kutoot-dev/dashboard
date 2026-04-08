@@ -6,20 +6,21 @@ import {
   useBranchScore,
   useBranchCandlesticks,
 } from "@/lib/hooks/use-branch-data";
-import { useScoringPeriods, usePeriodScores } from "@/lib/hooks/use-scores";
+import { useScoresByDateRange } from "@/lib/hooks/use-scores";
+import { useDateRange, DEFAULT_DATE_RANGE } from "@/lib/hooks/use-date-range";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Select } from "@/components/ui/select";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ChartTypeSwitcher } from "@/components/ui/chart-type-switcher";
 import { MultiChart } from "@/components/charts/multi-chart";
 import { BaselineChart } from "@/components/charts/baseline-chart";
 import { AreaChart } from "@/components/charts/area-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatScore, formatDate, formatPeriodRange } from "@/lib/utils/format";
+import { formatScore, formatDate } from "@/lib/utils/format";
 import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS } from "@/lib/constants/scoring";
 import type { ScoreBreakdown } from "@/lib/types";
 
@@ -44,28 +45,33 @@ export default function AnalysisPage() {
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "m-001";
   const [activeTab, setActiveTab] = useState("trend");
-  const [selectedPeriod, setSelectedPeriod] = useState("");
   const [chartType, setChartType] = useState<ChartType>("area");
 
-  const { data: periods, isLoading: periodsLoading } = useScoringPeriods();
+  const { dateRange, setDateRange } = useDateRange(DEFAULT_DATE_RANGE);
+
   const { data: candlesticks, isLoading: candlesticksLoading } =
     useBranchCandlesticks(branchId);
   const { data: score } = useBranchScore(branchId);
-  const { data: periodScores } = usePeriodScores(selectedPeriod || (periods?.[0]?.period_id ?? ""));
+  const { data: periodScores } = useScoresByDateRange(dateRange.start, dateRange.end);
 
-  const periodOptions = (periods ?? []).map((p) => ({
-    value: p.period_id,
-    label: formatPeriodRange(p.period_start, p.period_end),
-  }));
+  // Filter candlestick data to the selected date range
+  const filteredCandlesticks = useMemo(() => {
+    if (!candlesticks) return [];
+    return candlesticks.filter((c) => {
+      if (dateRange.start && c.time < dateRange.start) return false;
+      if (dateRange.end && c.time > dateRange.end) return false;
+      return true;
+    });
+  }, [candlesticks, dateRange]);
 
-  // Build score trend data from candlestick closes
+  // Build score trend data from candlestick closes (filtered)
   const trendData = useMemo(
     () =>
-      (candlesticks ?? []).map((c) => ({
+      filteredCandlesticks.map((c) => ({
         time: c.time,
         value: c.close,
       })),
-    [candlesticks],
+    [filteredCandlesticks],
   );
 
   // Sector average baseline (use 50 as fallback)
@@ -73,54 +79,52 @@ export default function AnalysisPage() {
     ? score.sector_percentile_rank * 100
     : 50;
 
-  // Build sub-score time series (simulated from candlestick length with breakdown)
+  // Build sub-score time series (simulated from filtered candlesticks with breakdown)
   const subScoreCharts = useMemo(() => {
-    if (!candlesticks || !score?.score_breakdown) return [];
+    if (!filteredCandlesticks.length || !score?.score_breakdown) return [];
     return SUB_SCORE_KEYS.map((key) => {
       const baseValue = score.score_breakdown[key];
-      const data = candlesticks.map((c, i) => ({
+      const data = filteredCandlesticks.map((c, i) => ({
         time: c.time,
-        value: Math.max(0, baseValue + (c.close - (candlesticks[0]?.close ?? 50)) * 0.2 + (Math.sin(i * 0.7) * 1.5)),
+        value: Math.max(0, baseValue + (c.close - (filteredCandlesticks[0]?.close ?? 50)) * 0.2 + (Math.sin(i * 0.7) * 1.5)),
       }));
       return { key, label: SUB_SCORE_LABELS[key] ?? key, data };
     });
-  }, [candlesticks, score]);
+  }, [filteredCandlesticks, score]);
 
-  // Peer comparison: branch score vs sector average
+  // Peer comparison: branch score vs sector average (filtered)
   const peerData = useMemo(
     () =>
-      (candlesticks ?? []).map((c) => ({
+      filteredCandlesticks.map((c) => ({
         time: c.time,
         value: c.close,
       })),
-    [candlesticks],
+    [filteredCandlesticks],
   );
 
-  // Score history table from candlesticks
+  // Score history table from filtered candlesticks
   const scoreHistory = useMemo(
     () =>
-      (candlesticks ?? [])
+      filteredCandlesticks
         .map((c, i) => ({
           period: c.time,
           open: c.open,
           high: c.high,
           low: c.low,
           close: c.close,
-          change: i > 0 ? c.close - (candlesticks?.[i - 1]?.close ?? 0) : 0,
+          change: i > 0 ? c.close - (filteredCandlesticks?.[i - 1]?.close ?? 0) : 0,
         }))
         .reverse(),
-    [candlesticks],
+    [filteredCandlesticks],
   );
 
   return (
     <div className="space-y-4">
       <PageHeader title="My Performance" subtitle="Understand your score in detail">
-        <Select
-          options={periodOptions}
-          value={selectedPeriod}
-          onChange={setSelectedPeriod}
-          placeholder="Select period"
-          disabled={periodsLoading}
+        <DateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
+          className="w-60"
         />
       </PageHeader>
 
@@ -152,7 +156,7 @@ export default function AnalysisPage() {
                 ) : (
                   <MultiChart
                     type={chartType}
-                    candleData={candlesticks ?? []}
+                    candleData={filteredCandlesticks}
                     lineData={trendData}
                     baseline={sectorAverage}
                     height={300}

@@ -19,9 +19,10 @@ export async function GET(request: NextRequest) {
     );
     const cityTier = searchParams.get("city_tier") || undefined;
     const state = searchParams.get("state") || undefined;
-    const periodId = searchParams.get("period_id") || undefined;
+    const startDate = searchParams.get("start_date") || undefined;
+    const endDate = searchParams.get("end_date") || undefined;
 
-    let entries = computeLeaderboard(periodId);
+    let entries = computeLeaderboard(undefined, undefined, undefined, startDate, endDate);
 
     // Apply city_tier filter
     if (cityTier) {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
       },
       meta: {
         timestamp: new Date().toISOString(),
-        period_id: periodId || null,
+        period_id: null,
         request_id: crypto.randomUUID(),
       },
       error: null,

@@ -34,3 +34,15 @@ export async function getPeriodScores(periodId: string) {
   );
   return res.data;
 }
+
+/**
+ * Get branch scores for all periods overlapping a date range.
+ * @endpoint GET /api/scores/range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+ * BACKEND SPEC: JOIN scoring_periods on period overlap, return all matching scores
+ */
+export async function getScoresByDateRange(startDate: string, endDate: string) {
+  const res = await apiClient.get<ApiResponse<BranchScore[]>>("/scores/range", {
+    params: { startDate, endDate },
+  });
+  return res.data;
+}

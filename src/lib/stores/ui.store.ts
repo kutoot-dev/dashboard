@@ -1,20 +1,21 @@
 import { create } from "zustand";
 
+interface DateRange {
+  start: string;
+  end: string;
+}
+
 interface UIState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
-  chartTimeRange: number;
-  setChartTimeRange: (range: number) => void;
-  selectedPeriodId: string | null;
-  setSelectedPeriodId: (id: string | null) => void;
+  dateRange: DateRange;
+  setDateRange: (range: DateRange) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
   sidebarCollapsed: false,
   toggleSidebar: () =>
     set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
-  chartTimeRange: -1,
-  setChartTimeRange: (range) => set({ chartTimeRange: range }),
-  selectedPeriodId: null,
-  setSelectedPeriodId: (id) => set({ selectedPeriodId: id }),
+  dateRange: { start: "2026-03-08", end: "2026-04-08" },
+  setDateRange: (range) => set({ dateRange: range }),
 }));
