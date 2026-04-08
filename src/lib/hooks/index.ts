@@ -25,3 +25,16 @@ export {
 } from "./use-admin";
 export { useLiveScore, useLiveLeaderboard, useCountdown } from "./use-live-data";
 export { useKMI } from "./use-kmi";
+export {
+  useApplication,
+  useApplicationList,
+  useCreateApplication,
+  useUpdateApplication,
+  useCheckPhone,
+  useVerifyExecutive,
+  useSendOtp,
+  useVerifyOtp,
+  useVerifyGst,
+  useVerifyPan,
+  useVerifyBank,
+} from "./use-onboarding";

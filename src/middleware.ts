@@ -18,6 +18,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookie = request.cookies.get(AUTH_COOKIE);
 
+  // Public routes — no auth needed
+  if (pathname.startsWith("/onboard")) {
+    return NextResponse.next();
+  }
+
   let user: { role?: string } | null = null;
   if (cookie?.value) {
     try {
@@ -66,6 +71,7 @@ export const config = {
     "/payouts/:path*",
     "/ho/:path*",
     "/admin/:path*",
+    "/onboard/:path*",
     "/login",
   ],
 };

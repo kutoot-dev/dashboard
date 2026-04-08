@@ -18,3 +18,4 @@ export * from "./referrals";
 export * from "./force-majeure";
 export * from "./parameters";
 export * from "./leaderboard";
+export * from "./onboarding";
