@@ -60,6 +60,13 @@ export type IncentiveType =
 
 export type IncentiveStatus = "pending" | "approved" | "paid" | "hold";
 
+export interface NewHORequest {
+  name: string;
+  contact_person: string;
+  phone: string;
+  email: string;
+}
+
 // ── Wizard Step Tracking ───────────────────────────────────────────
 
 export type WizardStepId =
@@ -134,6 +141,11 @@ export interface OnboardingApplication {
   city: string;
   state: string;
   pin_code: string;
+  branch_name?: string | null;
+  has_ho?: boolean | null;
+  ho_id?: string | null;
+  ho_selection_mode?: "none" | "existing" | "other" | null;
+  new_ho_request?: NewHORequest | null;
   storefront_photo_url: string | null;
   storefront_photo_status: "pending" | "uploaded" | "failed";
   gps_lat: number | null;
@@ -309,6 +321,7 @@ export interface ApplicationSummary {
   commission_rate: number | null;
   channel: ApplicationChannel;
   exec_name: string | null;
+  ho_id?: string | null;
   created_at: string;
   updated_at: string;
   submitted_at: string | null;

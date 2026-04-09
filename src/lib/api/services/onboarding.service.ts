@@ -54,6 +54,7 @@ export async function listApplications(filters?: {
   status?: string;
   exec_id?: string;
   phone?: string;
+  ho_id?: string;
 }) {
   const params = filters || {};
   const res = await apiClient.get<

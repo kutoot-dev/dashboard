@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useApplicationList } from "@/lib/hooks";
+import { useAuth } from "@/components/providers/auth-provider";
 import type { ApplicationSummary } from "@/lib/types";
 import {
   APPLICATION_STATUS_LABELS,
@@ -27,10 +28,13 @@ const STATUS_FILTER_OPTIONS = [
 ];
 
 export default function HOApplicationsPage() {
+  const { user } = useAuth();
+  const hoId = user?.ho_id ?? "";
   const [statusFilter, setStatusFilter] = useState("");
-  const { data, isLoading } = useApplicationList(
-    statusFilter ? { status: statusFilter } : undefined,
-  );
+  const { data, isLoading } = useApplicationList({
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(hoId ? { ho_id: hoId } : {}),
+  });
 
   const applications = useMemo(() => {
     const list = data?.items || [];
@@ -167,8 +171,8 @@ export default function HOApplicationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="All Applications"
-        subtitle="Head office view of all merchant onboarding applications (read-only)"
+        title="Linked Applications"
+        subtitle="Applications linked to your head office"
       />
 
       {/* Stats */}

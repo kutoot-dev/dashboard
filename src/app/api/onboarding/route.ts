@@ -47,6 +47,29 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    const phone = String(body.phone || "").replace(/\D/g, "");
+    if (phone.length === 10) {
+      const existing = applications.find((a) => a.phone === phone);
+      if (existing) {
+        return NextResponse.json(
+          {
+            success: false,
+            data: null,
+            meta: {
+              timestamp: new Date().toISOString(),
+              period_id: null,
+              request_id: crypto.randomUUID(),
+            },
+            error: {
+              code: "DUPLICATE_PHONE",
+              message: `Application ${existing.application_id} already exists for this mobile number.`,
+            },
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     // Honeypot check
     if (body.website_url) {
       // Silent reject — appear successful to not tip off bot
@@ -75,7 +98,7 @@ export async function POST(request: NextRequest) {
       exec_name: body.exec_name || null,
       exec_employee_code: body.exec_employee_code || null,
       merchant_phone_verified: body.merchant_phone_verified || false,
-      phone: body.phone || "",
+      phone,
       owner_name: body.owner_name || "",
       shop_name: body.shop_name || "",
       sector_id: body.sector_id || "",
@@ -84,6 +107,11 @@ export async function POST(request: NextRequest) {
       city: body.city || "",
       state: body.state || "",
       pin_code: body.pin_code || "",
+      branch_name: body.branch_name || null,
+      has_ho: body.has_ho ?? null,
+      ho_id: body.ho_id || null,
+      ho_selection_mode: body.ho_selection_mode || null,
+      new_ho_request: body.new_ho_request || null,
       storefront_photo_url: body.storefront_photo_url || null,
       storefront_photo_status: body.storefront_photo_url ? "uploaded" : "pending",
       gps_lat: body.gps_lat ?? null,
@@ -157,6 +185,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const execId = searchParams.get("exec_id");
     const phone = searchParams.get("phone");
+    const hoId = searchParams.get("ho_id");
 
     let filtered = applications;
 
@@ -168,6 +197,9 @@ export async function GET(request: NextRequest) {
     }
     if (phone) {
       filtered = filtered.filter((a) => a.phone === phone);
+    }
+    if (hoId) {
+      filtered = filtered.filter((a) => a.ho_id === hoId);
     }
 
     const summaries = filtered.map(toApplicationSummary);

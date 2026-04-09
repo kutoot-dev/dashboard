@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { StepIdentity } from "@/components/onboarding/step-identity";
 import { StepVisitOutcome } from "@/components/onboarding/step-visit-outcome";
@@ -51,6 +52,8 @@ function getActiveSteps(
 }
 
 export default function OnboardPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     currentStep,
     completedSteps,
@@ -61,6 +64,13 @@ export default function OnboardPage() {
   } = useOnboardingStore();
   const updateApp = useUpdateApplication();
   const createApp = useCreateApplication();
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    if (!applicationId && mode !== "new" && mode !== "resume") {
+      router.replace("/onboard/start");
+    }
+  }, [applicationId, router, searchParams]);
 
   // Compute which steps are active for this session
   const activeStepIds = useMemo(

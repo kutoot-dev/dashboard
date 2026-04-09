@@ -8,7 +8,7 @@ import {
 } from "@/lib/constants/onboarding";
 
 interface DuplicateAlertProps {
-  status: "active_merchant" | "existing_lead" | "already_submitted";
+  status: "active_merchant" | "existing_lead" | "already_submitted" | "existing_fe_visit";
   applicationId: string | null;
   applicationStatus: ApplicationStatus | null;
   message: string;
@@ -30,7 +30,7 @@ export function DuplicateAlert({
   const colors =
     status === "active_merchant"
       ? { bg: "bg-success/10", border: "border-success/30", icon: "text-success" }
-      : status === "already_submitted"
+      : status === "already_submitted" || status === "existing_fe_visit"
         ? { bg: "bg-warning/10", border: "border-warning/30", icon: "text-warning" }
         : { bg: "bg-info/10", border: "border-info/30", icon: "text-info" };
 
@@ -44,7 +44,7 @@ export function DuplicateAlert({
       )}
     >
       <div className="flex gap-3">
-        <div className={cn("flex-shrink-0 mt-0.5", colors.icon)}>
+        <div className={cn("shrink-0 mt-0.5", colors.icon)}>
           {status === "active_merchant" ? (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -73,7 +73,7 @@ export function DuplicateAlert({
               </span>
             </div>
           )}
-          {status === "existing_lead" && onResume && (
+          {(status === "existing_lead" || status === "existing_fe_visit") && onResume && (
             <button
               type="button"
               onClick={onResume}

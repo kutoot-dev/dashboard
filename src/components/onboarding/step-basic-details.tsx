@@ -15,6 +15,7 @@ import {
   INDIAN_STATES,
   VALIDATION_RULES,
 } from "@/lib/constants/onboarding";
+import { MOCK_HEAD_OFFICES } from "@/lib/mock/head-offices";
 import type { ApplicationStatus } from "@/lib/types";
 
 interface StepBasicDetailsProps {
@@ -128,15 +129,37 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!formData.state) {
       e.state = "State is required.";
     }
+    if (formData.has_ho === null) {
+      e.has_ho = "Please confirm whether this branch is linked to an HO.";
+    }
+    if (formData.has_ho) {
+      if (formData.ho_selection_mode === "existing" && !formData.ho_id) {
+        e.ho_id = "Select the existing HO.";
+      }
+      if (formData.ho_selection_mode === "other") {
+        if (!formData.branch_name.trim()) {
+          e.branch_name = "Branch name is required.";
+        }
+        if (!formData.new_ho_request.name.trim()) {
+          e.new_ho_name = "Enter HO name.";
+        }
+        if (!formData.new_ho_request.contact_person.trim()) {
+          e.new_ho_contact = "Enter contact person name.";
+        }
+        if (!VALIDATION_RULES.phone.pattern.test(formData.new_ho_request.phone)) {
+          e.new_ho_phone = "Enter a valid 10-digit contact number.";
+        }
+        const email = formData.new_ho_request.email.trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          e.new_ho_email = "Enter a valid HO email.";
+        }
+      }
+    }
     // Storefront photo: required only for interested / merchant flows
     if (!isFeVisitOnly && !formData.storefront_photo_url) {
       e.storefront_photo = "Shop storefront photo is mandatory.";
     }
-    if (
-      phoneCheckResult?.exists &&
-      phoneCheckResult.status !== "existing_lead" &&
-      phoneCheckResult.status !== "existing_fe_visit"
-    ) {
+    if (phoneCheckResult?.exists) {
       e.phone = "This number is already registered.";
     }
 
@@ -150,10 +173,12 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     }
   };
 
-  const isPhoneBlocked =
-    phoneCheckResult?.exists &&
-    (phoneCheckResult.status === "active_merchant" ||
-      phoneCheckResult.status === "already_submitted");
+  const isPhoneBlocked = !!phoneCheckResult?.exists;
+
+  const hoOptions = MOCK_HEAD_OFFICES.map((ho) => ({
+    value: ho.ho_id,
+    label: `${ho.name} (${ho.ho_id})`,
+  }));
 
   return (
     <div className="space-y-6">
@@ -192,11 +217,10 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         </div>
       </FieldWithInfo>
 
-      {/* Duplicate alert — shown for non-FE-visit cases */}
-      {phoneCheckResult?.exists &&
-        phoneCheckResult.status !== "existing_fe_visit" && (
+      {/* Duplicate alert */}
+      {phoneCheckResult?.exists && (
         <DuplicateAlert
-          status={phoneCheckResult.status as "active_merchant" | "existing_lead" | "already_submitted"}
+          status={phoneCheckResult.status as "active_merchant" | "existing_lead" | "already_submitted" | "existing_fe_visit"}
           applicationId={phoneCheckResult.application_id}
           applicationStatus={phoneCheckResult.status as ApplicationStatus}
           message={phoneCheckResult.message}
@@ -209,7 +233,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           <div className="rounded-lg border border-warning/40 bg-warning/5 p-4">
             <div className="flex gap-3">
               <svg
-                className="h-5 w-5 flex-shrink-0 text-warning mt-0.5"
+                className="h-5 w-5 shrink-0 text-warning mt-0.5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -229,7 +253,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
                   {phoneCheckResult.visiting_exec_name
                     ? `This merchant was visited by ${phoneCheckResult.visiting_exec_name}.`
                     : "A previous visit record exists for this number."}{" "}
-                  You can still log this visit, but please check with your manager before re-visiting.
+                  A new application cannot be created for this mobile number.
                 </p>
               </div>
             </div>
@@ -283,7 +307,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       </FieldWithInfo>
 
       {/* PIN / City / State */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.pin_code} required error={errors.pin_code}>
           <Input
             placeholder="560034"
@@ -304,15 +328,162 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             onChange={(e) => updateFormData({ city: e.target.value })}
           />
         </FieldWithInfo>
-        <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} required error={errors.state}>
-          <Select
-            options={INDIAN_STATES.map((s) => ({ value: s, label: s }))}
-            value={formData.state}
-            onChange={(v) => updateFormData({ state: v })}
-            placeholder="Select state..."
-          />
-        </FieldWithInfo>
       </div>
+
+      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} required error={errors.state}>
+        <Select
+          options={INDIAN_STATES.map((s) => ({ value: s, label: s }))}
+          value={formData.state}
+          onChange={(v) => updateFormData({ state: v })}
+          placeholder="Select state..."
+        />
+      </FieldWithInfo>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">Is this branch linked to an HO? *</label>
+        <Select
+          options={[
+            { value: "yes", label: "Yes" },
+            { value: "no", label: "No" },
+          ]}
+          value={formData.has_ho === null ? "" : formData.has_ho ? "yes" : "no"}
+          onChange={(value) => {
+            const hasHo = value === "yes";
+            updateFormData({
+              has_ho: hasHo,
+              ho_selection_mode: hasHo ? "existing" : "none",
+              ho_id: hasHo ? formData.ho_id : "",
+              new_ho_request: hasHo
+                ? formData.new_ho_request
+                : { name: "", contact_person: "", phone: "", email: "" },
+            });
+          }}
+          placeholder="Select one..."
+        />
+        {errors.has_ho && <p className="text-xs text-error">{errors.has_ho}</p>}
+      </div>
+
+      {formData.has_ho && (
+        <div className="space-y-4 rounded-lg border border-border p-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Branch Name *</label>
+            <Input
+              placeholder="Koramangala Branch"
+              value={formData.branch_name}
+              onChange={(e) => updateFormData({ branch_name: e.target.value })}
+            />
+            {errors.branch_name && (
+              <p className="text-xs text-error">{errors.branch_name}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">HO Selection</label>
+            <Select
+              options={[
+                { value: "existing", label: "Select Existing HO" },
+                { value: "other", label: "Other (Create HO Request)" },
+              ]}
+              value={formData.ho_selection_mode}
+              onChange={(value) =>
+                updateFormData({
+                  ho_selection_mode: value as "existing" | "other",
+                  ho_id: value === "existing" ? formData.ho_id : "",
+                  new_ho_request:
+                    value === "other"
+                      ? formData.new_ho_request
+                      : { name: "", contact_person: "", phone: "", email: "" },
+                })
+              }
+            />
+          </div>
+
+          {formData.ho_selection_mode === "existing" && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Select Existing HO *</label>
+              <Select
+                options={hoOptions}
+                value={formData.ho_id}
+                onChange={(value) => updateFormData({ ho_id: value })}
+                placeholder="Select HO..."
+              />
+              {errors.ho_id && <p className="text-xs text-error">{errors.ho_id}</p>}
+            </div>
+          )}
+
+          {formData.ho_selection_mode === "other" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">HO Name *</label>
+                <Input
+                  placeholder="ABC Retail Holdings"
+                  value={formData.new_ho_request.name}
+                  onChange={(e) =>
+                    updateFormData({
+                      new_ho_request: {
+                        ...formData.new_ho_request,
+                        name: e.target.value,
+                      },
+                    })
+                  }
+                />
+                {errors.new_ho_name && <p className="text-xs text-error">{errors.new_ho_name}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Contact Person *</label>
+                <Input
+                  placeholder="Rohan Gupta"
+                  value={formData.new_ho_request.contact_person}
+                  onChange={(e) =>
+                    updateFormData({
+                      new_ho_request: {
+                        ...formData.new_ho_request,
+                        contact_person: e.target.value,
+                      },
+                    })
+                  }
+                />
+                {errors.new_ho_contact && <p className="text-xs text-error">{errors.new_ho_contact}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Contact Phone *</label>
+                <Input
+                  placeholder="9876543210"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={formData.new_ho_request.phone}
+                  onChange={(e) =>
+                    updateFormData({
+                      new_ho_request: {
+                        ...formData.new_ho_request,
+                        phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                      },
+                    })
+                  }
+                />
+                {errors.new_ho_phone && <p className="text-xs text-error">{errors.new_ho_phone}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Contact Email *</label>
+                <Input
+                  placeholder="ops@abcho.com"
+                  type="email"
+                  value={formData.new_ho_request.email}
+                  onChange={(e) =>
+                    updateFormData({
+                      new_ho_request: {
+                        ...formData.new_ho_request,
+                        email: e.target.value,
+                      },
+                    })
+                  }
+                />
+                {errors.new_ho_email && <p className="text-xs text-error">{errors.new_ho_email}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Storefront Photo — optional for FE visit-only, required otherwise */}
       <PhotoCapture

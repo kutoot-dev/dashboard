@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +19,7 @@ type MerchantStep = "phone" | "otp";
 
 export default function ResumePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<ResumeMode>("select");
   const [merchantStep, setMerchantStep] = useState<MerchantStep>("phone");
   const [phone, setPhone] = useState("");
@@ -31,6 +32,21 @@ export default function ResumePage() {
   const verifyOtp = useVerifyOtp();
   const verifyExec = useVerifyExecutive();
   const loadFromApplication = useOnboardingStore((s) => s.loadFromApplication);
+
+  useEffect(() => {
+    const from = searchParams.get("from");
+    if (from !== "start") {
+      router.replace("/onboard/start");
+      return;
+    }
+
+    const qPhone = searchParams.get("phone") ?? "";
+    const clean = qPhone.replace(/\D/g, "").slice(0, 10);
+    if (clean.length === 10) {
+      setMode("merchant");
+      setPhone(clean);
+    }
+  }, [router, searchParams]);
 
   const handleSendOtp = () => {
     if (!VALIDATION_RULES.phone.pattern.test(phone)) {
@@ -89,7 +105,7 @@ export default function ResumePage() {
           application_id: app.application_id,
           current_step: app.current_step,
         });
-        router.push("/onboard");
+        router.push("/onboard?mode=resume");
       } else {
         setError("No draft application found for this number.");
       }
@@ -112,7 +128,7 @@ export default function ResumePage() {
           application_id: app.application_id,
           current_step: app.current_step,
         });
-        router.push("/onboard");
+        router.push("/onboard?mode=resume");
       } else {
         setError("No draft applications found for your account.");
       }
@@ -251,7 +267,7 @@ export default function ResumePage() {
       <div className="text-center">
         <button
           type="button"
-          onClick={() => router.push("/onboard")}
+          onClick={() => router.push("/onboard/start")}
           className="text-sm text-accent hover:underline"
         >
           Start a new application instead
