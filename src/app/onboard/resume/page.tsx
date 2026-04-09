@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,9 +17,15 @@ import { onboardingService } from "@/lib/api/services";
 type ResumeMode = "select" | "merchant" | "executive";
 type MerchantStep = "phone" | "otp";
 
+const toResumePayload = (app: Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"][number]) => ({
+  ...app,
+  application_id: app.application_id,
+  current_step: app.current_step,
+  ho_id: app.ho_id ?? undefined,
+});
+
 export default function ResumePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [mode, setMode] = useState<ResumeMode>("select");
   const [merchantStep, setMerchantStep] = useState<MerchantStep>("phone");
   const [phone, setPhone] = useState("");
@@ -34,6 +40,7 @@ export default function ResumePage() {
   const loadFromApplication = useOnboardingStore((s) => s.loadFromApplication);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     const from = searchParams.get("from");
     if (from !== "start") {
       router.replace("/onboard/start");
@@ -46,7 +53,7 @@ export default function ResumePage() {
       setMode("merchant");
       setPhone(clean);
     }
-  }, [router, searchParams]);
+  }, [router]);
 
   const handleSendOtp = () => {
     if (!VALIDATION_RULES.phone.pattern.test(phone)) {
@@ -100,11 +107,7 @@ export default function ResumePage() {
       const apps = res.data?.items || [];
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];
-        loadFromApplication({
-          ...app,
-          application_id: app.application_id,
-          current_step: app.current_step,
-        });
+        loadFromApplication(toResumePayload(app));
         router.push("/onboard?mode=resume");
       } else {
         setError("No draft application found for this number.");
@@ -123,11 +126,7 @@ export default function ResumePage() {
       const apps = res.data?.items || [];
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];
-        loadFromApplication({
-          ...app,
-          application_id: app.application_id,
-          current_step: app.current_step,
-        });
+        loadFromApplication(toResumePayload(app));
         router.push("/onboard?mode=resume");
       } else {
         setError("No draft applications found for your account.");
@@ -151,10 +150,10 @@ export default function ResumePage() {
       </div>
 
       {mode === "select" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div
             onClick={() => setMode("merchant")}
-            className="cursor-pointer rounded-lg border border-border bg-card hover:ring-1 hover:ring-accent transition-all p-6"
+            className="cursor-pointer rounded-lg border border-border bg-card p-6 transition-all hover:ring-1 hover:ring-accent"
           >
             <div className="text-3xl mb-3">📱</div>
             <h3 className="font-semibold text-foreground">I am a Merchant</h3>
