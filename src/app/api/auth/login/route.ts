@@ -1,131 +1,58 @@
 /**
  * Route: POST /api/auth/login
  *
- * BACKEND SPEC: Validate email/password against users table (bcrypt hash).
- * Issue a signed JWT or create a server session. Set HttpOnly secure cookie.
- * Return the authenticated user profile.
+ * Proxies to: POST /auth/login
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-const MOCK_USERS = [
-  {
-    id: "user-branch-001",
-    name: "Rajesh Sharma",
-    email: "branch@kutoot.com",
-    password: "password",
-    role: "branch" as const,
-    branch_id: "m-001",
-    ho_id: null,
-  },
-  {
-    id: "user-ho-001",
-    name: "Sharma Group HO",
-    email: "ho@kutoot.com",
-    password: "password",
-    role: "ho" as const,
-    branch_id: null,
-    ho_id: "ho-001",
-  },
-  {
-    id: "user-admin-001",
-    name: "Kutoot Admin",
-    email: "admin@kutoot.com",
-    password: "password",
-    role: "admin" as const,
-    branch_id: null,
-    ho_id: null,
-  },
-];
+import { backendUrl, errorResponse, proxyResponse } from "@/lib/api/server/proxy";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const res = await fetch(backendUrl("/auth/login"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+    });
 
-    if (!email || !password) {
-      return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          meta: {
-            timestamp: new Date().toISOString(),
-            period_id: null,
-            request_id: crypto.randomUUID(),
-          },
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Email and password are required",
-          },
-        },
-        { status: 400 },
-      );
+    if (!res.ok) {
+      return proxyResponse(res);
     }
 
-    const user = MOCK_USERS.find(
-      (u) => u.email === email && u.password === password,
-    );
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          meta: {
-            timestamp: new Date().toISOString(),
-            period_id: null,
-            request_id: crypto.randomUUID(),
-          },
-          error: {
-            code: "AUTH_INVALID_CREDENTIALS",
-            message: "Invalid email or password",
-          },
-        },
-        { status: 401 },
-      );
-    }
-
-    const authUser = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      branch_id: user.branch_id,
-      ho_id: user.ho_id,
-    };
+    const json = await res.json();
+    const token = json.token || res.headers.get("X-Auth-Token");
+    const authUser = json.data;
 
     const jar = await cookies();
-    jar.set("kutoot_auth", JSON.stringify(authUser), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+
+    if (token) {
+      jar.set("kutoot_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+
+    if (authUser) {
+      jar.set("kutoot_auth", JSON.stringify(authUser), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
 
     return NextResponse.json({
-      success: true,
+      success: json.success,
       data: authUser,
-      meta: {
-        timestamp: new Date().toISOString(),
-        period_id: null,
-        request_id: crypto.randomUUID(),
-      },
-      error: null,
+      meta: json.meta,
+      error: json.error,
     });
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        meta: {
-          timestamp: new Date().toISOString(),
-          period_id: null,
-          request_id: crypto.randomUUID(),
-        },
-        error: { code: "INTERNAL_ERROR", message: "Failed to process login" },
-      },
-      { status: 500 },
-    );
+    return errorResponse("Failed to process login", "INTERNAL_ERROR", 500);
   }
 }

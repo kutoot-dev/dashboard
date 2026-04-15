@@ -1,105 +1,21 @@
 /**
  * Route: POST /api/onboarding/check-phone
- * Check if phone number already exists as lead/merchant/application.
+ *
+ * Proxies to: POST /onboarding/check-phone
  */
-import { NextRequest, NextResponse } from "next/server";
-import { MOCK_APPLICATIONS } from "@/lib/mock/onboarding";
-import type { PhoneCheckResult } from "@/lib/types";
-
-// Rate limit: 20 per IP per minute
-const checkTracker = new Map<string, { count: number; resetAt: number }>();
-
-function makeResponse(data: unknown, status = 200) {
-  return NextResponse.json(
-    {
-      success: status < 400,
-      data,
-      meta: { timestamp: new Date().toISOString(), period_id: null, request_id: crypto.randomUUID() },
-      error: status >= 400 ? { code: "ERROR", message: String(data) } : null,
-    },
-    { status },
-  );
-}
+import { NextRequest } from "next/server";
+import { backendUrl, authHeaders, errorResponse, proxyResponse } from "@/lib/api/server/proxy";
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
-    const now = Date.now();
-    const tracker = checkTracker.get(ip);
-    if (tracker && tracker.resetAt > now && tracker.count >= 20) {
-      return makeResponse("Rate limit exceeded", 429);
-    }
-    if (!tracker || tracker.resetAt <= now) {
-      checkTracker.set(ip, { count: 1, resetAt: now + 60000 });
-    } else {
-      tracker.count++;
-    }
-
     const body = await request.json();
-    const phone = String(body.phone || "").replace(/\D/g, "");
-
-    if (phone.length !== 10) {
-      return makeResponse("Invalid phone number", 400);
-    }
-
-    // Check mock applications
-    const existing = MOCK_APPLICATIONS.find((a) => a.phone === phone);
-
-    let result: PhoneCheckResult;
-    if (existing) {
-      if (existing.status === "active") {
-        result = {
-          exists: true,
-          status: "active_merchant",
-          application_id: existing.application_id,
-          application_status: existing.status,
-          visiting_exec_name: existing.exec_name,
-          message: "This merchant is already active on Kutoot.",
-        };
-      } else if (existing.submitted_at) {
-        result = {
-          exists: true,
-          status: "already_submitted",
-          application_id: existing.application_id,
-          application_status: existing.status,
-          visiting_exec_name: existing.exec_name,
-          message: `Application ${existing.application_id} already submitted for this number. Status: ${existing.status}`,
-        };
-      } else if (existing.channel === "field_executive" && existing.exec_id) {
-        // Another FE has already visited / started an application for this store
-        result = {
-          exists: true,
-          status: "existing_fe_visit",
-          application_id: existing.application_id,
-          application_status: existing.status,
-          visiting_exec_name: existing.exec_name,
-          message: existing.exec_name
-            ? `${existing.exec_name} has already visited this merchant.`
-            : "Another field executive has already visited this merchant.",
-        };
-      } else {
-        result = {
-          exists: true,
-          status: "existing_lead",
-          application_id: existing.application_id,
-          application_status: existing.status,
-          visiting_exec_name: null,
-          message: "A draft application exists for this number. You can resume it.",
-        };
-      }
-    } else {
-      result = {
-        exists: false,
-        status: "new",
-        application_id: null,
-        application_status: null,
-        visiting_exec_name: null,
-        message: "This number is available for registration.",
-      };
-    }
-
-    return makeResponse(result);
+    const res = await fetch(backendUrl("/onboarding/check-phone"), {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify(body),
+    });
+    return proxyResponse(res);
   } catch {
-    return makeResponse("Internal server error", 500);
+    return errorResponse("Failed to check phone", "INTERNAL_ERROR", 500);
   }
 }

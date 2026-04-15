@@ -1,11 +1,10 @@
 /**
  * Route: GET /api/merchants/[id]
  *
- * BACKEND SPEC: SELECT * FROM merchants WHERE merchant_id = :id.
- * Join with sectors and locations for enriched data if needed.
+ * Proxies to: GET /branches/{id} (merchants are aliases for branches)
  */
-import { NextRequest, NextResponse } from "next/server";
-import { MOCK_BRANCHES } from "@/lib/mock/branches";
+import { NextRequest } from "next/server";
+import { backendUrl, authHeaders, errorResponse, proxyResponse } from "@/lib/api/server/proxy";
 
 export async function GET(
   _request: NextRequest,
@@ -13,50 +12,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const merchant = MOCK_BRANCHES.find((m) => m.branch_id === id);
-
-    if (!merchant) {
-      return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          meta: {
-            timestamp: new Date().toISOString(),
-            period_id: null,
-            request_id: crypto.randomUUID(),
-          },
-          error: {
-            code: "NOT_FOUND",
-            message: `Branch ${id} not found`,
-          },
-        },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: merchant,
-      meta: {
-        timestamp: new Date().toISOString(),
-        period_id: null,
-        request_id: crypto.randomUUID(),
-      },
-      error: null,
+    const res = await fetch(backendUrl(`/branches/${id}`), {
+      headers: await authHeaders(),
     });
+    return proxyResponse(res);
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        meta: {
-          timestamp: new Date().toISOString(),
-          period_id: null,
-          request_id: crypto.randomUUID(),
-        },
-        error: { code: "INTERNAL_ERROR", message: "Failed to fetch branch" },
-      },
-      { status: 500 },
-    );
+    return errorResponse("Failed to fetch branch", "INTERNAL_ERROR", 500);
   }
 }

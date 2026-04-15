@@ -1,43 +1,18 @@
 /**
  * Route: GET /api/ticker
  *
- * BACKEND SPEC: Compare current period scores vs previous period.
- * Return top N merchants by absolute score change, sorted descending.
- * Cache this for the duration of the current period.
+ * Proxies to: GET /ticker
  */
 import { NextResponse } from "next/server";
-import { getTickerData } from "@/lib/mock/ticker";
+import { backendUrl, authHeaders, errorResponse, proxyResponse } from "@/lib/api/server/proxy";
 
 export async function GET() {
   try {
-    const ticker = getTickerData();
-
-    return NextResponse.json({
-      success: true,
-      data: ticker,
-      meta: {
-        timestamp: new Date().toISOString(),
-        period_id: null,
-        request_id: crypto.randomUUID(),
-      },
-      error: null,
+    const res = await fetch(backendUrl("/ticker"), {
+      headers: await authHeaders(),
     });
+    return proxyResponse(res);
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        meta: {
-          timestamp: new Date().toISOString(),
-          period_id: null,
-          request_id: crypto.randomUUID(),
-        },
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to fetch ticker data",
-        },
-      },
-      { status: 500 },
-    );
+    return errorResponse("Failed to fetch ticker data", "INTERNAL_ERROR", 500);
   }
 }
