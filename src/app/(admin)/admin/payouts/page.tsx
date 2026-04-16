@@ -1,26 +1,31 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePayoutSimulation } from "@/lib/hooks/use-admin";
 import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { useDateRange, DEFAULT_DATE_RANGE } from "@/lib/hooks/use-date-range";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DataTable } from "@/components/ui/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AreaChart } from "@/components/charts/area-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatINR, formatScore } from "@/lib/utils/format";
+import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import type { PayoutSimulationResult, PayoutSimulationEntry } from "@/lib/api/services/admin.service";
+import { getPayoutRecords, markPayoutPaid } from "@/lib/api/services/admin.service";
+import { getScoringPeriods } from "@/lib/api/services/scores.service";
+import type { PayoutSimulationResult, PayoutSimulationEntry, PayoutRecord } from "@/lib/api/services/admin.service";
 
 type Row = Record<string, unknown>;
 
 export default function PayoutSimulationPage() {
+  const queryClient = useQueryClient();
   const { data: periods } = useScoringPeriods();
   const simulationMutation = usePayoutSimulation();
 
@@ -28,6 +33,74 @@ export default function PayoutSimulationPage() {
   const [poolAmount, setPoolAmount] = useState("500000");
   const [alpha, setAlpha] = useState("1.8");
   const [threshold, setThreshold] = useState("50");
+  const [activeView, setActiveView] = useState<"simulation" | "management">("management");
+  const [selectedPayoutPeriod, setSelectedPayoutPeriod] = useState("");
+  const [selectedPayoutIds, setSelectedPayoutIds] = useState<string[]>([]);
+
+  // Payout records from backend
+  const { data: payoutRecords, isLoading: payoutsLoading } = useQuery({
+    queryKey: ["payoutRecords", selectedPayoutPeriod],
+    queryFn: async () => {
+      const res = await getPayoutRecords(selectedPayoutPeriod || undefined);
+      return (res.data ?? []) as PayoutRecord[];
+    },
+  });
+
+  const { data: periodsForSelect } = useQuery({
+    queryKey: ["scoringPeriodsForPayouts"],
+    queryFn: async () => {
+      const res = await getScoringPeriods();
+      return res.data ?? [];
+    },
+  });
+
+  const periodSelectOptions = useMemo(
+    () => [
+      { value: "", label: "All Periods" },
+      ...(periodsForSelect ?? []).map((p) => ({
+        value: p.period_id,
+        label: formatPeriodRange(p.period_start, p.period_end),
+      })),
+    ],
+    [periodsForSelect]
+  );
+
+  // Set default period
+  useEffect(() => {
+    if (periodsForSelect?.length && !selectedPayoutPeriod) {
+      setSelectedPayoutPeriod(periodsForSelect[0].period_id);
+    }
+  }, [periodsForSelect, selectedPayoutPeriod]);
+
+  const markPaidMutation = useMutation({
+    mutationFn: (ids: string[]) => markPayoutPaid(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payoutRecords"] });
+      setSelectedPayoutIds([]);
+    },
+  });
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedPayoutIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllAllocated = () => {
+    const allocatedIds = (payoutRecords ?? []).filter((p) => p.status === "allocated").map((p) => p.id);
+    setSelectedPayoutIds(allocatedIds);
+  };
+
+  const handleMarkPaid = () => {
+    if (selectedPayoutIds.length === 0) return;
+    markPaidMutation.mutate(selectedPayoutIds);
+  };
+
+  // Stats
+  const totalAllocated = (payoutRecords ?? []).reduce((sum, p) => sum + p.allocated_amount, 0);
+  const paidCount = (payoutRecords ?? []).filter((p) => p.status === "paid").length;
+  const allocatedCount = (payoutRecords ?? []).filter((p) => p.status === "allocated").length;
+  const paidAmount = (payoutRecords ?? []).filter((p) => p.status === "paid").reduce((sum, p) => sum + p.allocated_amount, 0);
 
   // Find the latest closed period within the selected date range
   const resolvedPeriodId = useMemo(() => {
@@ -100,14 +173,170 @@ export default function PayoutSimulationPage() {
     },
   ];
 
+  const payoutMgmtColumns = [
+    {
+      key: "select",
+      header: "",
+      render: (_: unknown, row: Row) =>
+        (row as unknown as PayoutRecord).status === "allocated" ? (
+          <input
+            type="checkbox"
+            checked={selectedPayoutIds.includes((row as unknown as PayoutRecord).id)}
+            onChange={() => handleToggleSelect((row as unknown as PayoutRecord).id)}
+            className="h-4 w-4 rounded border-border accent-accent"
+          />
+        ) : null,
+    },
+    {
+      key: "branch_name",
+      header: "Merchant / Branch",
+      render: (_: unknown, row: Row) => {
+        const r = row as unknown as PayoutRecord;
+        return (
+          <div>
+            <span className="text-sm font-medium text-foreground">{r.branch_name}</span>
+            {r.ho_name && <span className="ml-2 text-xs text-muted-foreground">({r.ho_name})</span>}
+          </div>
+        );
+      },
+    },
+    {
+      key: "allocated_amount",
+      header: "Allocated",
+      align: "right" as const,
+      render: (_: unknown, row: Row) => (
+        <span className="font-mono text-sm font-bold text-foreground">{formatINR((row as unknown as PayoutRecord).allocated_amount)}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (_: unknown, row: Row) => {
+        const r = row as unknown as PayoutRecord;
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+              r.status === "paid"
+                ? "bg-gain/10 text-gain"
+                : "bg-yellow-500/10 text-yellow-500"
+            )}
+          >
+            {r.status === "paid" ? "✓ Paid" : "Pending"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "paid_at",
+      header: "Paid On",
+      render: (_: unknown, row: Row) => {
+        const r = row as unknown as PayoutRecord;
+        return r.paid_at ? (
+          <span className="text-xs text-muted-foreground">{new Date(r.paid_at).toLocaleDateString("en-IN")}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="space-y-4">
-      <PageHeader title="Payout Simulation" subtitle="Model payout distributions before committing">
-        <InfoTooltip text="Simulate how the reward pool would be distributed among merchants for a specific period. Adjust the pool amount, power-law alpha, and minimum threshold to see projected payouts before committing." />
+      <PageHeader title="Payouts" subtitle="Manage merchant payouts and simulate distributions">
+        <InfoTooltip text="View allocated payout amounts per merchant, mark payouts as paid, or simulate new distributions." />
       </PageHeader>
 
-      {/* Controls */}
-      <Card>
+      {/* View Toggle */}
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant={activeView === "management" ? "primary" : "ghost"}
+          onClick={() => setActiveView("management")}
+        >
+          Payout Management
+        </Button>
+        <Button
+          size="sm"
+          variant={activeView === "simulation" ? "primary" : "ghost"}
+          onClick={() => setActiveView("simulation")}
+        >
+          Simulation
+        </Button>
+      </div>
+
+      {/* ── Payout Management View ── */}
+      {activeView === "management" && (
+        <>
+          {/* Period Selector & Summary */}
+          <Card>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="w-64">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Scoring Period</label>
+                <Select
+                  options={periodSelectOptions}
+                  value={selectedPayoutPeriod}
+                  onChange={setSelectedPayoutPeriod}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={handleSelectAllAllocated} disabled={allocatedCount === 0}>
+                  Select All Pending ({allocatedCount})
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleMarkPaid}
+                  disabled={selectedPayoutIds.length === 0 || markPaidMutation.isPending}
+                >
+                  {markPaidMutation.isPending ? "Marking…" : `Mark ${selectedPayoutIds.length} as Paid`}
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <Card>
+              <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Total Allocated</p>
+              <span className="font-mono text-2xl font-bold text-accent">{formatINR(totalAllocated)}</span>
+            </Card>
+            <Card>
+              <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Paid Out</p>
+              <span className="font-mono text-2xl font-bold text-gain">{formatINR(paidAmount)}</span>
+            </Card>
+            <Card>
+              <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Pending</p>
+              <span className="font-mono text-2xl font-bold text-yellow-500">{allocatedCount}</span>
+            </Card>
+            <Card>
+              <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Paid</p>
+              <span className="font-mono text-2xl font-bold text-gain">{paidCount}</span>
+            </Card>
+          </div>
+
+          {/* Payout Table */}
+          {payoutsLoading ? (
+            <Skeleton variant="rect" className="h-[300px]" />
+          ) : (payoutRecords ?? []).length > 0 ? (
+            <div>
+              <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Merchant Payouts ({(payoutRecords ?? []).length})
+              </h2>
+              <DataTable columns={payoutMgmtColumns} data={(payoutRecords ?? []) as unknown as Row[]} />
+            </div>
+          ) : (
+            <Card>
+              <EmptyState title="No payouts" description="No payout records found for the selected period." />
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* ── Simulation View ── */}
+      {activeView === "simulation" && (
+        <>
+          {/* Controls */}
+          <Card>
         <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Simulation Controls
         </h2>
@@ -221,6 +450,8 @@ export default function PayoutSimulationPage() {
             description="Configure the parameters above and click Run Simulation to see projected payout distributions."
           />
         </Card>
+      )}
+        </>
       )}
     </div>
   );

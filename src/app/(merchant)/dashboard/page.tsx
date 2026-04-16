@@ -7,6 +7,8 @@ import {
   useBranchCandlesticks,
   useBranchVolume,
 } from "@/lib/hooks/use-branch-data";
+import { useScoringPeriods } from "@/lib/hooks/use-scores";
+import { useLeaderboard } from "@/lib/hooks/use-leaderboard";
 import { useLiveScore } from "@/lib/hooks/use-live-data";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { PageHeader } from "@/components/layout/page-header";
@@ -32,11 +34,9 @@ import { BRANCH_DASHBOARD, COMMON } from "@/lib/constants/strings";
 
 type ChartType = "candle" | "line" | "area" | "baseline";
 
-const TOTAL_BRANCHES = 50;
-
 export default function DashboardPage() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "m-001";
+  const branchId = user?.branch_id ?? "";
   const [chartType, setChartType] = useState<ChartType>("candle");
 
   const { dateRange, setDateRange } = useUIStore();
@@ -46,6 +46,8 @@ export default function DashboardPage() {
     useBranchCandlesticks(branchId);
   const { data: volume, isLoading: volumeLoading } =
     useBranchVolume(branchId);
+  const { data: periods } = useScoringPeriods();
+  const { data: leaderboardData } = useLeaderboard({ limit: 1 });
 
   // Live score simulation
   const liveScore = useLiveScore(score?.composite_index_score ?? 0);
@@ -103,11 +105,11 @@ export default function DashboardPage() {
     [subScores],
   );
 
-  // Simulate daily reward pool (in production this comes from API)
-  const dailyPool = 50000;
-  const estimatedShare = score
-    ? Math.round(dailyPool * (1 / Math.max(score.final_rank, 1)) * 0.3)
-    : undefined;
+  // Dynamic total branches and reward pool from API
+  const totalBranches = leaderboardData?.pagination?.total ?? 42;
+  const latestPeriod = periods?.[periods.length - 1];
+  const dailyPool = latestPeriod?.pool_amount ?? 0;
+  const estimatedShare = score ? score.payout_amount : undefined;
 
   return (
     <div className="space-y-4">
@@ -197,7 +199,7 @@ export default function DashboardPage() {
                 #{score.final_rank}
               </span>
               <div className="flex flex-col gap-1">
-                <RankBadge rank={score.final_rank} totalBranches={TOTAL_BRANCHES} />
+                <RankBadge rank={score.final_rank} totalBranches={totalBranches} />
                 <ChangeIndicator value={score.rank_movement} suffix="" />
               </div>
             </div>
@@ -222,11 +224,12 @@ export default function DashboardPage() {
                 {formatINR(score.payout_amount)}
               </span>
               {score.fatigue_dampener_applied && (
-                <div className="mt-1 flex items-center gap-1">
-                  <p className="font-mono text-[10px] text-warning">
-                    Fatigue applied ({(score.fatigue_dampener_value * 100).toFixed(0)}%)
-                  </p>
-                  <InfoTooltip text="You've been in the top 10 for 3+ weeks. A small reduction is applied to give other branches a fair chance. Keep performing — you still earn top rewards!" />
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                  <span className="font-mono text-[10px] text-warning">
+                    Fatigue applied ({typeof score.fatigue_dampener_value === "number" ? (score.fatigue_dampener_value * 100).toFixed(0) : "--"}%)
+                  </span>
+                  <InfoTooltip text="You've been in the top 10 for 3+ weeks. A small reduction is applied to give other branches a fair chance. Keep performing - you still earn top rewards!" />
                 </div>
               )}
             </div>
@@ -351,14 +354,18 @@ export default function DashboardPage() {
                 <InfoTooltip text="Your rank compared to merchants in the same business category (like all kiranas or all pharmacies)." />
               </span>
               <span className="font-mono text-foreground text-right">
-                Top {(score.sector_percentile_rank * 100).toFixed(0)}%
+                {typeof score.sector_percentile_rank === "number"
+                  ? `Top ${(score.sector_percentile_rank * 100).toFixed(0)}%`
+                  : "--"}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground">
                 Area Boost
                 <InfoTooltip text="Location multiplier based on your city tier. Smaller cities get a higher boost." />
               </span>
               <span className="font-mono text-foreground text-right">
-                {score.location_opportunity_multiplier.toFixed(2)}x
+                {typeof score.location_opportunity_multiplier === "number"
+                  ? `${score.location_opportunity_multiplier.toFixed(2)}x`
+                  : "--"}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground">
                 Growth Speed

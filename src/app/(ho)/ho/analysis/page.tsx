@@ -32,7 +32,7 @@ const SUB_SCORE_KEYS: (keyof ScoreBreakdown)[] = [
 
 export default function HOAnalysisPage() {
   const { user } = useAuth();
-  const hoId = user?.ho_id ?? "ho-001";
+  const hoId = user?.ho_id ?? "";
   const [activeTab, setActiveTab] = useState("compare");
 
   const { data: branches, isLoading: branchesLoading } = useHOBranches(hoId);

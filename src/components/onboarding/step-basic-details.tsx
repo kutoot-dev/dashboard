@@ -9,13 +9,14 @@ import { PhotoCapture } from "./photo-capture";
 import { DuplicateAlert } from "./duplicate-alert";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useCheckPhone } from "@/lib/hooks";
+import { useQuery } from "@tanstack/react-query";
 import {
   ONBOARDING_FIELDS,
   SECTOR_OPTIONS,
   INDIAN_STATES,
   VALIDATION_RULES,
 } from "@/lib/constants/onboarding";
-import { MOCK_HEAD_OFFICES } from "@/lib/mock/head-offices";
+import { getHeadOffices } from "@/lib/api/services/onboarding.service";
 import type { ApplicationStatus } from "@/lib/types";
 
 interface StepBasicDetailsProps {
@@ -175,7 +176,15 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
 
   const isPhoneBlocked = !!phoneCheckResult?.exists;
 
-  const hoOptions = MOCK_HEAD_OFFICES.map((ho) => ({
+  const { data: headOfficesRes } = useQuery({
+    queryKey: ["onboardingHeadOffices"],
+    queryFn: async () => {
+      const res = await getHeadOffices();
+      return res.data ?? [];
+    },
+  });
+
+  const hoOptions = (headOfficesRes ?? []).map((ho) => ({
     value: ho.ho_id,
     label: `${ho.name} (${ho.ho_id})`,
   }));

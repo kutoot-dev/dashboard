@@ -13,6 +13,27 @@ import type {
 } from "@/lib/types";
 import apiClient from "../client";
 
+// ── Admin Branch Listing (for dropdowns) ────────────────────────────
+
+export interface AdminBranch {
+  branch_id: string;
+  business_name: string;
+  ho_id: string | null;
+  ho_name: string | null;
+  city: string | null;
+  state: string | null;
+  status: string;
+}
+
+export async function getAdminBranches(search?: string) {
+  const params = search ? { search } : {};
+  const res = await apiClient.get<ApiResponse<AdminBranch[]>>(
+    "/admin/branches",
+    { params },
+  );
+  return res.data;
+}
+
 // ── Parameters ─────────────────────────────────────────────────────
 
 /**
@@ -130,6 +151,61 @@ export async function getCohortHealth(sectorId?: string) {
     "/admin/cohorts",
     { params },
   );
+  return res.data;
+}
+
+// ── Overrides ──────────────────────────────────────────────────────
+
+export interface ScoreOverride {
+  id: string;
+  branch_id: string;
+  branch_name: string;
+  period_id: string;
+  original_score: number | null;
+  override_score: number;
+  reason: string;
+  applied_by: string;
+  created_at: string;
+}
+
+export async function getAdminOverrides() {
+  const res = await apiClient.get<ApiResponse<ScoreOverride[]>>("/admin/overrides");
+  return res.data;
+}
+
+export async function createAdminOverride(data: {
+  branch_ids: string[];
+  period_id: string;
+  override_score: number;
+  reason: string;
+}) {
+  const res = await apiClient.post<ApiResponse<ScoreOverride[]>>("/admin/overrides", data);
+  return res.data;
+}
+
+// ── Payout Management ──────────────────────────────────────────────
+
+export interface PayoutRecord {
+  id: string;
+  branch_id: string;
+  branch_name: string;
+  ho_name: string | null;
+  period_id: string;
+  period_label: string;
+  allocated_amount: number;
+  status: "allocated" | "paid";
+  paid_at: string | null;
+  paid_by: string | null;
+}
+
+export async function getPayoutRecords(periodId?: string) {
+  const params = periodId ? { period_id: periodId } : {};
+  const res = await apiClient.get<ApiResponse<PayoutRecord[]>>("/admin/payouts", { params });
+  return res.data;
+}
+
+export async function markPayoutPaid(payoutIds: string[]) {
+  const res = await apiClient.post<ApiResponse<{ updated: number }>>("/admin/payouts/mark-paid", { payout_ids: payoutIds });
   return res.data;
 }
 

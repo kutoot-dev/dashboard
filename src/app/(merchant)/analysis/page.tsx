@@ -5,6 +5,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import {
   useBranchScore,
   useBranchCandlesticks,
+  useBranchScoreHistory,
 } from "@/lib/hooks/use-branch-data";
 import { useScoresByDateRange } from "@/lib/hooks/use-scores";
 import { useDateRange, DEFAULT_DATE_RANGE } from "@/lib/hooks/use-date-range";
@@ -43,7 +44,7 @@ const SUB_SCORE_KEYS: (keyof ScoreBreakdown)[] = [
 
 export default function AnalysisPage() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "m-001";
+  const branchId = user?.branch_id ?? "";
   const [activeTab, setActiveTab] = useState("trend");
   const [chartType, setChartType] = useState<ChartType>("area");
 
@@ -53,6 +54,7 @@ export default function AnalysisPage() {
     useBranchCandlesticks(branchId);
   const { data: score } = useBranchScore(branchId);
   const { data: periodScores } = useScoresByDateRange(dateRange.start, dateRange.end);
+  const { data: dailyScoreHistory } = useBranchScoreHistory(branchId);
 
   // Filter candlestick data to the selected date range
   const filteredCandlesticks = useMemo(() => {
@@ -79,18 +81,25 @@ export default function AnalysisPage() {
     ? score.sector_percentile_rank * 100
     : 50;
 
-  // Build sub-score time series (simulated from filtered candlesticks with breakdown)
+  // Build sub-score time series from real score history API data
   const subScoreCharts = useMemo(() => {
-    if (!filteredCandlesticks.length || !score?.score_breakdown) return [];
-    return SUB_SCORE_KEYS.map((key) => {
-      const baseValue = score.score_breakdown[key];
-      const data = filteredCandlesticks.map((c, i) => ({
-        time: c.time,
-        value: Math.max(0, baseValue + (c.close - (filteredCandlesticks[0]?.close ?? 50)) * 0.2 + (Math.sin(i * 0.7) * 1.5)),
-      }));
-      return { key, label: SUB_SCORE_LABELS[key] ?? key, data };
+    if (!dailyScoreHistory || dailyScoreHistory.length === 0) return [];
+    // Filter by date range
+    const filtered = dailyScoreHistory.filter((s) => {
+      if (dateRange.start && s.date < dateRange.start) return false;
+      if (dateRange.end && s.date > dateRange.end) return false;
+      return true;
     });
-  }, [filteredCandlesticks, score]);
+    if (filtered.length === 0) return [];
+    return SUB_SCORE_KEYS.map((key) => ({
+      key,
+      label: SUB_SCORE_LABELS[key] ?? key,
+      data: filtered.map((s) => ({
+        time: s.date,
+        value: s.breakdown[key],
+      })),
+    }));
+  }, [dailyScoreHistory, dateRange]);
 
   // Peer comparison: branch score vs sector average (filtered)
   const peerData = useMemo(

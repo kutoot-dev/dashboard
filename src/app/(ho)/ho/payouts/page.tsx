@@ -16,7 +16,7 @@ import { PAYOUTS } from "@/lib/constants/strings";
 
 export default function HOPayoutsPage() {
   const { user } = useAuth();
-  const hoId = user?.ho_id ?? "ho-001";
+  const hoId = user?.ho_id ?? "";
 
   const { data: branches, isLoading: branchesLoading } = useHOBranches(hoId);
   const { data: branchScores, isLoading: scoresLoading } = useHOBranchScores(hoId);

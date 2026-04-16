@@ -15,13 +15,10 @@ import { cn } from "@/lib/utils/cn";
 import { formatINR, formatScore } from "@/lib/utils/format";
 import { HO_DASHBOARD } from "@/lib/constants/strings";
 import { KMIChart } from "@/components/charts/kmi-chart";
-import { MOCK_BRANCHES } from "@/lib/mock/branches";
-
-const TOTAL_BRANCHES = 50;
 
 export default function HODashboardPage() {
   const { user } = useAuth();
-  const hoId = user?.ho_id ?? "ho-001";
+  const hoId = user?.ho_id ?? "";
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
   const { data: branches, isLoading: branchesLoading } = useHOBranches(hoId);
@@ -30,6 +27,7 @@ export default function HODashboardPage() {
 
   const liveAvg = useLiveScore(portfolio?.avgScore ?? 0);
   const isLoading = branchesLoading || scoresLoading || portfolioLoading;
+  const totalBranches = portfolio?.totalBranches ?? 0;
 
   // Map scores by branch_id for easy lookup
   const scoreMap = new Map(
@@ -117,9 +115,7 @@ export default function HODashboardPage() {
             <Skeleton className="h-10 w-32" />
           ) : (
             <span className="font-mono text-sm font-semibold text-foreground truncate">
-              {portfolio?.bestBranchId
-                ? MOCK_BRANCHES.find((b) => b.branch_id === portfolio.bestBranchId)?.business_name ?? "—"
-                : "—"}
+              {portfolio?.bestBranchName ?? "—"}
             </span>
           )}
         </Card>
@@ -171,7 +167,7 @@ export default function HODashboardPage() {
                   <div className="flex items-center gap-4">
                     {score && (
                       <>
-                        <RankBadge rank={score.final_rank} totalBranches={TOTAL_BRANCHES} />
+                        <RankBadge rank={score.final_rank} totalBranches={totalBranches} />
                         <div className="text-right">
                           <p className="font-mono text-sm font-bold text-foreground">
                             {formatScore(score.composite_index_score)}

@@ -1,26 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
-import { MOCK_HEAD_OFFICES, getBranchIdsForHO } from "@/lib/mock/head-offices";
-import { MOCK_BRANCHES } from "@/lib/mock/branches";
-import { getLatestScores, getBranchScores } from "@/lib/mock/scores";
-import type { HeadOffice, Branch, BranchScore } from "@/lib/types";
+import {
+  getHoSummary,
+  getHoBranches,
+  getHoBranchScores,
+  type HoSummary,
+  type HoBranch,
+} from "@/lib/api/services/merchant.service";
+import type { BranchScore, Branch } from "@/lib/types";
 
-/** Get a single HO by ID */
+/** Get HO summary (includes payout, best/worst branch) */
 export function useHeadOffice(hoId: string) {
   return useQuery({
     queryKey: ["headOffice", hoId],
-    queryFn: (): HeadOffice | undefined =>
-      MOCK_HEAD_OFFICES.find((ho) => ho.ho_id === hoId),
+    queryFn: async () => {
+      const res = await getHoSummary(hoId);
+      return res.data;
+    },
     enabled: !!hoId,
   });
 }
 
-/** Get all branches belonging to an HO */
+/** Get all branches belonging to an HO (mapped to frontend Branch shape) */
 export function useHOBranches(hoId: string) {
   return useQuery({
     queryKey: ["hoBranches", hoId],
-    queryFn: (): Branch[] => {
-      const ids = new Set(getBranchIdsForHO(hoId));
-      return MOCK_BRANCHES.filter((b) => ids.has(b.branch_id));
+    queryFn: async (): Promise<Branch[]> => {
+      const res = await getHoBranches(hoId);
+      const rows = (res.data as { rows: HoBranch[] })?.rows ?? (res.data as unknown as HoBranch[]);
+      return (Array.isArray(rows) ? rows : []).map((b) => ({
+        branch_id: String(b.id),
+        ho_id: hoId,
+        business_name: b.name,
+        owner_name: "",
+        phone: "",
+        email: "",
+        gst_number: null,
+        registration_date: "",
+        sector_id: "",
+        location_id: "",
+        business_type: "goods" as const,
+        transaction_pattern: "high_frequency_low_value" as const,
+        operating_hours_per_week: 0,
+        is_franchise: false,
+        is_regulated_margin: false,
+        declared_capacity: null,
+        platform_capture_percentage: 0,
+        status: (b.status === "active" ? "active" : "dormant") as Branch["status"],
+        created_at: "",
+        updated_at: "",
+      }));
     },
     enabled: !!hoId,
   });
@@ -30,60 +58,42 @@ export function useHOBranches(hoId: string) {
 export function useHOBranchScores(hoId: string) {
   return useQuery({
     queryKey: ["hoBranchScores", hoId],
-    queryFn: (): BranchScore[] => {
-      const branchIds = new Set(getBranchIdsForHO(hoId));
-      return getLatestScores().filter((s) => branchIds.has(s.branch_id));
+    queryFn: async (): Promise<BranchScore[]> => {
+      const res = await getHoBranchScores(hoId);
+      return res.data ?? [];
     },
     enabled: !!hoId,
   });
 }
 
-/** Get full score trajectory for a specific branch (used by HO detail view) */
+/** Get full score trajectory for a specific branch (uses branch score endpoint) */
 export function useHOBranchDetail(branchId: string) {
   return useQuery({
     queryKey: ["hoBranchDetail", branchId],
-    queryFn: () => getBranchScores(branchId),
+    queryFn: async () => {
+      const { getBranchScore } = await import("@/lib/api/services/branches.service");
+      const res = await getBranchScore(branchId);
+      return res.data ? [res.data] : [];
+    },
     enabled: !!branchId,
   });
 }
 
-/** Get aggregate portfolio value for an HO (sum of latest payout_amounts) */
+/** Get aggregate portfolio value for an HO from the enhanced summary */
 export function useHOPortfolio(hoId: string) {
   return useQuery({
     queryKey: ["hoPortfolio", hoId],
-    queryFn: () => {
-      const branchIds = new Set(getBranchIdsForHO(hoId));
-      const latestScores = getLatestScores().filter((s) =>
-        branchIds.has(s.branch_id)
-      );
-      const totalPayout = latestScores.reduce(
-        (sum, s) => sum + s.payout_amount,
-        0
-      );
-      const avgScore =
-        latestScores.length > 0
-          ? latestScores.reduce((sum, s) => sum + s.composite_index_score, 0) /
-            latestScores.length
-          : 0;
-      const best = latestScores.reduce(
-        (top, s) =>
-          s.composite_index_score > (top?.composite_index_score ?? 0) ? s : top,
-        latestScores[0]
-      );
-      const worst = latestScores.reduce(
-        (bot, s) =>
-          s.composite_index_score < (bot?.composite_index_score ?? 100)
-            ? s
-            : bot,
-        latestScores[0]
-      );
-
+    queryFn: async () => {
+      const res = await getHoSummary(hoId);
+      const d = res.data as HoSummary;
       return {
-        totalBranches: latestScores.length,
-        totalPayout,
-        avgScore: Math.round(avgScore * 100) / 100,
-        bestBranchId: best?.branch_id ?? null,
-        worstBranchId: worst?.branch_id ?? null,
+        totalBranches: d.total_branches,
+        totalPayout: d.total_payout ?? 0,
+        avgScore: d.avg_score,
+        bestBranchId: d.best_branch?.id ?? null,
+        bestBranchName: d.best_branch?.name ?? null,
+        worstBranchId: d.worst_branch?.id ?? null,
+        worstBranchName: d.worst_branch?.name ?? null,
       };
     },
     enabled: !!hoId,

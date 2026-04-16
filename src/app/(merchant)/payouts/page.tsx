@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useBranchCandlesticks, useBranchScore } from "@/lib/hooks/use-branch-data";
+import { useBranchScore, useBranchPayouts } from "@/lib/hooks/use-branch-data";
 import { useScoringPeriods } from "@/lib/hooks/use-scores";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
@@ -17,37 +17,29 @@ import { formatINR, formatScore, formatPeriodRange } from "@/lib/utils/format";
 
 export default function PayoutsPage() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "m-001";
+  const branchId = user?.branch_id ?? "";
 
-  const { data: candlesticks, isLoading: candlesticksLoading } =
-    useBranchCandlesticks(branchId);
   const { data: currentScore, isLoading: scoreLoading } =
     useBranchScore(branchId);
+  const { data: payouts, isLoading: payoutsLoading } =
+    useBranchPayouts(branchId);
   const { data: periods, isLoading: periodsLoading } = useScoringPeriods();
 
-  // Simulate payout history from candlestick data + periods
+  // Build payout history from real API data
   const payoutHistory = useMemo(() => {
-    if (!candlesticks || !periods) return [];
-    return candlesticks.map((c, i) => {
-      const period = periods[i];
-      const score = c.close;
-      const rank = Math.max(1, Math.round(50 - score * 0.5 + Math.sin(i) * 5));
-      // Higher score = higher payout (simplified)
-      const amount = score > 60 ? Math.round(score * 30 + rank * -10) : 0;
-      const status: "paid" | "non_monetary" | "none" =
-        amount > 50 ? "paid" : amount > 0 ? "non_monetary" : "none";
-      return {
-        time: c.time,
-        period_label: period
-          ? formatPeriodRange(period.period_start, period.period_end)
-          : c.time,
-        score,
-        rank,
-        amount,
-        status,
-      };
-    });
-  }, [candlesticks, periods]);
+    if (!payouts) return [];
+    return payouts.map((p) => ({
+      time: p.period_label,
+      period_label: p.period_label,
+      score: p.score ?? 0,
+      rank: p.rank ?? 0,
+      amount: p.allocated_amount,
+      status: (p.status === "paid" ? "paid" : p.allocated_amount > 0 ? "non_monetary" : "none") as "paid" | "non_monetary" | "none",
+    }));
+  }, [payouts]);
+
+  const latestPeriod = periods?.[periods.length - 1];
+  const dailyPool = latestPeriod?.pool_amount ?? 0;
 
   const totalPaid = useMemo(
     () =>
@@ -67,14 +59,14 @@ export default function PayoutsPage() {
     [payoutHistory],
   );
 
-  const isLoading = candlesticksLoading || scoreLoading || periodsLoading;
+  const isLoading = payoutsLoading || scoreLoading || periodsLoading;
 
   return (
     <div className="space-y-4">
       <PageHeader title="Rewards" subtitle="Your reward history and daily pool" />
 
       {/* Daily Reward Pool */}
-      <RewardPoolCard totalPool={50000} merchantShare={currentScore ? Math.round(50000 * (1 / Math.max(currentScore.final_rank, 1)) * 0.3) : undefined} />
+      <RewardPoolCard totalPool={dailyPool} merchantShare={currentScore ? currentScore.payout_amount : undefined} />
 
       {/* Top row: total earned + chart */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">

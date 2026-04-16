@@ -4,6 +4,8 @@ import {
   getBranchScore,
   getBranchCandlesticks,
   getBranchVolume,
+  getBranchPayouts,
+  getBranchScoreHistory,
 } from "@/lib/api/services/branches.service";
 
 export function useBranch(branchId: string) {
@@ -37,6 +39,24 @@ export function useBranchVolume(branchId: string) {
   return useQuery({
     queryKey: ["branchVolume", branchId],
     queryFn: () => getBranchVolume(branchId),
+    enabled: !!branchId,
+    select: (res) => res.data,
+  });
+}
+
+export function useBranchPayouts(branchId: string) {
+  return useQuery({
+    queryKey: ["branchPayouts", branchId],
+    queryFn: () => getBranchPayouts(branchId),
+    enabled: !!branchId,
+    select: (res) => res.data,
+  });
+}
+
+export function useBranchScoreHistory(branchId: string) {
+  return useQuery({
+    queryKey: ["branchScoreHistory", branchId],
+    queryFn: () => getBranchScoreHistory(branchId),
     enabled: !!branchId,
     select: (res) => res.data,
   });

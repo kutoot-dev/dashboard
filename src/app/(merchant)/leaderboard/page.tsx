@@ -39,11 +39,10 @@ const STATES = [
 ];
 
 const PAGE_SIZE = 20;
-const TOTAL_BRANCHES = 50;
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
-  const currentBranchId = user?.branch_id ?? "m-001";
+  const currentBranchId = user?.branch_id ?? "";
 
   const [filters, setFilters] = useState<LeaderboardFilters>({
     page: 1,
@@ -54,14 +53,15 @@ export default function LeaderboardPage() {
 
   const { dateRange, setDateRange } = useDateRange(DEFAULT_DATE_RANGE);
 
-  const { data: leaderboard, isLoading } = useLiveLeaderboard({
+  const { data: leaderboard, pagination, isLoading } = useLiveLeaderboard({
     ...filters,
     start_date: dateRange.start,
     end_date: dateRange.end,
   });
 
   const items = leaderboard ?? [];
-  const totalPages = 1;
+  const totalBranches = pagination?.total ?? items.length;
+  const totalPages = pagination?.total_pages ?? 1;
   const currentPage = filters.page ?? 1;
 
   function updateFilter(key: keyof LeaderboardFilters, value: string | number) {
@@ -167,7 +167,7 @@ export default function LeaderboardPage() {
                           <ChangeIndicator value={entry.rank_movement} suffix="" />
                           <RankBadge
                             rank={entry.rank}
-                            totalBranches={TOTAL_BRANCHES}
+                            totalBranches={totalBranches}
                           />
                         </div>
                       </td>

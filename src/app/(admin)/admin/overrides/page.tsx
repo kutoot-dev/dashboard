@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,43 +11,97 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { MOCK_BRANCHES } from "@/lib/mock/branches";
-import { MOCK_SCORING_PERIODS } from "@/lib/mock/scoring-periods";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getAdminBranches, getAdminOverrides, createAdminOverride } from "@/lib/api/services/admin.service";
+import { getScoringPeriods } from "@/lib/api/services/scores.service";
 import { formatPeriodRange } from "@/lib/utils/format";
 
 export default function ManualOverridesPage() {
+  const queryClient = useQueryClient();
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState(MOCK_SCORING_PERIODS[0]?.period_id ?? "");
+  const [selectedPeriod, setSelectedPeriod] = useState("");
   const [overrideScore, setOverrideScore] = useState("");
   const [reason, setReason] = useState("");
 
+  const { data: branchesRes, isLoading: branchesLoading } = useQuery({
+    queryKey: ["adminBranches"],
+    queryFn: async () => {
+      const res = await getAdminBranches();
+      return res.data ?? [];
+    },
+  });
+
+  const { data: periodsRes, isLoading: periodsLoading } = useQuery({
+    queryKey: ["scoringPeriods"],
+    queryFn: async () => {
+      const res = await getScoringPeriods();
+      return res.data ?? [];
+    },
+  });
+
+  const { data: overridesRes } = useQuery({
+    queryKey: ["adminOverrides"],
+    queryFn: async () => {
+      const res = await getAdminOverrides();
+      return res.data ?? [];
+    },
+  });
+
   const branchOptions = useMemo(
     () =>
-      MOCK_BRANCHES.map((m) => ({
-        value: m.branch_id,
-        label: `${m.business_name} (${m.branch_id})`,
+      (branchesRes ?? []).map((b) => ({
+        value: b.branch_id,
+        label: `${b.business_name} (${b.branch_id})`,
       })),
-    []
+    [branchesRes]
   );
 
   const periodOptions = useMemo(
     () =>
-      MOCK_SCORING_PERIODS.map((p) => ({
+      (periodsRes ?? []).map((p) => ({
         value: p.period_id,
         label: formatPeriodRange(p.period_start, p.period_end),
       })),
-    []
+    [periodsRes]
   );
 
+  // Set default period when data loads
+  useEffect(() => {
+    if (periodsRes?.length && !selectedPeriod) {
+      setSelectedPeriod(periodsRes[0].period_id);
+    }
+  }, [periodsRes, selectedPeriod]);
+
+  const overrideMutation = useMutation({
+    mutationFn: (payload: { branch_ids: string[]; period_id: string; override_score: number; reason: string }) =>
+      createAdminOverride(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminOverrides"] });
+      setSelectedBranches([]);
+      setOverrideScore("");
+      setReason("");
+    },
+  });
+
   const handleApply = () => {
-    // TODO: wire to real API
-    alert(
-      `Override applied:\nBranches: ${selectedBranches.join(", ")}\nPeriod: ${selectedPeriod}\nScore: ${overrideScore}\nReason: ${reason}`
-    );
-    setSelectedBranches([]);
-    setOverrideScore("");
-    setReason("");
+    if (selectedBranches.length === 0 || !overrideScore || !reason) return;
+    overrideMutation.mutate({
+      branch_ids: selectedBranches,
+      period_id: selectedPeriod,
+      override_score: parseFloat(overrideScore),
+      reason,
+    });
   };
+
+  // Map override history data for the table
+  const overrideHistory = (overridesRes ?? []).map((o) => ({
+    branch: o.branch_name ?? o.branch_id,
+    original_score: o.original_score != null ? Number(o.original_score).toFixed(1) : "—",
+    override_score: Number(o.override_score).toFixed(1),
+    reason: o.reason,
+    applied_by: o.applied_by ?? "Admin",
+    date: o.created_at ? new Date(o.created_at).toLocaleDateString("en-IN") : "—",
+  }));
 
   const columns = [
     { key: "branch", header: "Branch" },
@@ -125,10 +180,16 @@ export default function ManualOverridesPage() {
           <Button
             size="sm"
             onClick={handleApply}
-            disabled={selectedBranches.length === 0 || !overrideScore || !reason}
+            disabled={selectedBranches.length === 0 || !overrideScore || !reason || overrideMutation.isPending}
           >
-            Apply Override to {selectedBranches.length || "…"} Branch{selectedBranches.length !== 1 ? "es" : ""}
+            {overrideMutation.isPending ? "Applying…" : `Apply Override to ${selectedBranches.length || "…"} Branch${selectedBranches.length !== 1 ? "es" : ""}`}
           </Button>
+          {overrideMutation.isError && (
+            <p className="text-xs text-red-500">Failed to apply override. Please try again.</p>
+          )}
+          {overrideMutation.isSuccess && (
+            <p className="text-xs text-green-500">Override applied successfully.</p>
+          )}
         </div>
       </Card>
 
@@ -137,13 +198,15 @@ export default function ManualOverridesPage() {
         <h2 className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Override History
         </h2>
-        <DataTable columns={columns} data={[]} />
+        <DataTable columns={columns} data={overrideHistory} />
+        {overrideHistory.length === 0 && (
         <Card className="mt-4">
           <EmptyState
             title="No overrides yet"
-            description="Manual score overrides will appear here once applied. This feature is under development."
+            description="Manual score overrides will appear here once applied."
           />
         </Card>
+        )}
       </div>
 
       {/* Info Card */}

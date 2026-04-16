@@ -61,3 +61,56 @@ export async function getBranchVolume(id: string) {
   );
   return res.data;
 }
+
+/** Branch payout history item */
+export interface BranchPayout {
+  payout_id: string;
+  period_id: string;
+  period_label: string;
+  pool_amount: number;
+  allocated_amount: number;
+  status: string;
+  paid_at: string | null;
+  score: number | null;
+  rank: number | null;
+}
+
+/**
+ * Get the branch's payout history.
+ * @endpoint GET /api/branches/:id/payouts
+ */
+export async function getBranchPayouts(id: string) {
+  const res = await apiClient.get<ApiResponse<BranchPayout[]>>(
+    `/branches/${id}/payouts`,
+  );
+  return res.data;
+}
+
+/** Branch score-history item (daily with breakdown) */
+export interface BranchScoreHistoryItem {
+  period_id: string;
+  date: string;
+  score: number;
+  rank: number;
+  payout: number;
+  pool: number;
+  breakdown: {
+    trading_performance: number;
+    margin_efficiency: number;
+    location_opportunity: number;
+    transaction_quality: number;
+    momentum: number;
+    ecosystem_contribution: number;
+  };
+}
+
+/**
+ * Get the branch's full score history with breakdowns.
+ * @endpoint GET /api/branches/:id/score-history
+ */
+export async function getBranchScoreHistory(id: string) {
+  const res = await apiClient.get<ApiResponse<BranchScoreHistoryItem[]>>(
+    `/branches/${id}/score-history`,
+  );
+  return res.data;
+}

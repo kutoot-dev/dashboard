@@ -39,7 +39,10 @@ export function formatPercentChange(change: number): string {
 }
 
 /** Format a score as a fixed 2-decimal number (e.g., "72.54") */
-export function formatScore(score: number): string {
+export function formatScore(score?: number | null): string {
+  if (typeof score !== "number" || Number.isNaN(score) || !Number.isFinite(score)) {
+    return "--";
+  }
   return score.toFixed(2);
 }
 

@@ -32,6 +32,7 @@ export function useLiveScore(baseScore: number): { current: number; change: numb
  */
 export function useLiveLeaderboard(filters: LeaderboardFilters = {}): {
   data: LeaderboardEntry[] | undefined;
+  pagination: { total: number; total_pages: number; page: number; limit: number } | undefined;
   isLoading: boolean;
 } {
   const { data, isLoading } = useLeaderboard(filters);
@@ -55,7 +56,9 @@ export function useLiveLeaderboard(filters: LeaderboardFilters = {}): {
     }));
   }, [data, tick]);
 
-  return { data: jitteredData, isLoading };
+  const pagination = data?.pagination;
+
+  return { data: jitteredData, pagination, isLoading };
 }
 
 /**

@@ -14,16 +14,16 @@ import { cn } from "@/lib/utils/cn";
 import { formatScore, formatINR } from "@/lib/utils/format";
 import { LEADERBOARD } from "@/lib/constants/strings";
 
-const TOTAL = 50;
 
 export default function HOLeaderboardPage() {
   const { user } = useAuth();
-  const hoId = user?.ho_id ?? "ho-001";
+  const hoId = user?.ho_id ?? "";
   const { data: branches } = useHOBranches(hoId);
-  const { data, isLoading } = useLiveLeaderboard();
+  const { data, pagination, isLoading } = useLiveLeaderboard();
   const hoBranchIds = new Set((branches ?? []).map((b) => b.branch_id));
 
   const items = data ?? [];
+  const totalBranches = pagination?.total ?? items.length;
 
   return (
     <div className="space-y-4">
@@ -65,7 +65,7 @@ export default function HOLeaderboardPage() {
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-bold">{entry.rank}</span>
-                          <RankBadge rank={entry.rank} totalBranches={TOTAL} />
+                          <RankBadge rank={entry.rank} totalBranches={totalBranches} />
                         </div>
                       </td>
                       <td className="px-3 py-2">
