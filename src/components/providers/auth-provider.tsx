@@ -49,7 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.success) {
         queryClient.clear();
         setUser(res.data);
-        const home = res.data.role === "admin" ? "/admin" : res.data.role === "ho" ? "/ho" : "/dashboard";
+        // Admin users are directed to the Filament super-admin panel, not the dashboard.
+        if (res.data.role === "admin") {
+          window.location.href = process.env.NEXT_PUBLIC_FILAMENT_URL ?? "http://kutoot.test/admin";
+          return;
+        }
+        const home = res.data.role === "ho" ? "/ho" : "/dashboard";
         router.push(home);
       } else {
         throw new Error(res.error?.message ?? "Login failed");

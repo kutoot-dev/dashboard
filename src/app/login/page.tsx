@@ -59,13 +59,6 @@ export default function LoginPage() {
     handleQuickAccess("ho@kutoot.com", "password");
   }
 
-  function fillAdmin() {
-    setEmail("admin@kutoot.com");
-    setPassword("password");
-    setError(null);
-    handleQuickAccess("admin@kutoot.com", "password");
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
@@ -125,24 +118,7 @@ export default function LoginPage() {
               >
                 {LOGIN.QUICK_BRANCH}
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="flex-1 font-mono text-xs"
-                onClick={fillHO}
-              >
-                {LOGIN.QUICK_HO}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="flex-1 font-mono text-xs"
-                onClick={fillAdmin}
-              >
-                {LOGIN.QUICK_ADMIN}
-              </Button>
+
             </div>
           </div>
         </Card>

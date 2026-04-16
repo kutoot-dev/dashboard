@@ -6,7 +6,7 @@
  * approach with proper token-based auth from your backend.
  */
 
-export type UserRole = "branch" | "ho" | "admin";
+export type UserRole = "branch" | "ho";
 
 export interface AuthUser {
   id: string;
@@ -22,6 +22,9 @@ export interface LoginRequest {
   ho_id?: string;
   role: UserRole;
 }
+
+/** Filament super-admin panel URL — admin users are redirected here instead of the dashboard */
+export const FILAMENT_ADMIN_URL = process.env.NEXT_PUBLIC_FILAMENT_URL ?? "http://kutoot.test/admin";
 
 export interface AuthState {
   user: AuthUser | null;

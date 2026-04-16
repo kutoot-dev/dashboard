@@ -97,7 +97,6 @@ export const LOGIN = {
   QUICK_ACCESS: "Quick Access",
   QUICK_BRANCH: "Branch",
   QUICK_HO: "Head Office",
-  QUICK_ADMIN: "Admin",
   ERROR_DEFAULT: "Login failed",
 } as const;
 

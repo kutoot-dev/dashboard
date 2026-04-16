@@ -26,7 +26,7 @@ import { ParameterMeter } from "@/components/ui/parameter-meter";
 import { ImprovementCard } from "@/components/ui/improvement-card";
 import { MultiChart } from "@/components/charts/multi-chart";
 import { VolumeChart } from "@/components/charts/volume-chart";
-import { KMIChart } from "@/components/charts/kmi-chart";
+import { TradingViewChart } from "@/components/charts/trading-view-chart";
 import { cn } from "@/lib/utils/cn";
 import { formatINR, formatScore } from "@/lib/utils/format";
 import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
@@ -157,7 +157,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <KMIChart height={180} />
+        <TradingViewChart locationId={Number(branchId)} height={260} defaultResolution="5" />
       </Card>
 
       {/* Top Row: Score + Rank + Reward Pool */}

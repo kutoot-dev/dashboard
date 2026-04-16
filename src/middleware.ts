@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE = "kutoot_auth";
+const FILAMENT_URL = process.env.NEXT_PUBLIC_FILAMENT_URL ?? "http://kutoot.test/admin";
 
 const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts"];
 const HO_ROUTES = ["/ho"];
-const ADMIN_ROUTES = ["/admin"];
 
 function getHomeForRole(role: string): string {
   switch (role) {
-    case "admin": return "/admin";
     case "ho": return "/ho";
     default: return "/dashboard";
   }
@@ -35,16 +34,14 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = user !== null;
   const role = user?.role;
 
+  // Admin users belong in Filament — redirect them out of the dashboard.
+  if (role === "admin") {
+    return NextResponse.redirect(FILAMENT_URL);
+  }
+
   // Redirect authenticated users away from login
   if (pathname === "/login" && isAuthenticated) {
     return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
-  }
-
-  // Protect admin routes
-  if (ADMIN_ROUTES.some((route) => pathname.startsWith(route))) {
-    if (!isAuthenticated) return NextResponse.redirect(new URL("/login", request.url));
-    if (role !== "admin") return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
-    return NextResponse.next();
   }
 
   // Protect HO routes
@@ -70,7 +67,6 @@ export const config = {
     "/analysis/:path*",
     "/payouts/:path*",
     "/ho/:path*",
-    "/admin/:path*",
     "/onboard/:path*",
     "/login",
   ],

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatINR, formatScore } from "@/lib/utils/format";
 import { HO_DASHBOARD } from "@/lib/constants/strings";
 import { KMIChart } from "@/components/charts/kmi-chart";
+import { TradingViewChart } from "@/components/charts/trading-view-chart";
 
 export default function HODashboardPage() {
   const { user } = useAuth();
@@ -207,6 +208,7 @@ export default function HODashboardPage() {
             const branch = branches?.find((b) => b.branch_id === selectedBranch);
             if (!score || !branch) return <EmptyState title="No data" />;
             return (
+              <>
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-3">
                 <div>
                   <span className="text-muted-foreground">Branch</span>
@@ -233,6 +235,14 @@ export default function HODashboardPage() {
                   <p className="font-mono">{score.raw_transaction_volume.toLocaleString()}</p>
                 </div>
               </div>
+              <div className="mt-4">
+                <TradingViewChart
+                  locationId={Number((score as any).merchant_location_id ?? selectedBranch)}
+                  height={280}
+                  defaultResolution="5"
+                />
+              </div>
+              </>
             );
           })()}
         </Card>
