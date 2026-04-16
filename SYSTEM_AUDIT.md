@@ -1,6 +1,6 @@
 # Kutoot Platform — Complete System Audit
 
-**Date:** April 6, 2026
+**Date:** April 16, 2026
 **Purpose:** Full technical breakdown of all existing platform logic before introducing the "Store Value (₹1 base growing model)" feature.
 **Scope:** Every scoring formula, ranking algorithm, fraud rule, data model, API route, and edge-case handler currently implemented.
 
@@ -855,87 +855,119 @@ effective_from         TIMESTAMP
 INDEXES: parameter_key
 ```
 
-### 9.2 API Routes (Complete List)
+### 9.2 API Routes (Backend-Verified, current)
 
-#### Authentication
-| Method | Route | Purpose |
+**Source of truth:** `kutoot/routes/api_dashboard.php` (prefix: `/api/dashboard`)  
+**Frontend behavior:** Next.js `/api/*` routes proxy to backend `/api/dashboard/*`.
+
+#### Public routes
+| Method | Backend Route | Notes |
 |---|---|---|
-| POST | `/api/auth/login` | Login with email/password, set auth cookie |
-| GET | `/api/auth/me` | Get current authenticated user from cookie |
-| POST | `/api/auth/logout` | Clear auth cookie |
+| POST | `/auth/login` | Throttled `10/min`; unified login for admin/HO/branch |
+| GET | `/ticker` | Public ticker feed |
 
-#### Merchant Data
-| Method | Route | Purpose |
+#### Public onboarding routes (throttled)
+| Method | Backend Route | Notes |
 |---|---|---|
-| GET | `/api/merchants/[id]` | Get single merchant profile |
-| GET | `/api/merchants/[id]/score` | Get merchant's score (optional `?period_id=`) |
-| GET | `/api/merchants/[id]/candlesticks` | Get OHLC chart data for merchant |
-| GET | `/api/merchants/[id]/volume` | Get transaction volume histogram data |
+| GET | `/onboarding/head-offices` | Active HO list |
+| POST | `/onboarding` | Create merchant application |
+| GET | `/onboarding` | Paginated application list |
+| GET | `/onboarding/{id}` | Application details |
+| PATCH | `/onboarding/{id}` | Update application |
+| POST | `/onboarding/check-phone` | Throttled `20/min` |
+| POST | `/onboarding/verify-executive` | Field exec verification |
+| POST | `/onboarding/send-otp` | Throttled `5/min` |
+| POST | `/onboarding/verify-otp` | OTP verify |
+| POST | `/onboarding/verify-gst` | GST verify |
+| POST | `/onboarding/verify-pan` | PAN verify |
+| POST | `/onboarding/verify-bank` | Bank verify |
 
-#### Scoring
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/scores/periods` | List all scoring periods |
-| GET | `/api/scores/[periodId]` | Get all merchant scores for a period |
+#### Protected routes (`auth:sanctum`)
+| Domain | Routes |
+|---|---|
+| Auth | `POST /auth/logout`, `GET /auth/me` |
+| Scores | `GET /scores/periods`, `GET /scores/range`, `GET /scores/{periodId}` |
+| Branch analytics | `GET /branches/{id}`, `/score`, `/candlesticks`, `/volume`, `/payouts`, `/score-history` |
+| Merchant alias | Same analytics set under `/merchants/{id}/...` |
+| Leaderboard | `GET /leaderboard` |
+| HO | `GET /ho/{hoId}/summary`, `/branches`, `/branch-scores`, `/deals`, `/transactions`, `/visitors` |
+| Merchant portal | `GET/PATCH /merchant/{id}/store`, `GET/POST /merchant/{id}/deals`, `PATCH/DELETE /merchant/{id}/deals/{dealId}`, `GET /merchant/{id}/transactions`, `GET /merchant/{id}/visitors` |
+| Admin | `GET /admin/branches`, `GET/PUT /admin/parameters`, `GET/PATCH /admin/fraud`, `GET/POST /admin/force-majeure`, `GET /admin/cohorts`, `GET/POST /admin/overrides`, `GET /admin/payouts`, `POST /admin/payouts/mark-paid`, `POST /admin/payouts/simulate` |
 
-#### Leaderboard & Ticker
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/leaderboard` | Paginated leaderboard with filters (`city_tier`, `state`, `period_id`) |
-| GET | `/api/ticker` | Top movers by absolute score change |
+### 9.3 API Response Envelope (DashboardApiResponse trait)
 
-#### Admin Endpoints
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/admin/parameters` | List all scoring parameters |
-| PUT | `/api/admin/parameters` | Update a parameter value |
-| GET | `/api/admin/fraud` | List fraud flags (optional `?status=` filter) |
-| PATCH | `/api/admin/fraud` | Update fraud flag action/status |
-| GET | `/api/admin/force-majeure` | List force majeure events |
-| POST | `/api/admin/force-majeure` | Create new force majeure event |
-| GET | `/api/admin/cohorts` | Sector cohort health metrics |
-| POST | `/api/admin/payouts/simulate` | Simulate payout distribution |
-
-### 9.3 API Response Envelope
-
-All endpoints return a consistent envelope:
+All dashboard endpoints use a consistent envelope:
 ```json
 {
   "success": true,
-  "data": { ... },
+  "data": {},
   "meta": {
-    "timestamp": "2026-04-06T...",
-    "period_id": "sp-028" | null,
+    "timestamp": "ISO-8601",
+    "period_id": null,
     "request_id": "uuid"
   },
-  "error": null | { "code": "...", "message": "..." }
+  "error": null
 }
 ```
 
-### 9.4 Authentication System
+**Notes:**
+- Login response includes both `data` (AuthUser) and `token` (`X-Auth-Token` header also set by backend).
+- Paginated endpoints return:
+  - `data.items[]`
+  - `data.pagination = { page, limit, total, total_pages }`
 
-| Component | Implementation |
+### 9.4 Authentication System (Backend + Proxy)
+
+| Component | Current Implementation |
 |---|---|
-| Auth method | Cookie-based (`kutoot_auth` HttpOnly cookie) |
-| Cookie content | JSON-serialized `AuthUser` object |
-| Session duration | 7 days (`maxAge: 604800`) |
-| Roles | `merchant`, `admin` |
-| Route protection | Next.js middleware checks cookie on protected routes |
-| Admin protection | `/admin/*` routes require `role === "admin"` |
-| Mock credentials | `merchant@kutoot.com / password`, `admin@kutoot.com / password` |
+| Backend auth type | Sanctum personal access tokens (`auth:sanctum`) |
+| Login resolution order | `User (Super Admin)` → `Merchant (HO)` → `MerchantLocation (Branch)` |
+| Roles emitted to frontend | `admin`, `ho`, `branch` |
+| Frontend auth cookies | `kutoot_token` (bearer), `kutoot_auth` (AuthUser JSON) |
+| Cookie duration | 7 days |
+| Login proxy diagnostics | `meta.proxy_target` always; failed upstream includes `meta.upstream_status` |
+| Proxy catch diagnostics | `error.details` includes target URL, backend base URL, configured env value, reason |
 
-### 9.5 Middleware Route Protection
+### 9.5 Onboarding Status Mapping (critical business logic)
+
+Backend enum values (DB):
+- `pending`
+- `merchant_submitted`
+- `approved`
+- `rejected`
+
+Frontend-facing mapped values:
+- `pending` → `draft`
+- `merchant_submitted` → `pending_review`
+- `approved` → `active`
+- `rejected` → `rejected`
+
+Reverse mapping is enforced in onboarding **list filter** and **update** requests.
+
+### 9.6 Middleware Route Protection (frontend)
 
 ```
-Protected routes (require any auth):
+Public:
+  /onboard/*
+
+Role-protected:
+  /admin/*  -> admin only
+  /ho/*     -> ho only
+
+Authenticated:
   /dashboard, /leaderboard, /analysis, /payouts
 
-Admin routes (require admin role):
-  /admin/*
-
-Login page:
-  Redirects to /dashboard if already authenticated
+Login:
+  /login redirects authenticated users to role home
 ```
+
+### 9.7 Seeder logic relevant to dashboard business flows
+
+| Area | Current backend logic |
+|---|---|
+| World data prerequisite | `DatabaseSeeder` now seeds world data if **any** of countries/states/cities tables are missing |
+| Merchant location geo IDs | `ComprehensiveSeeder` resolves `state_id`/`city_id` dynamically from world tables (no hardcoded IDs) |
+| FK safety | If a city/state lookup cannot be resolved, seeder logs warning and sets nullable IDs instead of failing hard |
 
 ---
 
