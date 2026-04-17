@@ -29,7 +29,7 @@ import { VolumeChart } from "@/components/charts/volume-chart";
 import { TradingViewChart } from "@/components/charts/trading-view-chart";
 import { cn } from "@/lib/utils/cn";
 import { formatINR, formatScore } from "@/lib/utils/format";
-import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
+import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS, SUB_SCORE_ORDER } from "@/lib/constants/scoring";
 import { BRANCH_DASHBOARD, COMMON } from "@/lib/constants/strings";
 
 type ChartType = "candle" | "line" | "area" | "baseline";
@@ -79,16 +79,12 @@ export default function DashboardPage() {
     [slicedCandles],
   );
 
-  // Sub-scores array for parameter meters and improvement card
+  // v2 sub-scores for parameter meters and improvement card
   const subScores = score?.score_breakdown
-    ? [
-        { key: "trading_performance", value: score.score_breakdown.trading_performance },
-        { key: "margin_efficiency", value: score.score_breakdown.margin_efficiency },
-        { key: "location_opportunity", value: score.score_breakdown.location_opportunity },
-        { key: "transaction_quality", value: score.score_breakdown.transaction_quality },
-        { key: "momentum", value: score.score_breakdown.momentum },
-        { key: "ecosystem_contribution", value: score.score_breakdown.ecosystem_contribution },
-      ]
+    ? SUB_SCORE_ORDER.map((key) => ({
+        key,
+        value: (score.score_breakdown as Record<string, number>)[key] ?? 0,
+      }))
     : [];
 
   // Find weakest scores for improvement suggestions
@@ -287,17 +283,17 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      {/* Parameter Meters — All 6 sub-scores with weightage */}
+      {/* Parameter Meters — All 8 v2 sub-scores with weightage */}
       <Card>
         <div className="mb-4 flex items-center gap-2">
           <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Your Score Parameters
           </h2>
-          <InfoTooltip text="Your score is made up of 6 parameters. Each has a different weight (importance). The percentage shows how much each parameter affects your total score." />
+          <InfoTooltip text="Your score is made up of 8 parameters. Each has a different weight (importance). The percentage shows how much each parameter affects your total score." />
         </div>
         {scoreLoading ? (
           <div className="space-y-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-12" />
             ))}
           </div>

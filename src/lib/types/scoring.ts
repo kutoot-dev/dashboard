@@ -33,13 +33,17 @@ export interface ScoringPeriod {
   created_at: string;
 }
 
+/** v2 Exchange Economy sub-scores (current formula) */
 export interface ScoreBreakdown {
-  trading_performance: number;
-  margin_efficiency: number;
-  location_opportunity: number;
-  transaction_quality: number;
-  momentum: number;
-  ecosystem_contribution: number;
+  gmv_score: number;
+  commission_score: number;
+  platform_capture_score: number;
+  user_growth_score: number;
+  repeat_rate_score: number;
+  discount_aggression_score: number;
+  referral_score: number;
+  fairness_score: number;
+  behavior_adjustment?: number;
 }
 
 export interface BranchScore {
