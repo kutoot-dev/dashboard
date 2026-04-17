@@ -196,6 +196,8 @@ export function TradingViewChart({
       .then((bars) => {
         if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
         if (bars.length === 0) {
+          setBarsLoaded(0);
+          setOhlc(null);
           setIsLoading(false);
           return;
         }
@@ -221,6 +223,11 @@ export function TradingViewChart({
 
         const last = bars[bars.length - 1];
         setOhlc({ open: last.open, high: last.high, low: last.low, close: last.close, volume: last.volume });
+      })
+      .catch(() => {
+        // Missing or unavailable chart history should not crash the dashboard.
+        setBarsLoaded(0);
+        setOhlc(null);
       })
       .finally(() => setIsLoading(false));
   }, [locationId, resolution, resolvedTheme]);

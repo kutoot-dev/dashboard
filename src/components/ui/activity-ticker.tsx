@@ -72,9 +72,14 @@ function timeAgo(ts: string): string {
 }
 
 export function ActivityTicker({ className }: { className?: string }) {
-  const [items] = useState<ActivityItem[]>(generateMockActivities);
+  const [items, setItems] = useState<ActivityItem[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    // Generate mock rows only after mount so SSR and hydration output stay identical.
+    setItems(generateMockActivities());
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
