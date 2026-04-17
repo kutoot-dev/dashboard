@@ -22,12 +22,14 @@ const TABS = [
 ];
 
 const SUB_SCORE_KEYS: (keyof ScoreBreakdown)[] = [
-  "trading_performance",
-  "margin_efficiency",
-  "location_opportunity",
-  "transaction_quality",
-  "momentum",
-  "ecosystem_contribution",
+  "gmv_score",
+  "commission_score",
+  "platform_capture_score",
+  "user_growth_score",
+  "repeat_rate_score",
+  "discount_aggression_score",
+  "referral_score",
+  "fairness_score",
 ];
 
 export default function HOAnalysisPage() {
@@ -59,7 +61,7 @@ export default function HOAnalysisPage() {
     const sums: Record<string, number> = {};
     SUB_SCORE_KEYS.forEach((k) => (sums[k] = 0));
     scores.forEach((s) => {
-      SUB_SCORE_KEYS.forEach((k) => (sums[k] += s.score_breakdown[k]));
+      SUB_SCORE_KEYS.forEach((k) => (sums[k] += s.score_breakdown[k] ?? 0));
     });
     return SUB_SCORE_KEYS.map((k) => ({
       key: k,
@@ -67,7 +69,7 @@ export default function HOAnalysisPage() {
       avg: sums[k] / scores.length,
       values: scores.map((s) => ({
         branchId: s.branch_id,
-        value: s.score_breakdown[k],
+        value: s.score_breakdown[k] ?? 0,
       })),
     }));
   }, [scores]);
@@ -174,7 +176,7 @@ export default function HOAnalysisPage() {
                           </td>
                           {SUB_SCORE_KEYS.map((k) => (
                             <td key={k} className="px-3 py-2 text-right font-mono text-xs text-muted-foreground hidden lg:table-cell">
-                              {formatScore(s.score_breakdown[k])}
+                              {formatScore(s.score_breakdown[k] ?? 0)}
                             </td>
                           ))}
                         </tr>

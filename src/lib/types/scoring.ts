@@ -35,15 +35,26 @@ export interface ScoringPeriod {
 
 /** v2 Exchange Economy sub-scores (current formula) */
 export interface ScoreBreakdown {
-  gmv_score: number;
-  commission_score: number;
-  platform_capture_score: number;
-  user_growth_score: number;
-  repeat_rate_score: number;
-  discount_aggression_score: number;
-  referral_score: number;
-  fairness_score: number;
+  // Legacy keys still referenced by some pages
+  trading_performance?: number;
+  margin_efficiency?: number;
+  location_opportunity?: number;
+  transaction_quality?: number;
+  momentum?: number;
+  ecosystem_contribution?: number;
+
+  // v2 exchange keys
+  gmv_score?: number;
+  commission_score?: number;
+  platform_capture_score?: number;
+  user_growth_score?: number;
+  repeat_rate_score?: number;
+  discount_aggression_score?: number;
+  referral_score?: number;
+  fairness_score?: number;
   behavior_adjustment?: number;
+
+  [key: string]: number | undefined;
 }
 
 export interface BranchScore {

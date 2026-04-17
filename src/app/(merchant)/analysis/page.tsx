@@ -34,12 +34,14 @@ const TABS = [
 ];
 
 const SUB_SCORE_KEYS: (keyof ScoreBreakdown)[] = [
-  "trading_performance",
-  "margin_efficiency",
-  "location_opportunity",
-  "transaction_quality",
-  "momentum",
-  "ecosystem_contribution",
+  "gmv_score",
+  "commission_score",
+  "platform_capture_score",
+  "user_growth_score",
+  "repeat_rate_score",
+  "discount_aggression_score",
+  "referral_score",
+  "fairness_score",
 ];
 
 export default function AnalysisPage() {
@@ -96,7 +98,7 @@ export default function AnalysisPage() {
       label: SUB_SCORE_LABELS[key] ?? key,
       data: filtered.map((s) => ({
         time: s.date,
-        value: s.breakdown[key],
+        value: s.breakdown[key] ?? 0,
       })),
     }));
   }, [dailyScoreHistory, dateRange]);

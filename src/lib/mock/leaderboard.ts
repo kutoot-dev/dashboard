@@ -12,7 +12,6 @@ import { MOCK_SCORES } from "./scores";
 import { MOCK_SECTORS } from "./sectors";
 import { MOCK_LOCATIONS } from "./locations";
 import { MOCK_SCORING_PERIODS } from "./scoring-periods";
-import { SUB_SCORE_LABELS } from "@/lib/constants/scoring";
 
 /**
  * Compute a leaderboard for a given period (defaults to latest closed).
@@ -136,11 +135,11 @@ export function computeLeaderboard(
       composite_score: score.composite_index_score,
       score_change: scoreChange,
       sub_scores: {
-        shop_activity: bd.trading_performance,
-        business_efficiency: bd.margin_efficiency,
-        location_advantage: bd.location_opportunity,
-        growth_trend: bd.momentum,
-        community_score: bd.ecosystem_contribution,
+        shop_activity: bd.trading_performance ?? bd.gmv_score ?? 0,
+        business_efficiency: bd.margin_efficiency ?? bd.commission_score ?? 0,
+        location_advantage: bd.location_opportunity ?? bd.platform_capture_score ?? 0,
+        growth_trend: bd.momentum ?? bd.user_growth_score ?? 0,
+        community_score: bd.ecosystem_contribution ?? bd.referral_score ?? 0,
       },
       payout_status: payoutStatus,
       payout_amount: score.payout_amount,
