@@ -33,18 +33,18 @@ export function Topbar() {
           KBI
         </span>
         <span className="font-mono text-sm font-bold text-secondary">
-          {kmi.value.toFixed(1)}
+          {(kmi?.value ?? 0).toFixed(1)}
         </span>
         <span
           className={cn(
             "font-mono text-xs font-semibold",
-            kmi.isPositive ? "neon-gain" : "neon-loss",
+            kmi?.isPositive ? "neon-gain" : "neon-loss",
           )}
         >
-          {kmi.isPositive ? "▲" : "▼"}
-          {kmi.changePercent.toFixed(1)}%
+          {kmi?.isPositive ? "▲" : "▼"}
+          {(kmi?.changePercent ?? 0).toFixed(1)}%
         </span>
-        <MarketIndicator trend={computeTrend(kmi.changePercent)} />
+        <MarketIndicator trend={computeTrend(kmi?.changePercent ?? 0)} />
       </div>
 
       {/* Ticker tape */}

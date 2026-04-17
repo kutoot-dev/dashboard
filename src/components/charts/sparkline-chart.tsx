@@ -19,7 +19,7 @@ export function SparklineChart({ data, width = 100, height = 32, color }: Sparkl
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || data.length === 0) return;
+    if (!container || !Array.isArray(data) || data.length === 0) return;
 
     const colors = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
     const trend = data[data.length - 1] > data[0];

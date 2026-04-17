@@ -146,11 +146,11 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((entry) => {
+                {items.map((entry, idx) => {
                   const isMe = entry.branch_id === currentBranchId;
                   return (
                     <tr
-                      key={entry.branch_id}
+                      key={`${entry.branch_id}-${idx}`}
                       className={cn(
                         "border-b border-border transition-colors",
                         isMe

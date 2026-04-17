@@ -50,9 +50,9 @@ export function useLiveLeaderboard(filters: LeaderboardFilters = {}): {
     return data.items.map((entry) => ({
       ...entry,
       composite_score:
-        entry.composite_score + (Math.random() - 0.5) * 0.4,
+        (entry.composite_score ?? 0) + (Math.random() - 0.5) * 0.4,
       score_change:
-        entry.score_change + (Math.random() - 0.5) * 0.2,
+        (entry.score_change ?? 0) + (Math.random() - 0.5) * 0.2,
     }));
   }, [data, tick]);
 

@@ -7,7 +7,10 @@
  */
 
 /** Format number as INR currency (Indian locale with ₹ symbol) */
-export function formatINR(amount: number): string {
+export function formatINR(amount?: number | null): string {
+  if (typeof amount !== "number" || Number.isNaN(amount) || !Number.isFinite(amount)) {
+    return "₹0";
+  }
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -17,7 +20,10 @@ export function formatINR(amount: number): string {
 }
 
 /** Format number as INR with decimals */
-export function formatINRDecimal(amount: number): string {
+export function formatINRDecimal(amount?: number | null): string {
+  if (typeof amount !== "number" || Number.isNaN(amount) || !Number.isFinite(amount)) {
+    return "₹0.00";
+  }
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -27,13 +33,15 @@ export function formatINRDecimal(amount: number): string {
 }
 
 /** Format score with +/- sign (e.g., "+3.24" or "-1.50") */
-export function formatScoreChange(change: number): string {
+export function formatScoreChange(change?: number | null): string {
+  if (typeof change !== "number" || Number.isNaN(change)) return "--";
   const sign = change > 0 ? "+" : "";
   return `${sign}${change.toFixed(2)}`;
 }
 
 /** Format percentage with +/- sign (e.g., "+4.6%") */
-export function formatPercentChange(change: number): string {
+export function formatPercentChange(change?: number | null): string {
+  if (typeof change !== "number" || Number.isNaN(change)) return "--";
   const sign = change > 0 ? "+" : "";
   return `${sign}${change.toFixed(1)}%`;
 }
@@ -47,7 +55,8 @@ export function formatScore(score?: number | null): string {
 }
 
 /** Format large numbers compactly (e.g., "1.2L", "50K") */
-export function formatCompact(num: number): string {
+export function formatCompact(num?: number | null): string {
+  if (typeof num !== "number" || Number.isNaN(num)) return "--";
   if (num >= 10000000) return `${(num / 10000000).toFixed(1)}Cr`;
   if (num >= 100000) return `${(num / 100000).toFixed(1)}L`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;

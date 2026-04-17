@@ -14,8 +14,8 @@ export function VolumeChart({ data, height = 120 }: VolumeChartProps) {
   }
 
   return (
-    <div style={{ width: "100%", height }}>
-      <ResponsiveContainer>
+    <div style={{ width: "100%", height, minWidth: 0, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
           <XAxis dataKey="time" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={20} />

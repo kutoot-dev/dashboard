@@ -16,8 +16,8 @@ export function CandlestickChart({ data, height = 260 }: CandlestickChartProps) 
   }
 
   return (
-    <div style={{ width: "100%", height }}>
-      <ResponsiveContainer>
+    <div style={{ width: "100%", height, minWidth: 0, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart data={transformed}>
           <XAxis dataKey="time" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={20} />
           <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={36} />

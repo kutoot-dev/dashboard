@@ -27,8 +27,8 @@ export function AreaChart({ data, height = 220, color = "#2dd4bf" }: AreaChartPr
   }
 
   return (
-    <div style={{ width: "100%", height }}>
-      <ResponsiveContainer>
+    <div style={{ width: "100%", height, minWidth: 0, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <ReAreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
           <XAxis dataKey="time" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={20} />

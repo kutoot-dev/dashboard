@@ -101,7 +101,7 @@ export default function HOAnalysisPage() {
               ) : ranked.length > 0 ? (
                 <div className="space-y-1.5">
                   {ranked.map((s, idx) => (
-                    <div key={s.branch_id} className="flex items-center gap-3">
+                    <div key={`${s.branch_id}-${idx}`} className="flex items-center gap-3">
                       <span className="w-5 text-right font-mono text-[10px] text-muted-foreground">
                         {idx + 1}
                       </span>
@@ -163,8 +163,8 @@ export default function HOAnalysisPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ranked.map((s) => (
-                        <tr key={s.branch_id} className="border-b border-border hover:bg-card-hover transition-colors">
+                      {ranked.map((s, idx) => (
+                        <tr key={`${s.branch_id}-${idx}`} className="border-b border-border hover:bg-card-hover transition-colors">
                           <td className="px-3 py-2 font-mono text-xs text-foreground">
                             {branchNameMap.get(s.branch_id) ?? s.branch_id}
                           </td>
@@ -220,8 +220,8 @@ export default function HOAnalysisPage() {
                   <div className="px-3 pb-3 pt-2 space-y-1">
                     {chart.values
                       .sort((a, b) => b.value - a.value)
-                      .map((v) => (
-                        <div key={v.branchId} className="flex items-center gap-2">
+                      .map((v, vi) => (
+                        <div key={`${v.branchId}-${vi}`} className="flex items-center gap-2">
                           <span className="w-20 truncate font-mono text-[10px] text-muted-foreground">
                             {branchNameMap.get(v.branchId) ?? v.branchId}
                           </span>

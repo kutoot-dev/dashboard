@@ -52,11 +52,11 @@ export default function HOLeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((entry) => {
+                {items.map((entry, idx) => {
                   const isMine = hoBranchIds.has(entry.branch_id);
                   return (
                     <tr
-                      key={entry.branch_id}
+                      key={`${entry.branch_id}-${idx}`}
                       className={cn(
                         "border-b border-border transition-colors",
                         isMine ? "bg-accent/5 border-l-2 border-l-accent" : "hover:bg-card-hover",

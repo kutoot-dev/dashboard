@@ -98,7 +98,7 @@ export default function AnalysisPage() {
       label: SUB_SCORE_LABELS[key] ?? key,
       data: filtered.map((s) => ({
         time: s.date,
-        value: s.breakdown[key] ?? 0,
+        value: s.breakdown?.[key] ?? 0,
       })),
     }));
   }, [dailyScoreHistory, dateRange]);

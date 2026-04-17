@@ -61,9 +61,9 @@ export function useRealtimeLeaderboard(filters: LeaderboardFilters = {}): {
     if (!patch) return entry;
     return {
       ...entry,
-      composite_score: patch.score,
-      rank:            patch.rank,
-      rank_movement:   patch.rank_delta,
+      composite_score: patch.score ?? entry.composite_score,
+      rank:            patch.rank ?? entry.rank,
+      rank_movement:   patch.rank_delta ?? entry.rank_movement,
     };
   });
 

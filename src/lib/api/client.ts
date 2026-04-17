@@ -20,15 +20,25 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+/** Structured API error that extends Error for proper unhandledRejection tracking. */
+export class ApiError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+  }
+}
+
 // Response interceptor: unwrap ApiResponse envelope
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    const apiError = error.response?.data?.error || {
+    const raw = error.response?.data?.error || {
       code: "NETWORK_ERROR",
       message: error.message || "Network request failed",
     };
-    return Promise.reject(apiError);
+    return Promise.reject(new ApiError(raw.code ?? "NETWORK_ERROR", raw.message ?? "Request failed"));
   },
 );
 

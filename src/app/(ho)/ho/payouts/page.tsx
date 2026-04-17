@@ -140,12 +140,12 @@ export default function HOPayoutsPage() {
                 </tr>
               </thead>
               <tbody>
-                {ranked.map((s) => {
+                {ranked.map((s, idx) => {
                   const status: "paid" | "non_monetary" | "none" =
                     s.payout_amount > 50 ? "paid" : s.payout_amount > 0 ? "non_monetary" : "none";
                   return (
                     <tr
-                      key={s.branch_id}
+                      key={`${s.branch_id}-${idx}`}
                       className="border-b border-border transition-colors hover:bg-card-hover"
                     >
                       <td className="px-3 py-2 font-mono text-xs text-foreground">
