@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BRANCH_NAV, HO_NAV, ADMIN_NAV } from "@/lib/constants/navigation";
+import { BRANCH_NAV, HO_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
 
 function getNavForRole(role?: string) {
-  if (role === "admin") return ADMIN_NAV;
   if (role === "ho") return HO_NAV;
   return BRANCH_NAV;
 }
@@ -32,7 +31,7 @@ export function BottomNav() {
       <div className="flex overflow-x-auto scrollbar-hide">
         {navItems.map((item) => {
           const isActive =
-            item.href === "/admin" || item.href === "/ho"
+            item.href === "/ho"
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(item.href + "/");
 

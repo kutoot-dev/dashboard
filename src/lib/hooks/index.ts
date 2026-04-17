@@ -22,7 +22,7 @@ export {
   useCreateForceMajeure,
   useCohortHealth,
   usePayoutSimulation,
-} from "./use-admin";
+} from "./use-ho";
 export { useLiveScore, useLiveLeaderboard, useCountdown } from "./use-live-data";
 export { useKMI } from "./use-kmi";
 export {

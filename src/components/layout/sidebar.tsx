@@ -51,7 +51,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-2">
         {mounted && !isLoading && navItems.map((item) => {
           const isActive =
-            item.href === "/admin" || item.href === "/ho"
+            item.href === "/ho"
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(item.href + "/");
           return (

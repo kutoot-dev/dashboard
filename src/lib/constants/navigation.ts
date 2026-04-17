@@ -1,7 +1,7 @@
 /**
  * Constants: Navigation menu definitions
  *
- * Separate menus for branch, HO, and admin roles.
+ * Separate menus for branch and HO roles.
  * Icons are SVG path data rendered inline in the sidebar.
  */
 

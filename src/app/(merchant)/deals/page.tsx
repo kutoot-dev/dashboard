@@ -239,7 +239,7 @@ export default function DealsPage() {
             />
           </div>
 
-          <p className="text-xs text-muted-foreground">Deal will be sent to admin for approval before going live.</p>
+          <p className="text-xs text-muted-foreground">Deal will be sent to HO for approval before going live.</p>
 
           {formError && (
             <p className="text-xs text-destructive font-mono">{formError}</p>

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE = "kutoot_auth";
-const FILAMENT_URL = process.env.NEXT_PUBLIC_FILAMENT_URL ?? "http://kutoot.test/admin";
 
 const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts"];
 const HO_ROUTES = ["/ho"];
@@ -33,11 +32,6 @@ export function middleware(request: NextRequest) {
 
   const isAuthenticated = user !== null;
   const role = user?.role;
-
-  // Admin users belong in Filament — redirect them out of the dashboard.
-  if (role === "admin") {
-    return NextResponse.redirect(FILAMENT_URL);
-  }
 
   // Redirect authenticated users away from login
   if (pathname === "/login" && isAuthenticated) {
