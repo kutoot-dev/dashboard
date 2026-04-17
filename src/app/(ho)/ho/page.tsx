@@ -232,7 +232,7 @@ export default function HODashboardPage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Volume</span>
-                  <p className="font-mono">{score.raw_transaction_volume.toLocaleString()}</p>
+                  <p className="font-mono">{(score.raw_transaction_volume ?? 0).toLocaleString()}</p>
                 </div>
               </div>
               <div className="mt-4">

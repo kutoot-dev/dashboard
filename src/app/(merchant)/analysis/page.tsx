@@ -323,16 +323,16 @@ export default function AnalysisPage() {
                   <div>
                     <p className="flex items-center gap-1 text-xs text-muted-foreground">Category Rank <InfoTooltip text="Your rank within your business category (e.g. all kiranas)." /></p>
                     <p className="font-mono text-2xl font-bold text-foreground">
-                      Top {(score.sector_percentile_rank * 100).toFixed(0)}%
+                      Top {((score.sector_percentile_rank ?? 0) * 100).toFixed(0)}%
                     </p>
                   </div>
                   <div>
                     <p className="flex items-center gap-1 text-xs text-muted-foreground">Performance Level <InfoTooltip text="How far above or below the average you are. Positive means above average." /></p>
                     <p className={cn(
                       "font-mono text-2xl font-bold",
-                      score.sector_zscore > 0 ? "text-gain" : score.sector_zscore < 0 ? "text-loss" : "text-foreground",
+                      (score.sector_zscore ?? 0) > 0 ? "text-gain" : (score.sector_zscore ?? 0) < 0 ? "text-loss" : "text-foreground",
                     )}>
-                      {score.sector_zscore > 0 ? "+" : ""}{score.sector_zscore.toFixed(2)}
+                      {(score.sector_zscore ?? 0) > 0 ? "+" : ""}{(score.sector_zscore ?? 0).toFixed(2)}
                     </p>
                   </div>
                   <div>
