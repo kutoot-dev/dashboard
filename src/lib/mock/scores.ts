@@ -146,9 +146,9 @@ function generateScoreTrajectory(
     const locMultiplier = round2(1.0 + rng() * 1.5);
     const locAdjusted = round2(composite * locMultiplier);
     const oppNormalized = round2(clamp(locAdjusted / 2.5, 0, 100));
-    const txnPQScore = round2(breakdown.transaction_quality);
-    const momScore = round2(breakdown.momentum);
-    const ecoScore = round2(breakdown.ecosystem_contribution);
+    const txnPQScore = round2(breakdown.transaction_quality ?? 0);
+    const momScore = round2(breakdown.momentum ?? 0);
+    const ecoScore = round2(breakdown.ecosystem_contribution ?? 0);
 
     // Fatigue: top performers in consecutive periods (3+ weeks = 21+ daily periods)
     const isFatigued = branchIndex < 5 && p > 20;
