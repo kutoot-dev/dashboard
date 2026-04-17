@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE = "kutoot_auth";
 
-const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts", "/transactions", "/visitors", "/deals", "/store"];
+const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts", "/transactions", "/visitors", "/deals", "/store", "/discover", "/academy"];
 const HO_ROUTES = ["/ho"];
 
 function getHomeForRole(role: string): string {
@@ -66,6 +66,8 @@ export const config = {
     "/visitors/:path*",
     "/deals/:path*",
     "/store/:path*",
+    "/discover/:path*",
+    "/academy/:path*",
     "/ho/:path*",
     "/onboard/:path*",
     "/login",

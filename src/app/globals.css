@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* =============================================================================
- * Kutoot Trading Terminal Theme
+ * Kutoot Trading Terminal Theme — Glassmorphism Edition
  * 
  * Brand Colors:
  * - Primary (Crimson): #AE1E3F
@@ -9,91 +9,102 @@
  * - Accent (Gold): #EBC500
  * - Dark (Brown): #3B322B
  * 
- * Design Language: "Merchant Performance as a Trading Terminal"
- * - Kutoot brand colors with semantic overlays
- * - Supports light and dark modes
+ * Design: Glassmorphism trading dashboard with tab-based navigation
  * ============================================================================= */
 
 /* --- Light mode --- */
 :root {
-  --background: #f8fafc;
+  --background: #f0f4f8;
   --foreground: #0f172a;
-  --card: #ffffff;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-solid: #ffffff;
   --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --muted: #f1f5f9;
+  --card-hover: rgba(255, 255, 255, 0.85);
+  --border: rgba(226, 232, 240, 0.6);
+  --muted: rgba(241, 245, 249, 0.8);
   --muted-foreground: #64748b;
-  
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-blur: 16px;
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+
   /* Kutoot Brand Colors */
   --primary: #AE1E3F;
   --secondary: #EA6B1E;
   --accent: #EBC500;
   --dark: #3B322B;
-  
+
   /* Semantic Colors */
   --success: #16a34a;
   --error: #dc2626;
   --warning: #d97706;
   --info: #0ea5e9;
-  
-  /* Legacy alias for compatibility */
   --gain: #16a34a;
   --loss: #dc2626;
-  
+
   /* Tier Badges */
-  --platinum: #94a3b8;
-  --gold: #ca8a04;
-  --silver: #64748b;
-  --bronze: #92400e;
-  
+  --tier-legend: #9333ea;
+  --tier-elite: #ca8a04;
+  --tier-pro: #64748b;
+  --tier-rising: #92400e;
+  --platinum: var(--tier-legend);
+  --gold: var(--tier-elite);
+  --silver: var(--tier-pro);
+  --bronze: var(--tier-rising);
+
   /* Chart Colors */
-  --chart-bg: #ffffff;
+  --chart-bg: rgba(255, 255, 255, 0.6);
   --chart-grid: #e2e8f0;
   --chart-text: #64748b;
   --chart-crosshair: #94a3b8;
 }
 
-/* --- Dark mode (default) — Gamified Trading Floor --- */
+/* --- Dark mode (default) — Glassmorphism Trading Floor --- */
 .dark {
   --background: #050810;
   --foreground: #e2e8f0;
-  --card: #0c1120;
+  --card: rgba(12, 17, 32, 0.72);
+  --card-solid: #0c1120;
   --card-foreground: #e2e8f0;
-  --card-hover: #111b2e;
-  --border: #162035;
-  --muted: #162035;
+  --card-hover: rgba(17, 27, 46, 0.8);
+  --border: rgba(22, 32, 53, 0.6);
+  --muted: rgba(22, 32, 53, 0.7);
   --muted-foreground: #94a3b8;
-  
+
+  /* Glass — Dark */
+  --glass-bg: rgba(12, 17, 32, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 20px;
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
   /* Kutoot Brand Colors - Dark Mode Enhanced */
   --primary: #E63D5C;
   --secondary: #FF8C3D;
   --accent: #FFD700;
   --dark: #2B2420;
-  
+
   /* Semantic Colors — Neon */
   --success: #22c55e;
   --error: #ef4444;
   --warning: #f59e0b;
   --info: #06b6d4;
-  
-  /* Neon gain/loss */
   --gain: #00ff88;
   --loss: #ff3366;
-  
+
   /* Gamified Tier Colors */
   --tier-legend: #e0b0ff;
   --tier-elite: #fbbf24;
   --tier-pro: #94a3b8;
   --tier-rising: #d97706;
-  
-  /* Legacy aliases */
   --platinum: var(--tier-legend);
   --gold: var(--tier-elite);
   --silver: var(--tier-pro);
   --bronze: var(--tier-rising);
-  
+
   /* Chart Colors */
-  --chart-bg: #050810;
+  --chart-bg: rgba(5, 8, 16, 0.8);
   --chart-grid: #162035;
   --chart-text: #94a3b8;
   --chart-crosshair: #475569;
@@ -103,33 +114,37 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
   --color-card-foreground: var(--card-foreground);
+  --color-card-hover: var(--card-hover);
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  
+
+  /* Glass tokens */
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
+
   /* Kutoot Brand */
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
   --color-dark: var(--dark);
-  
+
   /* Semantic */
   --color-success: var(--success);
   --color-error: var(--error);
   --color-warning: var(--warning);
   --color-info: var(--info);
-  
-  /* Legacy */
   --color-gain: var(--gain);
   --color-loss: var(--loss);
-  
+
   /* Tiers */
   --color-platinum: var(--platinum);
   --color-gold: var(--gold);
   --color-silver: var(--silver);
   --color-bronze: var(--bronze);
-  
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -138,6 +153,57 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ── Glassmorphism Utility Classes ─────────────────────────────────── */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 16px;
+}
+
+.glass-card-sm {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+.glass-topbar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.glass-tab-bar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.glass-bottom-nav {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--glass-border);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* Tabular numbers for financial data alignment */
@@ -171,21 +237,22 @@ body {
   background: #1e3050;
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ── Gamified Neon Effects ────────────────────────────────────────────── */
 
-/* Neon text glow for gain values */
 .neon-gain {
   color: var(--gain);
   text-shadow: 0 0 6px rgba(0, 255, 136, 0.4), 0 0 20px rgba(0, 255, 136, 0.15);
 }
 
-/* Neon text glow for loss values */
 .neon-loss {
   color: var(--loss);
   text-shadow: 0 0 6px rgba(255, 51, 102, 0.4), 0 0 20px rgba(255, 51, 102, 0.15);
 }
 
-/* Neon border glow */
 .neon-border-gain {
   box-shadow: 0 0 8px rgba(0, 255, 136, 0.15), inset 0 0 8px rgba(0, 255, 136, 0.05);
 }
@@ -220,4 +287,32 @@ body {
 }
 .animate-level-up {
   animation: level-up-flash 1.5s ease-out forwards;
+}
+
+/* ── Glass accent glow ─────────────────────────────────────────────── */
+
+.glass-glow-accent {
+  box-shadow: 0 0 20px rgba(235, 197, 0, 0.1), 0 0 60px rgba(235, 197, 0, 0.05);
+}
+
+.glass-glow-gain {
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.08), 0 0 60px rgba(0, 255, 136, 0.04);
+}
+
+.glass-glow-loss {
+  box-shadow: 0 0 20px rgba(255, 51, 102, 0.08), 0 0 60px rgba(255, 51, 102, 0.04);
+}
+
+/* Tab active indicator animation */
+@keyframes tab-indicator {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-tab-indicator {
+  animation: tab-indicator 0.2s ease-out forwards;
+}
+
+/* Safe area for mobile bottom nav */
+.pb-safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
 }

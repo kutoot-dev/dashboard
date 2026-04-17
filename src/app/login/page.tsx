@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import { semanticClasses } from "@/lib/utils/colors";
 import { LOGIN, COMMON } from "@/lib/constants/strings";
 
+const DEMO_ACCOUNTS = [
+  { label: "Haldiram's Chandni Chowk", email: "haldirams.chandni-chowk@kutoot.com", role: "branch" },
+  { label: "Chai Point Koramangala", email: "chaipoint.koramangala@kutoot.com", role: "branch" },
+  { label: "Saravana Bhavan T Nagar", email: "saravanabhavan.t-nagar@kutoot.com", role: "branch" },
+  { label: "Haldiram's (HO)", email: "haldirams@kutoot.com", role: "ho" },
+  { label: "Chai Point (HO)", email: "chaipoint@kutoot.com", role: "ho" },
+  { label: "Saravana Bhavan (HO)", email: "saravanabhavan@kutoot.com", role: "ho" },
+];
+
 export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
@@ -23,7 +32,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      // auth-provider handles redirect based on role
     } catch (err) {
       setError(err instanceof Error ? err.message : LOGIN.ERROR_DEFAULT);
     } finally {
@@ -31,12 +39,11 @@ export default function LoginPage() {
     }
   }
 
-  async function handleQuickAccess(quickEmail: string, quickPassword: string) {
+  async function handleQuickAccess(quickEmail: string) {
     setError(null);
     setLoading(true);
     try {
-      await login(quickEmail, quickPassword);
-      // auth-provider handles redirect based on role
+      await login(quickEmail, "Test@1234");
     } catch (err) {
       setError(err instanceof Error ? err.message : LOGIN.ERROR_DEFAULT);
     } finally {
@@ -44,23 +51,18 @@ export default function LoginPage() {
     }
   }
 
-  function fillBranch() {
-    setEmail("haldirams.chandni-chowk@kutoot.com");
-    setPassword("Test@1234");
-    setError(null);
-    handleQuickAccess("haldirams.chandni-chowk@kutoot.com", "Test@1234");
-  }
-
-  function fillHO() {
-    setEmail("bikanervala@kutoot.com");
-    setPassword("Test@1234");
-    setError(null);
-    handleQuickAccess("bikanervala@kutoot.com", "Test@1234");
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen items-center justify-center p-4 overflow-hidden">
+      {/* Background gradient */}
+      <div className="pointer-events-none absolute inset-0 bg-background" />
+      <div className="pointer-events-none absolute inset-0 opacity-30">
+        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-secondary/10 blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo header */}
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
             <KutootLogo size="lg" />
@@ -68,10 +70,11 @@ export default function LoginPage() {
           <p className="mt-2 font-mono text-xs tracking-widest text-muted-foreground uppercase">
             {LOGIN.TITLE}
           </p>
-          <div className="mt-4 mx-auto h-px w-16 bg-primary" />
+          <div className="mt-4 mx-auto h-px w-16 bg-gradient-to-r from-transparent via-primary to-transparent" />
         </div>
 
-        <Card className="p-6">
+        {/* Login card — glass */}
+        <div className="glass-card p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label={LOGIN.EMAIL_LABEL}
@@ -119,38 +122,67 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-4 border-t border-border pt-4">
-            <p className="mb-2 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {/* Quick access demo accounts */}
+          <div className="mt-6 border-t border-glass-border pt-4">
+            <p className="mb-3 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {LOGIN.QUICK_ACCESS}
             </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="flex-1 font-mono text-xs"
-                onClick={fillBranch}
-              >
-                {LOGIN.QUICK_BRANCH}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="flex-1 font-mono text-xs"
-                onClick={fillHO}
-              >
-                {LOGIN.QUICK_HO}
-              </Button>
+
+            {/* Branch accounts */}
+            <p className="mb-1.5 font-mono text-[10px] text-accent uppercase tracking-wider">Branches</p>
+            <div className="grid grid-cols-1 gap-1.5 mb-3">
+              {DEMO_ACCOUNTS.filter(a => a.role === "branch").map((acc) => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => handleQuickAccess(acc.email)}
+                  disabled={loading}
+                  className="glass-card-sm flex items-center gap-2 px-3 py-2 text-left transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] font-bold text-accent">
+                    {acc.label.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-xs text-foreground">{acc.label}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{acc.email}</p>
+                  </div>
+                  <svg className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
             </div>
+
+            {/* HO accounts */}
+            <p className="mb-1.5 font-mono text-[10px] text-secondary uppercase tracking-wider">Head Offices</p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {DEMO_ACCOUNTS.filter(a => a.role === "ho").map((acc) => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => handleQuickAccess(acc.email)}
+                  disabled={loading}
+                  className="glass-card-sm flex items-center gap-2 px-3 py-2 text-left transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-[10px] font-bold text-secondary">
+                    {acc.label.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-xs text-foreground">{acc.label}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{acc.email}</p>
+                  </div>
+                  <svg className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+
             <p className="mt-3 text-center font-mono text-[10px] text-muted-foreground">
-              Branch: haldirams.chandni-chowk@kutoot.com / Test@1234 · HO: bikanervala@kutoot.com / Test@1234
-            </p>
-            <p className="mt-1 text-center font-mono text-[10px] text-muted-foreground">
-              Admin login is only on Kutoot Filament at /admin
+              All demo accounts use password: <span className="text-accent">Test@1234</span>
             </p>
           </div>
-        </Card>
+        </div>
 
         <p className="mt-4 text-center font-mono text-[10px] text-muted-foreground">
           {COMMON.VERSION} &middot; <span className="text-primary font-semibold">{COMMON.POWERED_BY}</span>

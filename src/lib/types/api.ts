@@ -45,6 +45,7 @@ export interface LeaderboardFilters {
   state?: string;
   start_date?: string;
   end_date?: string;
+  sort_by?: string;
 }
 
 /** Leaderboard entry as returned by the API */

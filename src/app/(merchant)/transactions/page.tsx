@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
 import { PageHeader } from "@/components/layout/page-header";
@@ -12,6 +12,8 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable } from "@/components/ui/data-table";
+import { TransactionChart } from "@/components/charts/transaction-chart";
+import { cn } from "@/lib/utils/cn";
 import { formatINR } from "@/lib/utils/format";
 import { getTransactions, type Transaction } from "@/lib/api/services/merchant.service";
 
@@ -56,6 +58,23 @@ export default function TransactionsPage() {
   const rows: Transaction[] = data?.rows ?? [];
   const total = data?.total ?? 0;
   const pages = data?.pages ?? 1;
+
+  // Aggregate transactions by date for chart
+  const chartData = useMemo(() => {
+    if (!rows.length) return [];
+    const byDate: Record<string, { count: number; amount: number }> = {};
+    rows.forEach((row) => {
+      const day = new Date(row.created_at).toISOString().slice(0, 10);
+      if (!byDate[day]) byDate[day] = { count: 0, amount: 0 };
+      byDate[day].count += 1;
+      byDate[day].amount += row.bill_amount ?? 0;
+    });
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, v]) => ({ date, count: v.count, amount: v.amount }));
+  }, [rows]);
+
+  const [chartKey, setChartKey] = useState<"count" | "amount">("count");
 
   const columns = [
     {
@@ -152,6 +171,39 @@ export default function TransactionsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Transaction Chart */}
+      {rows.length > 0 && chartData.length > 1 && (
+        <Card className="p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Transaction Trend
+            </h3>
+            <div className="flex gap-1 rounded-lg border border-glass-border p-0.5">
+              {(["count", "amount"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setChartKey(k)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 font-mono text-[10px] uppercase transition-all",
+                    chartKey === k
+                      ? "bg-accent/10 text-accent"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {k === "count" ? "# Count" : "₹ Amount"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <TransactionChart
+            data={chartData}
+            dataKey={chartKey}
+            color={chartKey === "count" ? "var(--accent)" : "var(--gain)"}
+            height={180}
+          />
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="space-y-2">

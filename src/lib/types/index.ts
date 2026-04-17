@@ -15,3 +15,5 @@ export * from "./api";
 export * from "./auth";
 export * from "./trading";
 export * from "./onboarding";
+export * from "./discover";
+export * from "./academy";

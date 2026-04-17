@@ -26,7 +26,7 @@ export function Topbar() {
   };
 
   return (
-    <header className="flex h-12 items-center border-b border-border bg-card">
+    <header className="glass-topbar flex h-12 items-center">
       {/* KMI Badge */}
       <div className="flex shrink-0 items-center gap-2 border-r border-border px-3">
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-primary">

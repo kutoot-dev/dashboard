@@ -58,6 +58,7 @@ export interface UpdateStorePayload {
   owner_mobile_whatsapp?: string;
   operating_hours_start?: string;
   operating_hours_end?: string;
+  commission_percentage?: number;
 }
 
 export interface Transaction {

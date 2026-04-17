@@ -26,7 +26,7 @@ export function BottomNav() {
   if (!mounted || isLoading) return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-bottom-nav">
       {/* Scrollable container — Zerodha-style horizontal scroll for many items */}
       <div className="flex overflow-x-auto scrollbar-hide">
         {navItems.map((item) => {
@@ -81,7 +81,7 @@ export function BottomNav() {
         })}
       </div>
       {/* Safe area padding for iOS home indicator */}
-      <div className="h-safe-bottom bg-card" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
+      <div className="h-safe-bottom" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
     </nav>
   );
 }

@@ -40,10 +40,18 @@ const STATES = [
 
 const PAGE_SIZE = 20;
 
+const LEADERBOARD_TABS = [
+  { value: "top_rankers", label: "🏆 Top Rankers", sortBy: "" },
+  { value: "most_transactions", label: "📊 Most Transactions", sortBy: "transactions" },
+  { value: "highest_commission", label: "💰 Highest Commission", sortBy: "commission" },
+  { value: "most_discounts", label: "🏷️ Most Discounts", sortBy: "discounts" },
+] as const;
+
 export default function LeaderboardPage() {
   const { user } = useAuth();
   const currentBranchId = user?.branch_id ?? "";
 
+  const [activeTab, setActiveTab] = useState("top_rankers");
   const [filters, setFilters] = useState<LeaderboardFilters>({
     page: 1,
     limit: PAGE_SIZE,
@@ -71,6 +79,27 @@ export default function LeaderboardPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Rankings" subtitle="See how your shop compares with others" />
+
+      {/* Scrollable Tab Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+        {LEADERBOARD_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => {
+              setActiveTab(tab.value);
+              setFilters((f) => ({ ...f, sort_by: tab.sortBy, page: 1 }));
+            }}
+            className={cn(
+              "flex-shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 font-mono text-xs transition-all",
+              activeTab === tab.value
+                ? "border-accent/40 bg-accent/10 text-accent shadow-sm"
+                : "border-glass-border bg-glass-bg text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* Filters */}
       <Card className="flex flex-wrap items-center gap-3 p-3">

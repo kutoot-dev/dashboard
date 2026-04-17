@@ -24,6 +24,9 @@ import { ChartTypeSwitcher } from "@/components/ui/chart-type-switcher";
 import { RewardPoolCard } from "@/components/ui/reward-pool-card";
 import { ParameterMeter } from "@/components/ui/parameter-meter";
 import { ImprovementCard } from "@/components/ui/improvement-card";
+import { ActivityTicker } from "@/components/ui/activity-ticker";
+import { ScoreRadar } from "@/components/ui/score-radar";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { MultiChart } from "@/components/charts/multi-chart";
 import { VolumeChart } from "@/components/charts/volume-chart";
 import { TradingViewChart } from "@/components/charts/trading-view-chart";
@@ -33,11 +36,13 @@ import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS, SUB_SCORE_
 import { BRANCH_DASHBOARD, COMMON } from "@/lib/constants/strings";
 
 type ChartType = "candle" | "line" | "area" | "baseline";
+type ParamView = "bars" | "radar";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "";
   const [chartType, setChartType] = useState<ChartType>("candle");
+  const [paramView, setParamView] = useState<ParamView>("radar");
 
   const { dateRange, setDateRange } = useUIStore();
 
@@ -283,13 +288,41 @@ export default function DashboardPage() {
         )}
       </Card>
 
+      {/* Activity Feed + Quick Actions */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <ActivityTicker />
+        </Card>
+        <Card>
+          <QuickActions />
+        </Card>
+      </div>
+
       {/* Parameter Meters — All 8 v2 sub-scores with weightage */}
       <Card>
-        <div className="mb-4 flex items-center gap-2">
-          <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Your Score Parameters
-          </h2>
-          <InfoTooltip text="Your score is made up of 8 parameters. Each has a different weight (importance). The percentage shows how much each parameter affects your total score." />
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Your Score Parameters
+            </h2>
+            <InfoTooltip text="Your score is made up of 8 parameters. Each has a different weight (importance). The percentage shows how much each parameter affects your total score." />
+          </div>
+          <div className="flex gap-1 rounded-lg border border-glass-border p-0.5">
+            {(["radar", "bars"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setParamView(v)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 font-mono text-[10px] uppercase transition-all",
+                  paramView === v
+                    ? "bg-accent/10 text-accent"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {v === "radar" ? "⬡ Radar" : "▰ Bars"}
+              </button>
+            ))}
+          </div>
         </div>
         {scoreLoading ? (
           <div className="space-y-4">
@@ -298,17 +331,21 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : subScores.length > 0 ? (
-          <div className="space-y-4">
-            {subScores.map((s) => (
-              <ParameterMeter
-                key={s.key}
-                label={SUB_SCORE_LABELS[s.key] ?? s.key}
-                value={s.value}
-                weight={SUB_SCORE_WEIGHTS[s.key] ?? 0}
-                description={SUB_SCORE_DESCRIPTIONS[s.key]}
-              />
-            ))}
-          </div>
+          paramView === "radar" ? (
+            <ScoreRadar scores={subScores} />
+          ) : (
+            <div className="space-y-4">
+              {subScores.map((s) => (
+                <ParameterMeter
+                  key={s.key}
+                  label={SUB_SCORE_LABELS[s.key] ?? s.key}
+                  value={s.value}
+                  weight={SUB_SCORE_WEIGHTS[s.key] ?? 0}
+                  description={SUB_SCORE_DESCRIPTIONS[s.key]}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <EmptyState title="No score breakdown" />
         )}
