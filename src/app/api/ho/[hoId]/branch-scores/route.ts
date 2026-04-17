@@ -12,7 +12,8 @@ export async function GET(
 ) {
   try {
     const { hoId } = await params;
-    const res = await fetch(backendUrl(`/ho/${hoId}/branch-scores`), {
+    const qs = request.nextUrl.search;
+    const res = await fetch(backendUrl(`/ho/${hoId}/branch-scores${qs}`), {
       headers: await authHeaders(),
     });
     return proxyResponse(res);

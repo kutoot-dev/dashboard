@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE = "kutoot_auth";
 
-const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts"];
+const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts", "/transactions", "/visitors", "/deals", "/store"];
 const HO_ROUTES = ["/ho"];
 
 function getHomeForRole(role: string): string {
   switch (role) {
-    case "ho": return "/ho";
+    case "ho":
+    case "admin":
+      return "/ho";
     default: return "/dashboard";
   }
 }
@@ -41,7 +43,7 @@ export function middleware(request: NextRequest) {
   // Protect HO routes
   if (HO_ROUTES.some((route) => pathname.startsWith(route))) {
     if (!isAuthenticated) return NextResponse.redirect(new URL("/login", request.url));
-    if (role !== "ho") return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
+    if (role !== "ho" && role !== "admin") return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
     return NextResponse.next();
   }
 
@@ -60,6 +62,10 @@ export const config = {
     "/leaderboard/:path*",
     "/analysis/:path*",
     "/payouts/:path*",
+    "/transactions/:path*",
+    "/visitors/:path*",
+    "/deals/:path*",
+    "/store/:path*",
     "/ho/:path*",
     "/onboard/:path*",
     "/login",

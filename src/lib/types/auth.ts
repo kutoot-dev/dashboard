@@ -6,7 +6,7 @@
  * approach with proper token-based auth from your backend.
  */
 
-export type UserRole = "branch" | "ho";
+export type UserRole = "branch" | "ho" | "admin";
 
 export interface AuthUser {
   id: string;
@@ -15,6 +15,7 @@ export interface AuthUser {
   role: UserRole;
   branch_id: string | null;
   ho_id: string | null;
+  is_test?: boolean;
 }
 
 export interface LoginRequest {

@@ -22,13 +22,26 @@ export default function HODashboardPage() {
   const hoId = user?.ho_id ?? "";
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
-  const { data: branches, isLoading: branchesLoading } = useHOBranches(hoId);
-  const { data: branchScores, isLoading: scoresLoading } = useHOBranchScores(hoId);
-  const { data: portfolio, isLoading: portfolioLoading } = useHOPortfolio(hoId);
+  const { data: branches, isLoading: branchesLoading, isError: branchesError } = useHOBranches(hoId);
+  const { data: branchScores, isLoading: scoresLoading, isError: scoresError } = useHOBranchScores(hoId);
+  const { data: portfolio, isLoading: portfolioLoading, isError: portfolioError } = useHOPortfolio(hoId);
 
   const liveAvg = useLiveScore(portfolio?.avgScore ?? 0);
   const isLoading = branchesLoading || scoresLoading || portfolioLoading;
+  const isError = branchesError || scoresError || portfolioError;
   const totalBranches = portfolio?.totalBranches ?? 0;
+
+  // Admin users without an ho_id cannot view HO-specific data
+  if (!hoId && !isLoading) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title={HO_DASHBOARD.TITLE} subtitle={HO_DASHBOARD.SUBTITLE} />
+        <Card>
+          <EmptyState title="No Head Office linked to this account" />
+        </Card>
+      </div>
+    );
+  }
 
   // Map scores by branch_id for easy lookup
   const scoreMap = new Map(
@@ -237,7 +250,7 @@ export default function HODashboardPage() {
               </div>
               <div className="mt-4">
                 <TradingViewChart
-                  locationId={Number((score as any).merchant_location_id ?? selectedBranch)}
+                  locationId={Number(score.branch_id || selectedBranch)}
                   height={280}
                   defaultResolution="5"
                 />

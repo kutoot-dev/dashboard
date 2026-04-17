@@ -222,7 +222,7 @@ export default function LeaderboardPage() {
 
                       {/* Sparkline */}
                       <td className="px-3 py-2 text-right">
-                        {entry.sparkline_data.length > 0 && (
+                        {entry.sparkline_data && entry.sparkline_data.length > 0 && (
                           <div className="ml-auto w-[100px]">
                             <SparklineChart
                               data={entry.sparkline_data}

@@ -10,7 +10,7 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils/cn";
 
 function getNavForRole(role?: string) {
-  if (role === "ho") return HO_NAV;
+  if (role === "ho" || role === "admin") return HO_NAV;
   return BRANCH_NAV;
 }
 
