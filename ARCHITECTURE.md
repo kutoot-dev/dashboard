@@ -6,7 +6,7 @@ This repository is a Next.js 16 dashboard frontend for the Kutoot platform. It i
 
 The repository has four major responsibilities:
 
-1. Render the dashboard UI for three roles: branch, head office, and admin.
+1. Render the dashboard UI for branch and head office roles.
 2. Manage browser-side state, caching, navigation, theming, and onboarding workflow.
 3. Expose same-origin `/api/*` route handlers that proxy requests to a separate backend.
 4. Document the backend contract through TypeScript types, constants, comments, and audit notes.
@@ -187,7 +187,6 @@ This repo uses App Router route groups heavily:
 
 - `(merchant)`
 - `(ho)`
-- `(admin)`
 
 These folders do not appear in the final URL. They only group layouts and pages.
 
@@ -269,24 +268,6 @@ HO loading boundaries exist for:
 - `/ho/leaderboard`
 - `/ho/payouts`
 
-### Admin route group `(admin)`
-
-`src/app/(admin)/layout.tsx` again uses the shared `AppShell`.
-
-Implemented routes:
-
-| URL | Purpose |
-| --- | --- |
-| `/admin` | Admin platform overview |
-| `/admin/parameters` | Scoring-parameter management |
-| `/admin/fraud` | Fraud review queue |
-| `/admin/force-majeure` | Exceptional-event management |
-| `/admin/cohorts` | Cohort health monitoring |
-| `/admin/payouts` | Payout management + payout simulation |
-| `/admin/overrides` | Manual score overrides |
-
-Admin loading boundaries exist for overview and most feature routes.
-
 ## 7. Page Responsibilities by Role
 
 ### Login (`/login`)
@@ -295,7 +276,7 @@ The login page is a client component that:
 
 - calls `useAuth().login(email, password)`
 - shows manual email/password inputs
-- includes quick-access buttons for branch, HO, and admin credentials
+- includes quick-access buttons for branch and HO credentials
 - relies on the auth provider to redirect after successful login
 
 ### Branch dashboard (`/dashboard`)
@@ -401,18 +382,6 @@ The HO pages aggregate branch-level data into a portfolio-style experience.
 - `/ho/applications`: application listing with stats and CSV export
 - `/ho/deals`, `/ho/transactions`, `/ho/visitors`: aggregated operational views across linked branches
 
-### Admin pages
-
-The admin section is the operational control panel:
-
-- `/admin`: platform health summary
-- `/admin/parameters`: update scoring config values
-- `/admin/fraud`: investigate fraud flags and choose actions
-- `/admin/force-majeure`: create and review exceptional events
-- `/admin/cohorts`: sector-level spread and health monitoring
-- `/admin/payouts`: real payout management and simulation mode
-- `/admin/overrides`: manual score overrides with audit trail intent
-
 ## 8. Shell Architecture
 
 ### `AppShell`
@@ -423,14 +392,14 @@ The admin section is the operational control panel:
 - `Topbar`
 - main content area
 
-This shell is used by merchant, HO, and admin route groups.
+This shell is used by merchant and HO route groups.
 
 ### `Sidebar`
 
 The sidebar:
 
 - reads the logged-in user role from `useAuth()`
-- chooses navigation from `BRANCH_NAV`, `HO_NAV`, or `ADMIN_NAV`
+  - chooses navigation from `BRANCH_NAV` or `HO_NAV`
 - reads collapse state from `useUIStore`
 - computes active-route styling from `usePathname`
 
@@ -480,7 +449,6 @@ Both are set as:
 4. `src/app/api/auth/login/route.ts` proxies to backend `/auth/login`.
 5. On success, the route handler stores both cookies.
 6. The auth provider clears query cache, stores `user`, and pushes the user to:
-   - `/admin` for admin
    - `/ho` for HO
    - `/dashboard` for branch
 
@@ -513,7 +481,6 @@ That fetch goes to `/api/auth/me`, which:
 
 Protected route families in middleware logic:
 
-- admin-only: `/admin*`
 - HO-only: `/ho*`
 - branch-authenticated: `/dashboard*`, `/leaderboard*`, `/analysis*`, `/payouts*`
 - public onboarding: `/onboard*`
