@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE = "kutoot_auth";
 
-const BRANCH_ROUTES = ["/dashboard", "/leaderboard", "/analysis", "/payouts", "/transactions", "/visitors", "/deals", "/store", "/discover", "/academy"];
-const HO_ROUTES = ["/ho"];
-
-function getHomeForRole(role: string): string {
-  switch (role) {
-    case "ho":
-    case "admin":
-      return "/ho";
-    default: return "/dashboard";
-  }
-}
+const MERCHANT_ROUTES = [
+  "/dashboard",
+  "/leaderboard",
+  "/analysis",
+  "/payouts",
+  "/transactions",
+  "/visitors",
+  "/deals",
+  "/store",
+  "/discover",
+  "/academy",
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -33,22 +34,14 @@ export function middleware(request: NextRequest) {
   }
 
   const isAuthenticated = user !== null;
-  const role = user?.role;
 
   // Redirect authenticated users away from login
   if (pathname === "/login" && isAuthenticated) {
-    return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Protect HO routes
-  if (HO_ROUTES.some((route) => pathname.startsWith(route))) {
-    if (!isAuthenticated) return NextResponse.redirect(new URL("/login", request.url));
-    if (role !== "ho" && role !== "admin") return NextResponse.redirect(new URL(getHomeForRole(role ?? "branch"), request.url));
-    return NextResponse.next();
-  }
-
-  // Protect branch routes (accessible by branch and ho roles)
-  if (BRANCH_ROUTES.some((route) => pathname.startsWith(route))) {
+  // Protect merchant routes
+  if (MERCHANT_ROUTES.some((route) => pathname.startsWith(route))) {
     if (!isAuthenticated) return NextResponse.redirect(new URL("/login", request.url));
     return NextResponse.next();
   }
@@ -68,7 +61,6 @@ export const config = {
     "/store/:path*",
     "/discover/:path*",
     "/academy/:path*",
-    "/ho/:path*",
     "/onboard/:path*",
     "/login",
   ],

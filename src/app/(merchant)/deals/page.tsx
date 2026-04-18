@@ -47,6 +47,23 @@ const INITIAL_FORM: CreateDealPayload = {
   expires_at: null,
 };
 
+/**
+ * Quick-start templates so the merchant can ship a deal in one click.
+ * Clicking a chip prefills the create modal with sensible defaults.
+ */
+const DEAL_PRESETS: ReadonlyArray<{ label: string; payload: Partial<CreateDealPayload> }> = [
+  { label: "Welcome 10%", payload: { title: "Welcome 10% Off", discount_type: "percentage", discount_value: 10 } },
+  { label: "Weekend ₹100", payload: { title: "Weekend ₹100 Off", discount_type: "fixed", discount_value: 100, min_order_value: 500 } },
+  { label: "Combo 15%", payload: { title: "Combo Saver 15%", discount_type: "percentage", discount_value: 15, min_order_value: 800, max_discount_amount: 250 } },
+  { label: "First Order ₹50", payload: { title: "First Order ₹50 Off", discount_type: "fixed", discount_value: 50, min_order_value: 200 } },
+  { label: "Lunch Hour 20%", payload: { title: "Lunch Hour 20% Off", discount_type: "percentage", discount_value: 20, max_discount_amount: 200 } },
+  { label: "Late Night 25%", payload: { title: "Late Night 25% Off", discount_type: "percentage", discount_value: 25, min_order_value: 300, max_discount_amount: 300 } },
+  { label: "Big Spender ₹250", payload: { title: "Big Spender ₹250 Off", discount_type: "fixed", discount_value: 250, min_order_value: 1500 } },
+  { label: "Festive 30%", payload: { title: "Festive 30% Off", discount_type: "percentage", discount_value: 30, max_discount_amount: 500 } },
+  { label: "Loyalty ₹150", payload: { title: "Loyalty ₹150 Off", discount_type: "fixed", discount_value: 150, min_order_value: 800 } },
+  { label: "Flash 5%", payload: { title: "Flash 5% Off", discount_type: "percentage", discount_value: 5 } },
+];
+
 function statusVariant(status: string): "gain" | "loss" | "neutral" | "warning" {
   if (status === "approved") return "gain";
   if (status === "rejected") return "loss";
@@ -93,6 +110,12 @@ export default function DealsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["deals", branchId] }),
   });
 
+  function applyPreset(payload: Partial<CreateDealPayload>) {
+    setForm({ ...INITIAL_FORM, ...payload });
+    setFormError(null);
+    setShowModal(true);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
@@ -117,6 +140,24 @@ export default function DealsPage() {
           + New Deal
         </Button>
       </PageHeader>
+
+      <div className="space-y-2">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Quick Templates
+        </p>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
+          {DEAL_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => applyPreset(preset.payload)}
+              className="shrink-0 rounded-full border border-glass-border bg-glass-bg px-3 py-1.5 font-mono text-[11px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/10"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

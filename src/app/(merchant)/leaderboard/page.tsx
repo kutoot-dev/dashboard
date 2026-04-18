@@ -20,9 +20,10 @@ import type { LeaderboardFilters } from "@/lib/types";
 
 const CITY_TIERS = [
   { value: "", label: "All Tiers" },
-  { value: "tier_1", label: "Tier 1" },
-  { value: "tier_2", label: "Tier 2" },
-  { value: "tier_3", label: "Tier 3" },
+  { value: "metro", label: "Metro" },
+  { value: "tier1", label: "Tier 1" },
+  { value: "tier2", label: "Tier 2" },
+  { value: "tier3", label: "Tier 3" },
 ];
 
 const STATES = [

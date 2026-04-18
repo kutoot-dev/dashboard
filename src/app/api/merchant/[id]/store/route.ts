@@ -1,15 +1,13 @@
 /**
- * Route: GET   /api/merchant/[id]/store  — fetch store profile
- *        PATCH /api/merchant/[id]/store  — update store profile
+ * Route: GET/PATCH /api/merchant/[id]/store
  *
- * Proxies to: GET   /merchant/{id}/store
- *             PATCH /merchant/{id}/store
+ * Proxies to: /merchant/{id}/store on the kutoot backend.
  */
-import { NextRequest, NextResponse } from "next/server";
-import { backendUrl, authHeaders, proxyResponse } from "@/lib/api/server/proxy";
+import { NextRequest } from "next/server";
+import { backendUrl, authHeaders, errorResponse, proxyResponse } from "@/lib/api/server/proxy";
 
 export async function GET(
-  _request: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -19,30 +17,24 @@ export async function GET(
     });
     return proxyResponse(res);
   } catch {
-    return NextResponse.json(
-      { success: false, data: null, meta: { timestamp: new Date().toISOString(), period_id: null, request_id: crypto.randomUUID() }, error: { code: "INTERNAL_ERROR", message: "Failed to fetch store profile" } },
-      { status: 500 },
-    );
+    return errorResponse("Failed to fetch store", "INTERNAL_ERROR", 500);
   }
 }
 
 export async function PATCH(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await req.text();
     const res = await fetch(backendUrl(`/merchant/${id}/store`), {
       method: "PATCH",
       headers: await authHeaders(),
-      body: JSON.stringify(body),
+      body,
     });
     return proxyResponse(res);
   } catch {
-    return NextResponse.json(
-      { success: false, data: null, meta: { timestamp: new Date().toISOString(), period_id: null, request_id: crypto.randomUUID() }, error: { code: "INTERNAL_ERROR", message: "Failed to update store profile" } },
-      { status: 500 },
-    );
+    return errorResponse("Failed to update store", "INTERNAL_ERROR", 500);
   }
 }

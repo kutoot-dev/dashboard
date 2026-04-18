@@ -13,7 +13,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import { CHART_THEME_DARK, CHART_THEME_LIGHT } from "@/lib/constants/theme";
-import { fetchChartHistory, type Resolution, type OhlcvBar } from "@/lib/api/services/chart-data.service";
+import { fetchChartHistory, type Resolution, type ChartMetric } from "@/lib/api/services/chart-data.service";
 import { useScoreTick } from "@/lib/hooks/use-score-tick";
 import { cn } from "@/lib/utils/cn";
 
@@ -46,6 +46,10 @@ interface TradingViewChartProps {
   showOhlcOverlay?: boolean;
   /** Initial resolution */
   defaultResolution?: Resolution;
+  /** Initial metric — 'score' shows composite score OHLC, 'rank' shows rank OHLC (lower is better, axis inverted). */
+  defaultMetric?: ChartMetric;
+  /** Hide the metric toggle (Score | Rank). */
+  hideMetricToggle?: boolean;
 }
 
 /**
@@ -65,6 +69,8 @@ export function TradingViewChart({
   showToolbar = true,
   showOhlcOverlay = true,
   defaultResolution = "5",
+  defaultMetric = "score",
+  hideMetricToggle = false,
 }: TradingViewChartProps) {
   const containerRef       = useRef<HTMLDivElement>(null);
   const chartRef           = useRef<IChartApi | null>(null);
@@ -73,6 +79,7 @@ export function TradingViewChart({
   const { resolvedTheme }  = useTheme();
 
   const [resolution, setResolution] = useState<Resolution>(defaultResolution);
+  const [metric,     setMetric]     = useState<ChartMetric>(defaultMetric);
   const [isLoading,  setIsLoading]  = useState(true);
   const [ohlc,       setOhlc]       = useState<OhlcDisplay | null>(null);
   const [barsLoaded, setBarsLoaded] = useState(0);
@@ -107,6 +114,7 @@ export function TradingViewChart({
       rightPriceScale: {
         borderColor:  colors.grid,
         scaleMargins: { top: 0.08, bottom: 0.30 },
+        invertScale:  metric === "rank",
       },
       timeScale: {
         borderColor:     colors.grid,
@@ -126,14 +134,17 @@ export function TradingViewChart({
 
     chartRef.current = chart;
 
-    // Candlestick series
+    // Candlestick series — when showing rank, lower close = better, so the up/down
+    // colour mapping must be inverted (close < open is actually a *gain* of rank).
+    const upColor   = metric === "rank" ? colors.loss : colors.gain;
+    const downColor = metric === "rank" ? colors.gain : colors.loss;
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor:          colors.gain,
-      downColor:        colors.loss,
-      borderUpColor:    colors.gain,
-      borderDownColor:  colors.loss,
-      wickUpColor:      colors.gain,
-      wickDownColor:    colors.loss,
+      upColor:          upColor,
+      downColor:        downColor,
+      borderUpColor:    upColor,
+      borderDownColor:  downColor,
+      wickUpColor:      upColor,
+      wickDownColor:    downColor,
     });
     candleSeriesRef.current = candleSeries;
 
@@ -171,7 +182,7 @@ export function TradingViewChart({
       candleSeriesRef.current = null;
       volumeSeriesRef.current = null;
     };
-  }, [resolvedTheme, height, resolution]);
+  }, [resolvedTheme, height, resolution, metric]);
 
   // ── Load historical bars whenever resolution changes ────────────────────────
   useEffect(() => {
@@ -192,7 +203,7 @@ export function TradingViewChart({
     };
     const from = to - (fromMap[resolution] ?? 86400);
 
-    fetchChartHistory(locationId, resolution, from, to)
+    fetchChartHistory(locationId, resolution, from, to, undefined, metric)
       .then((bars) => {
         if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
         if (bars.length === 0) {
@@ -230,12 +241,14 @@ export function TradingViewChart({
         setOhlc(null);
       })
       .finally(() => setIsLoading(false));
-  }, [locationId, resolution, resolvedTheme]);
+  }, [locationId, resolution, resolvedTheme, metric]);
 
   // ── Real-time tick streaming ───────────────────────────────────────────────
   useEffect(() => {
     if (!latest || !candleSeriesRef.current || !volumeSeriesRef.current) return;
-    // Only apply 1-min resolution ticks in real time
+    // Only apply 1-min/5-min resolution ticks in real time, and only for the
+    // score metric (rank ticks are computed separately by the backend).
+    if (metric !== "score") return;
     if (resolution !== "1" && resolution !== "5") return;
 
     const tick = latest.tick;
@@ -257,14 +270,16 @@ export function TradingViewChart({
     candleSeriesRef.current.update(candle);
     volumeSeriesRef.current.update(vol);
     setOhlc({ open: tick.open, high: tick.high, low: tick.low, close: tick.close, volume: tick.volume });
-  }, [latest, resolution, resolvedTheme]);
+  }, [latest, resolution, resolvedTheme, metric]);
 
   const handleResolutionChange = useCallback((r: Resolution) => {
     setResolution(r);
     setBarsLoaded(0);
   }, []);
 
-  const isGain = (ohlc?.close ?? 0) >= (ohlc?.open ?? 0);
+  const isUp = (ohlc?.close ?? 0) >= (ohlc?.open ?? 0);
+  // When displaying rank, "close < open" means rank improved → treat as gain.
+  const isGain = metric === "rank" ? !isUp : isUp;
   const colors  = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
 
   return (
@@ -276,27 +291,55 @@ export function TradingViewChart({
           {showOhlcOverlay && ohlc && (
             <div className="flex items-center gap-3 text-[10px] font-mono">
               <span className="text-muted-foreground">O</span>
-              <span className={isGain ? "text-gain" : "text-loss"}>{ohlc.open.toFixed(4)}</span>
+              <span className={isGain ? "text-gain" : "text-loss"}>
+                {metric === "rank" ? `#${ohlc.open.toFixed(0)}` : ohlc.open.toFixed(4)}
+              </span>
               <span className="text-muted-foreground">H</span>
-              <span className={isGain ? "text-gain" : "text-loss"}>{ohlc.high.toFixed(4)}</span>
+              <span className={isGain ? "text-gain" : "text-loss"}>
+                {metric === "rank" ? `#${ohlc.high.toFixed(0)}` : ohlc.high.toFixed(4)}
+              </span>
               <span className="text-muted-foreground">L</span>
-              <span className={isGain ? "text-gain" : "text-loss"}>{ohlc.low.toFixed(4)}</span>
+              <span className={isGain ? "text-gain" : "text-loss"}>
+                {metric === "rank" ? `#${ohlc.low.toFixed(0)}` : ohlc.low.toFixed(4)}
+              </span>
               <span className="text-muted-foreground">C</span>
               <span className={cn("font-semibold", isGain ? "text-gain" : "text-loss")}>
-                {ohlc.close.toFixed(4)}
+                {metric === "rank" ? `#${ohlc.close.toFixed(0)}` : ohlc.close.toFixed(4)}
               </span>
-              <span className="text-muted-foreground ml-1">V</span>
-              <span className="text-foreground/70">
-                {ohlc.volume >= 1000
-                  ? `₹${(ohlc.volume / 1000).toFixed(1)}k`
-                  : `₹${ohlc.volume.toFixed(0)}`}
-              </span>
+              {metric === "score" && (
+                <>
+                  <span className="text-muted-foreground ml-1">V</span>
+                  <span className="text-foreground/70">
+                    {ohlc.volume >= 1000
+                      ? `₹${(ohlc.volume / 1000).toFixed(1)}k`
+                      : `₹${ohlc.volume.toFixed(0)}`}
+                  </span>
+                </>
+              )}
             </div>
           )}
 
-          {/* Right side: resolution + live badge */}
+          {/* Right side: metric toggle + resolution + live badge */}
           <div className="flex items-center gap-1 ml-auto">
-            {connected && (
+            {!hideMetricToggle && (
+              <div className="flex items-center gap-1 rounded-md border border-border/40 bg-card/60 p-0.5 mr-2">
+                {(["score", "rank"] as ChartMetric[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMetric(m)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider transition-colors",
+                      metric === m
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+            {connected && metric === "score" && (
               <span className="flex items-center gap-1 text-[9px] font-bold text-gain mr-2 uppercase tracking-wider">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-75" />
@@ -338,7 +381,7 @@ export function TradingViewChart({
 
       {/* ── Bottom status bar ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-3 py-1 bg-background/60 border-t border-border/20 text-[9px] text-muted-foreground font-mono">
-        <span>LOC_{locationId} · {resolution}</span>
+        <span>LOC_{locationId} · {resolution} · {metric}</span>
         <span>{barsLoaded > 0 ? `${barsLoaded} bars` : "—"}</span>
       </div>
     </div>

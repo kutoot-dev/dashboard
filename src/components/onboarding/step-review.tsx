@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useCreateApplication, useUpdateApplication } from "@/lib/hooks";
 import {
@@ -109,29 +110,42 @@ export function StepReview({ onBack }: StepReviewProps) {
   const goToStep = (step: WizardStepId) => setStep(step);
 
   if (submitted) {
-    return (
-      <div className="text-center py-12 space-y-4">
-        <div className="text-5xl">{isFeVisitOnly ? "📋" : "🎉"}</div>
-        <h2 className="text-2xl font-bold text-foreground">
-          {isFeVisitOnly ? "Visit Recorded" : ONBOARDING_STRINGS.SUBMIT_SUCCESS}
-        </h2>
-        {/* Submitted-by badge */}
-        <div className="flex justify-center">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-info/10 text-info border border-info/30">
-            {formData.channel === "merchant" ? "🧑‍💼 Submitted by Merchant" : "🚶 Submitted by Field Executive"}
-          </span>
-        </div>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          {isFeVisitOnly
-            ? `Visit outcome "${visitOutcomeLabel}" has been logged.${formData.visit_notes ? " Notes saved." : ""} This record will be visible in your visit history.`
-            : `Your application is now under review. You will receive an SMS on +91 ${formData.phone} once approved.`}
-        </p>
-        {applicationId && (
-          <p className="text-sm text-muted-foreground">
-            Application ID: <span className="font-mono">{applicationId}</span>
+    if (isFeVisitOnly) {
+      return (
+        <div className="text-center py-12 space-y-4">
+          <div className="text-5xl">📋</div>
+          <h2 className="text-2xl font-bold text-foreground">Visit Recorded</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            {`Visit outcome "${visitOutcomeLabel}" has been logged.${formData.visit_notes ? " Notes saved." : ""} This record will be visible in your visit history.`}
           </p>
-        )}
-      </div>
+          {applicationId && (
+            <p className="text-sm text-muted-foreground">
+              Application ID: <span className="font-mono">{applicationId}</span>
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (!applicationId) {
+      return (
+        <div className="text-center py-12 space-y-4">
+          <div className="text-5xl">🎉</div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {ONBOARDING_STRINGS.SUBMIT_SUCCESS}
+          </h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Your application is now under review.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <ApplicationStatusScreen
+        applicationId={applicationId}
+        phone={formData.phone}
+      />
     );
   }
 

@@ -163,56 +163,179 @@ export async function getVisitors(
   return res.data;
 }
 
-// ── HO ───────────────────────────────────────────────────────────────────────
+// ── Merchant (authed) ───────────────────────────────────────────────────────
 
-export interface HoSummary {
-  total_revenue: number;
-  total_transactions: number;
-  total_visitors: number;
-  total_branches: number;
-  active_deals: number;
-  avg_score: number;
-  total_payout: number;
-  best_branch: { id: string; name: string; score: number } | null;
-  worst_branch: { id: string; name: string; score: number } | null;
-}
-
-export interface HoBranch {
-  id: number;
+export interface MerchantMe {
+  id: string;
   name: string;
-  city: string | null;
-  state: string | null;
-  transactions_count: number;
-  revenue: number;
-  status: string;
+  store_email: string | null;
+  commission_percentage: number;
+  category_min_commission: number;
+  category: string | null;
+  is_test: boolean;
 }
 
-export async function getHoSummary(hoId: string) {
-  const res = await apiClient.get<ApiResponse<HoSummary>>(`/ho/${hoId}/summary`);
+export interface MerchantDashboard {
+  today: { transactions: number; gmv: number; discount: number; commission: number };
+  week: { transactions: number; gmv: number; discount: number; commission: number };
+  month: { transactions: number; gmv: number; discount: number; commission: number };
+  live: {
+    composite_score: number;
+    rank: number;
+    gmv_today: number;
+    active_deals: number;
+  };
+}
+
+export interface RecentRedemption {
+  id: number;
+  customer_name: string | null;
+  customer_initial: string;
+  customer_phone: string | null;
+  coupon_code: string | null;
+  coupon_title: string | null;
+  discount_applied: number;
+  bill_amount: number;
+  total_paid: number;
+  created_at: string;
+}
+
+export async function getMerchantMe() {
+  const res = await apiClient.get<ApiResponse<MerchantMe>>(`/merchant/me`);
   return res.data;
 }
 
-export async function getHoBranches(hoId: string, params?: { page?: number; limit?: number }) {
-  const res = await apiClient.get<ApiResponse<{ rows: HoBranch[]; total: number }>>(`/ho/${hoId}/branches`, { params });
+export async function getMerchantDashboard() {
+  const res = await apiClient.get<ApiResponse<MerchantDashboard>>(`/merchant/dashboard`);
   return res.data;
 }
 
-export async function getHoDeals(hoId: string, params?: { page?: number; limit?: number; status?: string; branch_id?: string }) {
-  const res = await apiClient.get<ApiResponse<{ deals: Deal[]; total: number }>>(`/ho/${hoId}/deals`, { params });
+export async function updateCommission(commission_percentage: number) {
+  const res = await apiClient.patch<
+    ApiResponse<{
+      commission_percentage: number;
+      old_commission_percentage: number;
+      category_min_commission: number;
+    }>
+  >(`/merchant/commission`, { commission_percentage });
   return res.data;
 }
 
-export async function getHoTransactions(hoId: string, params?: { page?: number; limit?: number; from?: string; to?: string; status?: string; branch_id?: string; search?: string }) {
-  const res = await apiClient.get<ApiResponse<{ rows: Transaction[]; total: number }>>(`/ho/${hoId}/transactions`, { params });
+export async function getRecentRedemptions(limit = 5) {
+  const res = await apiClient.get<ApiResponse<{ rows: RecentRedemption[] }>>(
+    `/merchant/recent-redemptions`,
+    { params: { limit } },
+  );
   return res.data;
 }
 
-export async function getHoVisitors(hoId: string, params?: { page?: number; limit?: number; from?: string; to?: string; search?: string }) {
-  const res = await apiClient.get<ApiResponse<{ rows: Visitor[]; total: number }>>(`/ho/${hoId}/visitors`, { params });
+// ── Rolling 30-day score/rank (authed) ──────────────────────────────────────
+
+export interface RollingScoreSeriesEntry {
+  date: string;
+  score: number;
+  rank: number | null;
+  payout: number;
+}
+
+export interface RollingScore {
+  score: number;
+  rank: number;
+  score_delta_30d: number;
+  rank_delta_30d: number;
+  days: number;
+  total_payout_30d: number;
+  last_updated_at: string | null;
+  series: RollingScoreSeriesEntry[];
+}
+
+export async function getRollingScore(days = 30) {
+  const res = await apiClient.get<ApiResponse<RollingScore>>(
+    `/merchant/rolling-score`,
+    { params: { days } },
+  );
   return res.data;
 }
 
-export async function getHoBranchScores(hoId: string) {
-  const res = await apiClient.get<ApiResponse<import("@/lib/types").BranchScore[]>>(`/ho/${hoId}/branch-scores`);
+// ── Simulated transaction (demo merchants) ──────────────────────────────────
+
+export interface SimulatedTransaction {
+  id: number;
+  bill_amount: number;
+  discount_applied: number;
+  total_paid: number;
+  customer_name: string | null;
+  customer_initial: string;
+  coupon_code: string | null;
+  coupon_title: string | null;
+  created_at: string;
+}
+
+export async function simulateTransaction(payload: {
+  bill_amount?: number | null;
+  use_coupon?: boolean | null;
+}) {
+  const res = await apiClient.post<ApiResponse<SimulatedTransaction>>(
+    `/merchant/simulate/transaction`,
+    payload,
+  );
+  return res.data;
+}
+
+// ── Active deals (any branch — used by the rankings profile) ────────────────
+
+export interface ActiveDeal {
+  id: number;
+  title: string;
+  discount_type: "percentage" | "fixed";
+  discount_value: number;
+  min_order: number;
+  max_discount: number;
+  code: string | null;
+  expires_at: string | null;
+}
+
+export async function getActiveDeals(branchId: string | number) {
+  const res = await apiClient.get<ApiResponse<{ deals: ActiveDeal[] }>>(
+    `/merchant/${branchId}/active-deals`,
+  );
+  return res.data;
+}
+
+// ── Transactions trend summary (daily buckets, same filters as table) ───────
+
+export interface TransactionsSummaryRow {
+  date: string;
+  count: number;
+  amount: number;
+}
+
+export async function getTransactionsSummary(
+  branchId: string,
+  params?: { from?: string; to?: string; status?: string; search?: string },
+) {
+  const res = await apiClient.get<ApiResponse<{ rows: TransactionsSummaryRow[] }>>(
+    `/merchant/${branchId}/transactions/summary`,
+    { params },
+  );
+  return res.data;
+}
+
+// ── Per-merchant UI prefs (dashboard layout, etc.) ──────────────────────────
+
+export type MerchantUiPrefs = Record<string, unknown>;
+
+export async function getUiPrefs() {
+  const res = await apiClient.get<ApiResponse<{ prefs: MerchantUiPrefs; updated_at: string | null }>>(
+    `/merchant/ui-prefs`,
+  );
+  return res.data;
+}
+
+export async function putUiPrefs(prefs: MerchantUiPrefs) {
+  const res = await apiClient.put<ApiResponse<{ prefs: MerchantUiPrefs; updated_at: string | null }>>(
+    `/merchant/ui-prefs`,
+    { prefs },
+  );
   return res.data;
 }

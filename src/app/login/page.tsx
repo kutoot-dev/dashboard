@@ -10,13 +10,10 @@ import { semanticClasses } from "@/lib/utils/colors";
 import { LOGIN, COMMON } from "@/lib/constants/strings";
 
 const DEMO_ACCOUNTS = [
-  { label: "Haldiram's Chandni Chowk", email: "haldirams.chandni-chowk@kutoot.com", role: "branch" },
-  { label: "Chai Point Koramangala", email: "chaipoint.koramangala@kutoot.com", role: "branch" },
-  { label: "Saravana Bhavan T Nagar", email: "saravanabhavan.t-nagar@kutoot.com", role: "branch" },
-  { label: "Haldiram's (HO)", email: "haldirams@kutoot.com", role: "ho" },
-  { label: "Chai Point (HO)", email: "chaipoint@kutoot.com", role: "ho" },
-  { label: "Saravana Bhavan (HO)", email: "saravanabhavan@kutoot.com", role: "ho" },
+  { label: "Kutoot Demo Store", email: "demo@kutoot.test" },
 ];
+
+const DEMO_PASSWORD = "Kutoot@123";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -43,7 +40,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await login(quickEmail, "Test@1234");
+      await login(quickEmail, DEMO_PASSWORD);
     } catch (err) {
       setError(err instanceof Error ? err.message : LOGIN.ERROR_DEFAULT);
     } finally {
@@ -128,10 +125,9 @@ export default function LoginPage() {
               {LOGIN.QUICK_ACCESS}
             </p>
 
-            {/* Branch accounts */}
-            <p className="mb-1.5 font-mono text-[10px] text-accent uppercase tracking-wider">Branches</p>
-            <div className="grid grid-cols-1 gap-1.5 mb-3">
-              {DEMO_ACCOUNTS.filter(a => a.role === "branch").map((acc) => (
+            <p className="mb-1.5 font-mono text-[10px] text-accent uppercase tracking-wider">Demo Merchant</p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {DEMO_ACCOUNTS.map((acc) => (
                 <button
                   key={acc.email}
                   type="button"
@@ -153,33 +149,8 @@ export default function LoginPage() {
               ))}
             </div>
 
-            {/* HO accounts */}
-            <p className="mb-1.5 font-mono text-[10px] text-secondary uppercase tracking-wider">Head Offices</p>
-            <div className="grid grid-cols-1 gap-1.5">
-              {DEMO_ACCOUNTS.filter(a => a.role === "ho").map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => handleQuickAccess(acc.email)}
-                  disabled={loading}
-                  className="glass-card-sm flex items-center gap-2 px-3 py-2 text-left transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
-                >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-[10px] font-bold text-secondary">
-                    {acc.label.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-mono text-xs text-foreground">{acc.label}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{acc.email}</p>
-                  </div>
-                  <svg className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              ))}
-            </div>
-
             <p className="mt-3 text-center font-mono text-[10px] text-muted-foreground">
-              All demo accounts use password: <span className="text-accent">Test@1234</span>
+              Seed the demo merchant with <span className="text-accent">php artisan demo:seed</span>. Password: <span className="text-accent">{DEMO_PASSWORD}</span>
             </p>
           </div>
         </div>

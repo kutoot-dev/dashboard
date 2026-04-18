@@ -108,15 +108,6 @@ export const BRANCH_NAV = {
   REWARDS: "Rewards",
 } as const;
 
-// ── HO Navigation ─────────────────────────────────────────────────────
-
-export const HO_NAV = {
-  PORTFOLIO: "Portfolio",
-  RANKINGS: "Rankings",
-  ANALYTICS: "Analytics",
-  REWARDS: "Payouts",
-} as const;
-
 // ── Branch Dashboard ──────────────────────────────────────────────────
 
 export const BRANCH_DASHBOARD = {

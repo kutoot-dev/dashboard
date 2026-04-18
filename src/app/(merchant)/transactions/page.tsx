@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
 import { PageHeader } from "@/components/layout/page-header";
@@ -15,7 +15,11 @@ import { DataTable } from "@/components/ui/data-table";
 import { TransactionChart } from "@/components/charts/transaction-chart";
 import { cn } from "@/lib/utils/cn";
 import { formatINR } from "@/lib/utils/format";
-import { getTransactions, type Transaction } from "@/lib/api/services/merchant.service";
+import {
+  getTransactions,
+  getTransactionsSummary,
+  type Transaction,
+} from "@/lib/api/services/merchant.service";
 
 const PAGE_SIZE = 20;
 
@@ -59,20 +63,22 @@ export default function TransactionsPage() {
   const total = data?.total ?? 0;
   const pages = data?.pages ?? 1;
 
-  // Aggregate transactions by date for chart
-  const chartData = useMemo(() => {
-    if (!rows.length) return [];
-    const byDate: Record<string, { count: number; amount: number }> = {};
-    rows.forEach((row) => {
-      const day = new Date(row.created_at).toISOString().slice(0, 10);
-      if (!byDate[day]) byDate[day] = { count: 0, amount: 0 };
-      byDate[day].count += 1;
-      byDate[day].amount += row.bill_amount ?? 0;
-    });
-    return Object.entries(byDate)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, v]) => ({ date, count: v.count, amount: v.amount }));
-  }, [rows]);
+  // Daily-bucketed totals for the trend chart, honouring the same filters
+  // as the table (independent of pagination).
+  const { data: summaryData } = useQuery({
+    queryKey: ["transactions-summary", branchId, status, search, from, to],
+    queryFn: () =>
+      getTransactionsSummary(branchId, {
+        status: status || undefined,
+        search: search || undefined,
+        from,
+        to,
+      }),
+    enabled: !!branchId,
+    select: (res) => res.data,
+  });
+
+  const chartData = summaryData?.rows ?? [];
 
   const [chartKey, setChartKey] = useState<"count" | "amount">("count");
 
@@ -117,7 +123,27 @@ export default function TransactionsPage() {
     {
       key: "coupon_code",
       header: "Coupon",
-      render: (v: unknown) => v ? <Badge variant="neutral" className="text-[10px]">{v as string}</Badge> : <span className="text-muted-foreground text-xs">—</span>,
+      render: (_: unknown, row: Transaction) =>
+        row.coupon_code ? (
+          <div className="flex flex-col gap-0.5">
+            <Badge variant="neutral" className="w-fit text-[10px]">{row.coupon_code}</Badge>
+            {row.coupon_title && (
+              <span className="text-[10px] text-muted-foreground">{row.coupon_title}</span>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
+        ),
+    },
+    {
+      key: "commission",
+      header: "Commission",
+      align: "right" as const,
+      render: (v: unknown) => (
+        <span className="font-mono text-xs text-accent">
+          {v ? formatINR(v as number) : "—"}
+        </span>
+      ),
     },
     {
       key: "status",
@@ -173,7 +199,7 @@ export default function TransactionsPage() {
       </Card>
 
       {/* Transaction Chart */}
-      {rows.length > 0 && chartData.length > 1 && (
+      {chartData.length > 1 && (
         <Card className="p-3">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

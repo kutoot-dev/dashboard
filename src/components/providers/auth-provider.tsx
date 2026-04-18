@@ -49,8 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.success) {
         queryClient.clear();
         setUser(res.data);
-        const home = (res.data.role === "ho" || res.data.role === "admin") ? "/ho" : "/dashboard";
-        router.push(home);
+        router.push("/dashboard");
       } else {
         throw new Error(res.error?.message ?? "Login failed");
       }

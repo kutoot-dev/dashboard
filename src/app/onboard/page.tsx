@@ -11,8 +11,9 @@ import { StepKyc } from "@/components/onboarding/step-kyc";
 import { StepBank } from "@/components/onboarding/step-bank";
 import { StepQrActivation } from "@/components/onboarding/step-qr-activation";
 import { StepReview } from "@/components/onboarding/step-review";
+import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useUpdateApplication, useCreateApplication } from "@/lib/hooks";
+import { useApplication, useUpdateApplication, useCreateApplication } from "@/lib/hooks";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
 import type { WizardStepId, ApplicationStatus, OnboardingApplication, WizardStepConfig } from "@/lib/types";
 
@@ -70,6 +71,17 @@ export default function OnboardPage() {
       router.replace("/onboard/start");
     }
   }, [applicationId, router]);
+
+  // When resuming, if the application has already left draft state we surface
+  // the read-only status screen instead of letting the merchant edit a
+  // submitted record. Only polled for non-draft applications.
+  const resumedApp = useApplication(applicationId);
+  const lockedStatus = useMemo(() => {
+    const s = resumedApp.data?.status;
+    if (!s) return null;
+    if (s === "draft" || s === "pending_photo") return null;
+    return s;
+  }, [resumedApp.data?.status]);
 
   // Compute which steps are active for this session
   const activeStepIds = useMemo(
@@ -159,6 +171,17 @@ export default function OnboardPage() {
         return <StepIdentity onNext={handleNext} />;
     }
   };
+
+  if (applicationId && lockedStatus) {
+    return (
+      <div className="space-y-6">
+        <ApplicationStatusScreen
+          applicationId={applicationId}
+          phone={formData.phone ?? null}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

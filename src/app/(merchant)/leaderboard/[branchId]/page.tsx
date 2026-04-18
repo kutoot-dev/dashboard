@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TradingViewChart } from "@/components/charts/trading-view-chart";
-import { getStoreProfile } from "@/lib/api/services/merchant.service";
+import { getActiveDeals, getStoreProfile } from "@/lib/api/services/merchant.service";
 import { useLeaderboard } from "@/lib/hooks/use-leaderboard";
 import { formatScore } from "@/lib/utils/format";
 
@@ -21,7 +21,7 @@ export default function LeaderboardMerchantProfilePage() {
   const { data: leaderboardData } = useLeaderboard({ limit: 200, page: 1 });
 
   const entry = useMemo(
-    () => leaderboardData?.items.find((item) => item.branch_id === branchId),
+    () => leaderboardData?.items.find((item) => String(item.branch_id) === branchId),
     [leaderboardData?.items, branchId],
   );
 
@@ -30,6 +30,20 @@ export default function LeaderboardMerchantProfilePage() {
     queryFn: () => getStoreProfile(branchId),
     retry: false,
   });
+
+  const { data: activeDealsResp, isLoading: dealsLoading } = useQuery({
+    queryKey: ["active-deals", branchId],
+    queryFn: () => getActiveDeals(branchId),
+    enabled: numericBranchId > 0,
+    retry: false,
+  });
+
+  const deals = useMemo(() => {
+    if (entry?.active_discounts && entry.active_discounts.length > 0) {
+      return entry.active_discounts;
+    }
+    return activeDealsResp?.data?.deals ?? [];
+  }, [entry?.active_discounts, activeDealsResp?.data?.deals]);
 
   return (
     <div className="space-y-4 pb-safe-bottom md:pb-0">
@@ -118,9 +132,14 @@ export default function LeaderboardMerchantProfilePage() {
           <h3 className="mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Discounts Offered
           </h3>
-          {entry?.active_discounts && entry.active_discounts.length > 0 ? (
+          {dealsLoading && deals.length === 0 ? (
             <div className="space-y-2">
-              {entry.active_discounts.map((deal: { title: string; discount_type: string; discount_value: number; min_order: number; max_discount: number }, i: number) => (
+              <Skeleton className="h-12 rounded-md" />
+              <Skeleton className="h-12 rounded-md" />
+            </div>
+          ) : deals.length > 0 ? (
+            <div className="space-y-2">
+              {deals.map((deal, i: number) => (
                 <div key={i} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
                   <div>
                     <p className="font-medium text-foreground">{deal.title}</p>

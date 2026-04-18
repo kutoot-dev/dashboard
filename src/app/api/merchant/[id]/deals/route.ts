@@ -1,49 +1,41 @@
 /**
- * Route: GET  /api/merchant/[id]/deals  — list deals for a branch
- *        POST /api/merchant/[id]/deals  — create a new deal
+ * Route: GET/POST /api/merchant/[id]/deals
  *
- * Proxies to: GET  /merchant/{id}/deals
- *             POST /merchant/{id}/deals
+ * Proxies to: /merchant/{id}/deals on the kutoot backend.
  */
-import { NextRequest, NextResponse } from "next/server";
-import { backendUrl, authHeaders, proxyResponse } from "@/lib/api/server/proxy";
+import { NextRequest } from "next/server";
+import { backendUrl, authHeaders, errorResponse, proxyResponse } from "@/lib/api/server/proxy";
 
 export async function GET(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const qs = request.nextUrl.search;
-    const res = await fetch(backendUrl(`/merchant/${id}/deals${qs}`), {
+    const qs = req.nextUrl.searchParams.toString();
+    const res = await fetch(backendUrl(`/merchant/${id}/deals${qs ? `?${qs}` : ""}`), {
       headers: await authHeaders(),
     });
     return proxyResponse(res);
   } catch {
-    return NextResponse.json(
-      { success: false, data: null, meta: { timestamp: new Date().toISOString(), period_id: null, request_id: crypto.randomUUID() }, error: { code: "INTERNAL_ERROR", message: "Failed to fetch deals" } },
-      { status: 500 },
-    );
+    return errorResponse("Failed to list deals", "INTERNAL_ERROR", 500);
   }
 }
 
 export async function POST(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await req.text();
     const res = await fetch(backendUrl(`/merchant/${id}/deals`), {
       method: "POST",
       headers: await authHeaders(),
-      body: JSON.stringify(body),
+      body,
     });
     return proxyResponse(res);
   } catch {
-    return NextResponse.json(
-      { success: false, data: null, meta: { timestamp: new Date().toISOString(), period_id: null, request_id: crypto.randomUUID() }, error: { code: "INTERNAL_ERROR", message: "Failed to create deal" } },
-      { status: 500 },
-    );
+    return errorResponse("Failed to create deal", "INTERNAL_ERROR", 500);
   }
 }

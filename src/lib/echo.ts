@@ -40,6 +40,9 @@ export function getEcho(): Echo<"reverb"> {
     forceTLS: (process.env.NEXT_PUBLIC_REVERB_SCHEME ?? "http") === "https",
     enabledTransports: ["ws", "wss"],
     disableStats: true,
+    // Private/presence channels are authorised via the Next.js BFF which forwards
+    // the merchant's Sanctum bearer token from the httpOnly cookie.
+    authEndpoint: "/api/broadcasting/auth",
   });
 
   return echo;

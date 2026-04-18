@@ -1,6 +1,19 @@
 "use client";
 
 import { useMemo, useRef } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   useBranchScore,
@@ -17,7 +30,16 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { RewardPoolCard } from "@/components/ui/reward-pool-card";
 import { QuickActions } from "@/components/ui/quick-actions";
-import { ActivityTicker } from "@/components/ui/activity-ticker";
+import { ScorePie } from "@/components/ui/score-pie";
+import { ScoringParametersExplainer } from "@/components/ui/scoring-parameters-explainer";
+import { CommissionSliderCard } from "@/components/ui/commission-slider-card";
+import { RecentRedemptionsSlideshow } from "@/components/ui/recent-redemptions-slideshow";
+import { SortableSection } from "@/components/ui/sortable-section";
+import { useTransactionStream } from "@/lib/hooks/use-transaction-stream";
+import {
+  useDashboardLayout,
+  type DashboardSectionId,
+} from "@/lib/hooks/use-dashboard-layout";
 import { VolumeChart } from "@/components/charts/volume-chart";
 import { TradingViewChart } from "@/components/charts/trading-view-chart";
 import { cn } from "@/lib/utils/cn";
@@ -47,10 +69,10 @@ export default function DashboardPage() {
   const { data: volume, isLoading: volumeLoading } = useBranchVolume(branchId);
   const { data: periods } = useScoringPeriods();
 
-  // Live score animation
+  useTransactionStream(branchId);
+
   const liveScore = useLiveScore(score?.composite_index_score ?? 0);
 
-  // Volume bars with color
   const volumeBars = useMemo(
     () =>
       (volume ?? []).map((item: { time: string; value: number }, index: number, arr: { time: string; value: number }[]) => {
@@ -64,7 +86,6 @@ export default function DashboardPage() {
     [volume],
   );
 
-  // v2 sub-scores for parameter meters and improvement card
   const subScores = score?.score_breakdown
     ? SUB_SCORE_ORDER.map((key) => ({
         key,
@@ -72,7 +93,6 @@ export default function DashboardPage() {
       }))
     : [];
 
-  // Find weakest scores for improvement suggestions
   const weakestScores = useMemo(
     () =>
       [...subScores]
@@ -87,37 +107,87 @@ export default function DashboardPage() {
     [JSON.stringify(subScores)],
   );
 
-  // Dynamic reward pool from API
   const latestPeriod = periods?.[periods.length - 1];
   const dailyPool = latestPeriod?.pool_amount ?? 0;
   const estimatedShare = score ? score.payout_amount : undefined;
 
   const improvementScrollRef = useRef<HTMLDivElement>(null);
 
-  return (
-    <div className="space-y-3 pb-safe-bottom md:pb-0">
-      {/* Header + Activity Feed + Quick Actions at top */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <PageHeader title={BRANCH_DASHBOARD.TITLE} subtitle={BRANCH_DASHBOARD.SUBTITLE} />
-      </div>
+  const { order, setOrder } = useDashboardLayout();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Card className="glass-card-sm p-3">
-          <ActivityTicker />
-        </Card>
-        <Card className="glass-card-sm p-0">
-          <QuickActions />
-        </Card>
-      </div>
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = order.indexOf(active.id as DashboardSectionId);
+    const newIdx = order.indexOf(over.id as DashboardSectionId);
+    if (oldIdx === -1 || newIdx === -1) return;
+    setOrder(arrayMove(order, oldIdx, newIdx));
+  }
 
-      {/* KBI — Candlestick Chart (TradingView) */}
+  const sections: Record<DashboardSectionId, React.ReactNode> = {
+    "stats-strip": (
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <Card className="glass-card-sm p-2.5">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            {BRANCH_DASHBOARD.YOUR_SCORE}
+          </p>
+          {scoreLoading ? (
+            <Skeleton className="mt-1 h-7 w-20" />
+          ) : score ? (
+            <ScoreDisplay score={liveScore.current} change={liveScore.change} size="md" />
+          ) : (
+            <span className="font-mono text-xl text-muted-foreground">—</span>
+          )}
+        </Card>
+        <Card className="glass-card-sm p-2.5">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            {BRANCH_DASHBOARD.YOUR_RANK}
+          </p>
+          {scoreLoading ? (
+            <Skeleton className="mt-1 h-7 w-16" />
+          ) : score ? (
+            <div className="mt-0.5 flex items-baseline gap-1.5">
+              <span className="font-mono text-xl font-bold text-foreground">#{score.final_rank}</span>
+              <ChangeIndicator value={score.rank_movement} suffix="" />
+            </div>
+          ) : (
+            <span className="font-mono text-xl text-muted-foreground">—</span>
+          )}
+        </Card>
+        <Card className="glass-card-sm p-2.5">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            Last Reward
+          </p>
+          {scoreLoading ? (
+            <Skeleton className="mt-1 h-7 w-20" />
+          ) : score ? (
+            <div className="mt-0.5">
+              <span className="font-mono text-xl font-bold text-gain">
+                {formatINR(score.payout_amount)}
+              </span>
+              {score.fatigue_dampener_applied && (
+                <p className="mt-0.5 font-mono text-[9px] text-warning">
+                  Fatigue {typeof score.fatigue_dampener_value === "number" ? (score.fatigue_dampener_value * 100).toFixed(0) : "--"}%
+                </p>
+              )}
+            </div>
+          ) : (
+            <span className="font-mono text-xl text-muted-foreground">—</span>
+          )}
+        </Card>
+        <RewardPoolCard totalPool={dailyPool} merchantShare={estimatedShare} />
+      </div>
+    ),
+    "boost-commission": <CommissionSliderCard />,
+    "kbi-chart": (
       <Card className="overflow-hidden p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-2">
           <div className="flex items-center gap-2">
             <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               {COMMON.INDEX_NAME}
             </h2>
-            <InfoTooltip text="Live candlestick chart showing branch score movement. Data from backend every 5 minutes." />
+            <InfoTooltip text="Live candlestick chart showing branch score movement. Data from backend every minute." />
           </div>
           <div className="flex items-center gap-4">
             {score && (
@@ -128,7 +198,7 @@ export default function DashboardPage() {
                 </span>
                 <span className={cn(
                   "font-mono text-[10px] font-semibold",
-                  liveScore.change >= 0 ? "text-gain" : "text-loss"
+                  liveScore.change >= 0 ? "text-gain" : "text-loss",
                 )}>
                   {liveScore.change >= 0 ? "▲" : "▼"} {Math.abs(liveScore.change * 2.47).toFixed(1)}
                 </span>
@@ -143,76 +213,16 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <TradingViewChart locationId={Number(branchId) || 1} height={280} defaultResolution="5" />
+        <TradingViewChart
+          locationId={Number(branchId) || 1}
+          height={280}
+          defaultResolution="5"
+          defaultMetric="rank"
+        />
       </Card>
-
-      {/* Score + Rank + Reward + Pool — 4 column grid */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {/* Live Score */}
-        <Card className="glass-card-sm">
-          <div className="mb-1">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {BRANCH_DASHBOARD.YOUR_SCORE}
-            </p>
-          </div>
-          {scoreLoading ? (
-            <Skeleton className="h-10 w-28" />
-          ) : score ? (
-            <ScoreDisplay score={liveScore.current} change={liveScore.change} size="lg" />
-          ) : (
-            <span className="font-mono text-2xl text-muted-foreground">—</span>
-          )}
-        </Card>
-
-        {/* Rank */}
-        <Card className="glass-card-sm">
-          <div className="mb-1">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {BRANCH_DASHBOARD.YOUR_RANK}
-            </p>
-          </div>
-          {scoreLoading ? (
-            <Skeleton className="h-10 w-20" />
-          ) : score ? (
-            <div className="flex items-baseline gap-2">
-              <span className="font-mono text-3xl font-bold text-foreground">#{score.final_rank}</span>
-              <ChangeIndicator value={score.rank_movement} suffix="" />
-            </div>
-          ) : (
-            <span className="font-mono text-2xl text-muted-foreground">—</span>
-          )}
-        </Card>
-
-        {/* Last Reward (from DB) */}
-        <Card className="glass-card-sm">
-          <div className="mb-1">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Last Reward</p>
-          </div>
-          {scoreLoading ? (
-            <Skeleton className="h-10 w-24" />
-          ) : score ? (
-            <div>
-              <span className="font-mono text-2xl font-bold text-gain">
-                {formatINR(score.payout_amount)}
-              </span>
-              {score.fatigue_dampener_applied && (
-                <p className="mt-0.5 font-mono text-[9px] text-warning">
-                  Fatigue {typeof score.fatigue_dampener_value === "number" ? (score.fatigue_dampener_value * 100).toFixed(0) : "--"}%
-                </p>
-              )}
-            </div>
-          ) : (
-            <span className="font-mono text-2xl text-muted-foreground">—</span>
-          )}
-        </Card>
-
-        {/* Reward Pool */}
-        <RewardPoolCard totalPool={dailyPool} merchantShare={estimatedShare} />
-      </div>
-
-      {/* Score History — Candlestick + Volume + Parameters side by side */}
+    ),
+    "score-history": (
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {/* Score History (TradingView candlestick) */}
         <Card className="overflow-hidden p-0">
           <div className="flex items-center gap-2 border-b border-border px-4 py-2">
             <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -222,57 +232,37 @@ export default function DashboardPage() {
           </div>
           <TradingViewChart locationId={Number(branchId) || 1} height={220} defaultResolution="D" />
         </Card>
-
-        {/* Score Parameters — compact 2×4 */}
-        <div>
-          <div className="mb-2 flex items-center gap-2">
+        <Card className="overflow-hidden p-3 space-y-3">
+          <div className="flex items-center gap-2">
             <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Score Parameters
             </h2>
+            <InfoTooltip text="Each slice is weighted by the parameter's contribution to your composite score. Hover a slice to inspect the sub-score." />
           </div>
           {scoreLoading && subScores.length === 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 rounded-xl" />
-              ))}
-            </div>
-          ) : subScores.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {subScores.map((s) => {
-                const weightPct = Math.round((SUB_SCORE_WEIGHTS[s.key] ?? 0.125) * 100);
-                return (
-                  <div key={s.key} className="glass-card-sm p-2 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-foreground leading-tight truncate">
-                        {SUB_SCORE_LABELS[s.key] ?? s.key}
-                      </span>
-                      <span className="rounded-full bg-accent/10 px-1 py-0.5 font-mono text-[8px] text-accent">
-                        {weightPct}%
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className={cn("font-mono text-lg font-bold", getScoreColor(s.value))}>
-                        {s.value.toFixed(0)}
-                      </span>
-                      <span className="font-mono text-[9px] text-muted-foreground">/100</span>
-                    </div>
-                    <div className="h-1 rounded-full bg-border overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${Math.min(s.value, 100)}%`, backgroundColor: getBarColor(s.value) }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <Skeleton variant="rect" className="h-56" />
           ) : (
-            <EmptyState title="No score breakdown" />
+            <ScorePie
+              size={220}
+              composite={score?.composite_index_score ?? undefined}
+              rank={score?.final_rank ?? null}
+              data={subScores.map((s) => ({
+                key: s.key,
+                label: SUB_SCORE_LABELS[s.key] ?? s.key,
+                value: s.value,
+                weight: SUB_SCORE_WEIGHTS[s.key] ?? 0.125,
+              }))}
+            />
           )}
-        </div>
+          <ScoringParametersExplainer
+            collapsible
+            values={Object.fromEntries(subScores.map((s) => [s.key, s.value]))}
+          />
+        </Card>
       </div>
-
-      {/* Volume chart */}
+    ),
+    "redemptions": <RecentRedemptionsSlideshow />,
+    "volume": (
       <Card className="overflow-hidden p-0">
         <div className="flex items-center gap-2 border-b border-border px-4 py-2">
           <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -287,9 +277,9 @@ export default function DashboardPage() {
           <EmptyState title="No volume data" />
         )}
       </Card>
-
-      {/* Where to Improve — Horizontal Slideshow */}
-      {weakestScores.length > 0 && (
+    ),
+    "improve":
+      weakestScores.length > 0 ? (
         <div>
           <div className="mb-2 flex items-center gap-2">
             <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -333,7 +323,26 @@ export default function DashboardPage() {
             })}
           </div>
         </div>
-      )}
+      ) : null,
+  };
+
+  return (
+    <div className="space-y-3 pb-safe-bottom md:pb-0">
+      <PageHeader title={BRANCH_DASHBOARD.TITLE} subtitle={BRANCH_DASHBOARD.SUBTITLE}>
+        <QuickActions />
+      </PageHeader>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={order} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {order.map((id) => (
+              <SortableSection key={id} id={id}>
+                {sections[id]}
+              </SortableSection>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }

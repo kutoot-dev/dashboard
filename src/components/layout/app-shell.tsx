@@ -3,6 +3,8 @@
 import { TabBar } from "./tab-bar";
 import { Topbar } from "./topbar";
 import { BottomNav } from "./bottom-nav";
+import { AchievementWatcher } from "@/components/ui/achievement-watcher";
+import { Toaster } from "@/components/ui/toaster";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -21,6 +23,10 @@ export function AppShell({ children }: AppShellProps) {
       </main>
       {/* Mobile bottom nav */}
       <BottomNav />
+      {/* Gamified rank-up / KBI / score-band alerts (renders toasts + fires confetti) */}
+      <AchievementWatcher />
+      {/* Transactional toasts (new orders, commission changes, deal approvals…) */}
+      <Toaster />
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -11,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils/cn";
 import {
   createDeal,
-  updateStoreProfile,
+  simulateTransaction,
   type CreateDealPayload,
 } from "@/lib/api/services/merchant.service";
 
@@ -20,15 +19,20 @@ const DISCOUNT_TYPES = [
   { value: "fixed", label: "Fixed Amount (₹)" },
 ];
 
-export function QuickActions({ className }: { className?: string }) {
+interface QuickActionsProps {
+  className?: string;
+  /** When true, render labels next to the icons (page-header context). */
+  compact?: boolean;
+}
+
+export function QuickActions({ className, compact = true }: QuickActionsProps) {
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "";
   const qc = useQueryClient();
 
   const [showDealModal, setShowDealModal] = useState(false);
-  const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [showTxnModal, setShowTxnModal] = useState(false);
 
-  // Deal form state
   const [dealForm, setDealForm] = useState<CreateDealPayload>({
     title: "",
     discount_type: "percentage",
@@ -40,8 +44,8 @@ export function QuickActions({ className }: { className?: string }) {
     expires_at: null,
   });
 
-  // Commission state
-  const [commission, setCommission] = useState("5");
+  const [txnBill, setTxnBill] = useState("");
+  const [txnUseCoupon, setTxnUseCoupon] = useState<boolean | null>(null);
 
   const { mutate: submitDeal, isPending: dealSubmitting } = useMutation({
     mutationFn: (payload: CreateDealPayload) => createDeal(branchId, payload),
@@ -61,40 +65,42 @@ export function QuickActions({ className }: { className?: string }) {
     },
   });
 
-  const { mutate: submitCommission, isPending: commissionSubmitting } = useMutation({
-    mutationFn: (pct: string) =>
-      updateStoreProfile(branchId, { commission_percentage: parseFloat(pct) }),
+  const { mutate: submitTxn, isPending: txnSubmitting } = useMutation({
+    mutationFn: () =>
+      simulateTransaction({
+        bill_amount: txnBill ? parseFloat(txnBill) : null,
+        use_coupon: txnUseCoupon,
+      }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["recent-redemptions"] });
+      qc.invalidateQueries({ queryKey: ["merchant-dashboard"] });
       qc.invalidateQueries({ queryKey: ["branchScore"] });
-      setShowCommissionModal(false);
+      qc.invalidateQueries({ queryKey: ["rolling-score"] });
+      setShowTxnModal(false);
+      setTxnBill("");
+      setTxnUseCoupon(null);
     },
   });
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        Quick Actions
-      </h3>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => setShowDealModal(true)}
-          className="glass-card-sm flex flex-col items-center gap-1 p-3 transition-all hover:scale-[1.02] active:scale-[0.98] text-center"
-        >
-          <span className="text-lg">🏷️</span>
-          <span className="font-mono text-[10px] font-medium text-foreground">Create Deal</span>
-          <span className="font-mono text-[9px] text-muted-foreground">Launch a discount</span>
-        </button>
-        <button
-          onClick={() => setShowCommissionModal(true)}
-          className="glass-card-sm flex flex-col items-center gap-1 p-3 transition-all hover:scale-[1.02] active:scale-[0.98] text-center"
-        >
-          <span className="text-lg">💰</span>
-          <span className="font-mono text-[10px] font-medium text-foreground">Commission</span>
-          <span className="font-mono text-[9px] text-muted-foreground">Adjust your rate</span>
-        </button>
-      </div>
+    <div className={cn("flex items-center gap-2", className)}>
+      <button
+        type="button"
+        onClick={() => setShowDealModal(true)}
+        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-3 text-xs font-medium text-foreground transition-colors hover:bg-primary/15"
+      >
+        <span aria-hidden>🏷️</span>
+        {compact && <span className="font-mono">Create Deal</span>}
+      </button>
+      <button
+        type="button"
+        onClick={() => setShowTxnModal(true)}
+        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-gain/30 bg-gain/10 px-3 text-xs font-medium text-foreground transition-colors hover:bg-gain/15"
+      >
+        <span aria-hidden>🧾</span>
+        {compact && <span className="font-mono">Add Txn</span>}
+      </button>
 
-      {/* Deal Creation Modal */}
       <Modal isOpen={showDealModal} onClose={() => setShowDealModal(false)} title="Create New Deal">
         <div className="space-y-3">
           <Input
@@ -156,51 +162,48 @@ export function QuickActions({ className }: { className?: string }) {
         </div>
       </Modal>
 
-      {/* Commission Modal */}
-      <Modal
-        isOpen={showCommissionModal}
-        onClose={() => setShowCommissionModal(false)}
-        title="Set Commission Rate"
-      >
+      <Modal isOpen={showTxnModal} onClose={() => setShowTxnModal(false)} title="Add Transaction">
         <div className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Higher commission improves your Commission Score and can boost your ranking.
-            Current platform minimum is 3%.
+            Create a simulated transaction on this demo merchant. It drives the next
+            score tick, refreshes the latest-5 redemptions card, and broadcasts a
+            sound + toast if real-time notifications are available.
           </p>
-          <div className="flex items-center gap-3">
-            <Input
-              label="Commission %"
-              type="number"
-              value={commission}
-              onChange={(e) => setCommission(e.target.value)}
-              min="3"
-              max="30"
-              step="0.5"
-            />
-            <span className="font-mono text-2xl text-foreground mt-5">%</span>
+          <Input
+            label="Bill Amount (₹) — leave blank for random"
+            type="number"
+            min="1"
+            step="1"
+            value={txnBill}
+            onChange={(e) => setTxnBill(e.target.value)}
+            placeholder="e.g. 499"
+          />
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Coupon</label>
+            <div className="flex gap-2">
+              {[
+                { v: null, l: "Random" },
+                { v: true, l: "Use coupon" },
+                { v: false, l: "No coupon" },
+              ].map((opt) => (
+                <button
+                  key={String(opt.v)}
+                  type="button"
+                  onClick={() => setTxnUseCoupon(opt.v)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 font-mono text-xs transition-all",
+                    txnUseCoupon === opt.v
+                      ? "border-gain/50 bg-gain/10 text-gain"
+                      : "border-glass-border bg-glass-bg text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {opt.l}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2">
-            {["3", "5", "7", "10"].map((v) => (
-              <button
-                key={v}
-                onClick={() => setCommission(v)}
-                className={cn(
-                  "rounded-full border px-3 py-1 font-mono text-xs transition-all",
-                  commission === v
-                    ? "border-accent/40 bg-accent/10 text-accent"
-                    : "border-glass-border bg-glass-bg text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {v}%
-              </button>
-            ))}
-          </div>
-          <Button
-            onClick={() => submitCommission(commission)}
-            disabled={commissionSubmitting}
-            className="w-full"
-          >
-            {commissionSubmitting ? "Saving..." : "Update Commission"}
+          <Button onClick={() => submitTxn()} disabled={txnSubmitting} className="w-full">
+            {txnSubmitting ? "Posting…" : "Post Transaction"}
           </Button>
         </div>
       </Modal>

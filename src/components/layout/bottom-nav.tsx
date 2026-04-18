@@ -3,25 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BRANCH_NAV, HO_NAV } from "@/lib/constants/navigation";
+import { BRANCH_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
 
-function getNavForRole(role?: string) {
-  if (role === "ho" || role === "admin") return HO_NAV;
-  return BRANCH_NAV;
-}
-
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const navItems = getNavForRole(user?.role);
+  const navItems = BRANCH_NAV;
 
   if (!mounted || isLoading) return null;
 
@@ -32,9 +27,7 @@ export function BottomNav() {
         <div className="flex overflow-x-auto scrollbar-hide">
         {navItems.map((item) => {
           const isActive =
-            item.href === "/ho"
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+            pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link

@@ -30,18 +30,22 @@ export async function fetchChartConfig() {
   return res.data;
 }
 
+export type ChartMetric = "score" | "rank";
+
 export async function fetchChartHistory(
   locationId: number,
   resolution: Resolution,
   from: number,
   to: number,
   countback?: number,
+  metric: ChartMetric = "score",
 ): Promise<OhlcvBar[]> {
   const params: Record<string, string | number> = {
     symbol: `LOC_${locationId}`,
     resolution,
     from,
     to,
+    metric,
   };
   if (countback !== undefined) params.countback = countback;
 
