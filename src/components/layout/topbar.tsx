@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTicker } from "@/lib/hooks";
-import { useSimulatedTicker } from "@/lib/hooks/use-simulated-data";
 import { useKMI } from "@/lib/hooks/use-kmi";
 import { MarketIndicator, computeTrend } from "@/components/ui/market-indicator";
 import { usePreferencesStore } from "@/lib/stores/preferences.store";
@@ -14,11 +13,9 @@ export function Topbar() {
   const { resolvedTheme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const { data: tickerItems } = useTicker();
-  const simulatedTicker = useSimulatedTicker();
   const kmi = useKMI();
 
-  // Use simulated data when API returns empty
-  const displayTicker = tickerItems && tickerItems.length > 0 ? tickerItems : simulatedTicker;
+  const displayTicker = tickerItems ?? [];
   const { soundEnabled, toggleSound } = usePreferencesStore();
   const [mounted, setMounted] = useState(false);
 

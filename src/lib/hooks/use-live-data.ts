@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLeaderboard } from "@/lib/hooks/use-leaderboard";
 import type { LeaderboardFilters, LeaderboardEntry } from "@/lib/types";
 
@@ -28,7 +28,7 @@ export function useLiveScore(baseScore: number): { current: number; change: numb
 }
 
 /**
- * useLiveLeaderboard — wraps useLeaderboard with periodic score jitter
+ * useLiveLeaderboard — wraps useLeaderboard with periodic refresh
  */
 export function useLiveLeaderboard(filters: LeaderboardFilters = {}): {
   data: LeaderboardEntry[] | undefined;
@@ -36,29 +36,11 @@ export function useLiveLeaderboard(filters: LeaderboardFilters = {}): {
   isLoading: boolean;
 } {
   const { data, isLoading } = useLeaderboard(filters);
-  const [tick, setTick] = useState(0);
 
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const jitteredData = useMemo(() => {
-    if (!data?.items) return undefined;
-    // Use tick to force recomputation
-    void tick;
-    return data.items.map((entry) => ({
-      ...entry,
-      composite_score:
-        (entry.composite_score ?? 0) + (Math.random() - 0.5) * 0.4,
-      score_change:
-        (entry.score_change ?? 0) + (Math.random() - 0.5) * 0.2,
-    }));
-  }, [data, tick]);
-
+  const items = data?.items;
   const pagination = data?.pagination;
 
-  return { data: jitteredData, pagination, isLoading };
+  return { data: items, pagination, isLoading };
 }
 
 /**

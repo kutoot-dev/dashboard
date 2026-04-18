@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "@/lib/api/client";
+import type { ApiResponse } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
 export interface ActivityItem {
@@ -8,6 +11,15 @@ export interface ActivityItem {
   icon: "rank_up" | "rank_down" | "deal" | "commission" | "reward" | "milestone";
   message: string;
   timestamp: string;
+}
+
+interface BackendActivityItem {
+  id: string;
+  icon_type: string;
+  message: string;
+  branch_name: string | null;
+  branch_id: string | null;
+  created_at: string;
 }
 
 const ICON_MAP: Record<ActivityItem["icon"], { emoji: string; color: string }> = {
@@ -19,49 +31,7 @@ const ICON_MAP: Record<ActivityItem["icon"], { emoji: string; color: string }> =
   milestone:  { emoji: "🏆", color: "text-accent" },
 };
 
-function generateMockActivities(): ActivityItem[] {
-  const branches = [
-    "Chandni Chowk", "Connaught Place", "Nagpur Main", "Lajpat Nagar",
-    "Koramangala", "Indiranagar", "Cyber Hub", "HSR Layout",
-    "T Nagar", "Janpath", "HITEC City", "Andheri",
-  ];
-
-  const activities: ActivityItem[] = [];
-  const now = Date.now();
-
-  for (let i = 0; i < 20; i++) {
-    const branch = branches[Math.floor(Math.random() * branches.length)];
-    const roll = Math.random();
-    let item: Omit<ActivityItem, "id" | "timestamp">;
-
-    if (roll < 0.25) {
-      const positions = Math.ceil(Math.random() * 5);
-      item = { icon: "rank_up", message: `${branch} moved up ${positions} positions` };
-    } else if (roll < 0.40) {
-      const positions = Math.ceil(Math.random() * 3);
-      item = { icon: "rank_down", message: `${branch} dropped ${positions} positions` };
-    } else if (roll < 0.55) {
-      const pct = Math.floor(Math.random() * 20 + 5);
-      item = { icon: "deal", message: `${branch} created a ${pct}% discount deal` };
-    } else if (roll < 0.70) {
-      const newPct = (Math.random() * 5 + 3).toFixed(1);
-      item = { icon: "commission", message: `${branch} set commission to ${newPct}%` };
-    } else if (roll < 0.85) {
-      const amount = Math.floor(Math.random() * 5000 + 500);
-      item = { icon: "reward", message: `${branch} earned ₹${amount} payout` };
-    } else {
-      item = { icon: "milestone", message: `${branch} reached Top 3 ranking` };
-    }
-
-    activities.push({
-      ...item,
-      id: `act-${i}`,
-      timestamp: new Date(now - i * 60000 * Math.floor(Math.random() * 30 + 1)).toISOString(),
-    });
-  }
-
-  return activities;
-}
+const VALID_ICONS = new Set<string>(Object.keys(ICON_MAP));
 
 function timeAgo(ts: string): string {
   const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
@@ -72,14 +42,25 @@ function timeAgo(ts: string): string {
 }
 
 export function ActivityTicker({ className }: { className?: string }) {
-  const [items, setItems] = useState<ActivityItem[]>([]);
+  const { data: backendItems } = useQuery({
+    queryKey: ["activity"],
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<BackendActivityItem[]>>("/activity?limit=50");
+      return res.data.data;
+    },
+    refetchInterval: 60_000,
+    retry: false,
+  });
+
+  const items: ActivityItem[] = (backendItems ?? []).map((item) => ({
+    id: item.id,
+    icon: (VALID_ICONS.has(item.icon_type) ? item.icon_type : "milestone") as ActivityItem["icon"],
+    message: item.message,
+    timestamp: item.created_at,
+  }));
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
-
-  useEffect(() => {
-    // Generate mock rows only after mount so SSR and hydration output stay identical.
-    setItems(generateMockActivities());
-  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;

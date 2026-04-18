@@ -54,7 +54,7 @@ export default function LeaderboardMerchantProfilePage() {
         <TradingViewChart locationId={numericBranchId} height={360} defaultResolution="D" />
       </Card>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Card className="glass-card-sm p-4">
           <h3 className="mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Leaderboard Snapshot
@@ -68,6 +68,14 @@ export default function LeaderboardMerchantProfilePage() {
               <div>
                 <p className="font-mono text-[10px] uppercase text-muted-foreground">Score</p>
                 <p className="font-mono text-2xl font-semibold">{formatScore(entry.composite_score)}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase text-muted-foreground">Commission</p>
+                <p className="font-mono text-lg font-semibold">{entry.commission_percentage?.toFixed(1) ?? "--"}%</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase text-muted-foreground">Discount Efficiency</p>
+                <p className="font-mono text-lg font-semibold">{entry.discount_efficiency?.toFixed(1) ?? "--"}</p>
               </div>
               <div>
                 <p className="font-mono text-[10px] uppercase text-muted-foreground">Category</p>
@@ -103,6 +111,31 @@ export default function LeaderboardMerchantProfilePage() {
             </div>
           ) : (
             <EmptyState title="Store profile unavailable" description="The chart remains available for this merchant." />
+          )}
+        </Card>
+
+        <Card className="glass-card-sm p-4">
+          <h3 className="mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            Discounts Offered
+          </h3>
+          {entry?.active_discounts && entry.active_discounts.length > 0 ? (
+            <div className="space-y-2">
+              {entry.active_discounts.map((deal: { title: string; discount_type: string; discount_value: number; min_order: number; max_discount: number }, i: number) => (
+                <div key={i} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
+                  <div>
+                    <p className="font-medium text-foreground">{deal.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Min order: {"\u20B9"}{deal.min_order} {deal.max_discount ? `| Max off: ${"\u20B9"}${deal.max_discount}` : ""}
+                    </p>
+                  </div>
+                  <span className="font-mono text-sm font-bold text-gain">
+                    {deal.discount_type === "percentage" ? `${deal.discount_value}%` : `${"\u20B9"}${deal.discount_value}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="No active discounts" description="This branch has no active discount coupons." />
           )}
         </Card>
       </div>
