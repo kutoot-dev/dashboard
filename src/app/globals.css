@@ -316,3 +316,19 @@ body {
 .pb-safe-bottom {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
 }
+
+@media (max-width: 768px) {
+  .glass-card {
+    border-radius: 14px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+  }
+
+  .glass-card-sm {
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  }
+}

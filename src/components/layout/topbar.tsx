@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTicker } from "@/lib/hooks";
+import { useSimulatedTicker } from "@/lib/hooks/use-simulated-data";
 import { useKMI } from "@/lib/hooks/use-kmi";
 import { MarketIndicator, computeTrend } from "@/components/ui/market-indicator";
 import { usePreferencesStore } from "@/lib/stores/preferences.store";
@@ -13,7 +14,11 @@ export function Topbar() {
   const { resolvedTheme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const { data: tickerItems } = useTicker();
+  const simulatedTicker = useSimulatedTicker();
   const kmi = useKMI();
+
+  // Use simulated data when API returns empty
+  const displayTicker = tickerItems && tickerItems.length > 0 ? tickerItems : simulatedTicker;
   const { soundEnabled, toggleSound } = usePreferencesStore();
   const [mounted, setMounted] = useState(false);
 
@@ -49,14 +54,15 @@ export function Topbar() {
 
       {/* Ticker tape */}
       <div className="flex-1 overflow-hidden">
-        {tickerItems && tickerItems.length > 0 && (
+        {displayTicker.length > 0 && (
           <div className="flex overflow-hidden">
             <div className="animate-ticker flex shrink-0 items-center gap-6 px-4">
-              {[...tickerItems, ...tickerItems].map((item, i) => (
+              {[...displayTicker, ...displayTicker].map((item, i) => (
                 <span
                   key={`${item.branch_id}-${i}`}
                   className="flex shrink-0 items-center gap-1.5 font-mono text-xs"
                 >
+                  <span className="font-semibold text-foreground/80">#{item.rank}</span>
                   <span className="text-muted-foreground">{item.business_name}</span>
                   <span className="font-tabular text-foreground">
                     {item.score.toFixed(1)}

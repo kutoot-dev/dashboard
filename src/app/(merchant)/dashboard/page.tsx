@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   useBranchScore,
@@ -8,13 +8,16 @@ import {
   useBranchVolume,
 } from "@/lib/hooks/use-branch-data";
 import { useScoringPeriods } from "@/lib/hooks/use-scores";
-import { useLeaderboard } from "@/lib/hooks/use-leaderboard";
 import { useLiveScore } from "@/lib/hooks/use-live-data";
+import {
+  useSimulatedScore,
+  useSimulatedCandlesticks,
+  useSimulatedVolume,
+} from "@/lib/hooks/use-simulated-data";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { ScoreDisplay } from "@/components/ui/score-display";
-import { RankBadge } from "@/components/ui/rank-badge";
 import { ChangeIndicator } from "@/components/ui/change-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -22,37 +25,55 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ChartTypeSwitcher } from "@/components/ui/chart-type-switcher";
 import { RewardPoolCard } from "@/components/ui/reward-pool-card";
-import { ParameterMeter } from "@/components/ui/parameter-meter";
-import { ImprovementCard } from "@/components/ui/improvement-card";
 import { ActivityTicker } from "@/components/ui/activity-ticker";
-import { ScoreRadar } from "@/components/ui/score-radar";
 import { QuickActions } from "@/components/ui/quick-actions";
 import { MultiChart } from "@/components/charts/multi-chart";
 import { VolumeChart } from "@/components/charts/volume-chart";
 import { TradingViewChart } from "@/components/charts/trading-view-chart";
 import { cn } from "@/lib/utils/cn";
-import { formatINR, formatScore } from "@/lib/utils/format";
-import { SUB_SCORE_LABELS, SUB_SCORE_DESCRIPTIONS, SUB_SCORE_WEIGHTS, SUB_SCORE_ORDER } from "@/lib/constants/scoring";
+import { formatINR } from "@/lib/utils/format";
+import { SUB_SCORE_LABELS, SUB_SCORE_WEIGHTS, SUB_SCORE_ORDER, IMPROVEMENT_TIPS } from "@/lib/constants/scoring";
 import { BRANCH_DASHBOARD, COMMON } from "@/lib/constants/strings";
 
 type ChartType = "candle" | "line" | "area" | "baseline";
-type ParamView = "bars" | "radar";
+
+function getScoreColor(value: number): string {
+  if (value > 75) return "text-gain";
+  if (value > 50) return "text-accent";
+  if (value > 25) return "text-warning";
+  return "text-loss";
+}
+
+function getBarColor(value: number): string {
+  if (value > 75) return "#22c55e";
+  if (value > 50) return "#f59e0b";
+  if (value > 25) return "#f97316";
+  return "#ef4444";
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "";
   const [chartType, setChartType] = useState<ChartType>("candle");
-  const [paramView, setParamView] = useState<ParamView>("radar");
 
   const { dateRange, setDateRange } = useUIStore();
 
-  const { data: score, isLoading: scoreLoading } = useBranchScore(branchId);
-  const { data: candlesticks, isLoading: candlesticksLoading } =
+  const { data: apiScore, isLoading: scoreLoading } = useBranchScore(branchId);
+  const { data: apiCandlesticks, isLoading: candlesticksLoading } =
     useBranchCandlesticks(branchId);
-  const { data: volume, isLoading: volumeLoading } =
+  const { data: apiVolume, isLoading: volumeLoading } =
     useBranchVolume(branchId);
   const { data: periods } = useScoringPeriods();
-  const { data: leaderboardData } = useLeaderboard({ limit: 1 });
+
+  // Simulated fallback data
+  const simScore = useSimulatedScore();
+  const simCandles = useSimulatedCandlesticks();
+  const simVolume = useSimulatedVolume();
+
+  // Use API data if available, otherwise simulated
+  const score = apiScore ?? (!scoreLoading ? simScore : null);
+  const candlesticks = apiCandlesticks ?? (!candlesticksLoading ? simCandles : null);
+  const volume = apiVolume ?? (!volumeLoading ? simVolume : null);
 
   // Live score simulation
   const liveScore = useLiveScore(score?.composite_index_score ?? 0);
@@ -78,6 +99,19 @@ export default function DashboardPage() {
     });
   }, [volume, dateRange]);
 
+  const volumeBars = useMemo(
+    () =>
+      slicedVolume.map((item, index, arr) => {
+        const prev = index > 0 ? arr[index - 1]?.value ?? item.value : item.value;
+        return {
+          time: item.time,
+          value: item.value,
+          color: item.value >= prev ? "#22c55e" : "#ef4444",
+        };
+      }),
+    [slicedVolume],
+  );
+
   // Convert candlestick closes to line data for non-candle chart types
   const lineData = useMemo(
     () => slicedCandles.map((c) => ({ time: c.time, value: c.close })),
@@ -97,7 +131,7 @@ export default function DashboardPage() {
     () =>
       [...subScores]
         .sort((a, b) => a.value - b.value)
-        .slice(0, 3)
+        .slice(0, 5)
         .map((s) => ({
           key: s.key,
           value: s.value,
@@ -106,14 +140,15 @@ export default function DashboardPage() {
     [subScores],
   );
 
-  // Dynamic total branches and reward pool from API
-  const totalBranches = leaderboardData?.pagination?.total ?? 42;
+  // Dynamic reward pool from API
   const latestPeriod = periods?.[periods.length - 1];
   const dailyPool = latestPeriod?.pool_amount ?? 0;
   const estimatedShare = score ? score.payout_amount : undefined;
 
+  const improvementScrollRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-safe-bottom md:pb-0">
       {/* Header */}
       <PageHeader title={BRANCH_DASHBOARD.TITLE} subtitle={BRANCH_DASHBOARD.SUBTITLE}>
         <DateRangePicker
@@ -158,13 +193,13 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <TradingViewChart locationId={Number(branchId)} height={260} defaultResolution="5" />
+        <TradingViewChart locationId={Number(branchId) || 1} height={260} defaultResolution="D" />
       </Card>
 
       {/* Top Row: Score + Rank + Reward Pool */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Live Score */}
-        <Card>
+        <Card className="glass-card-sm">
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {BRANCH_DASHBOARD.YOUR_SCORE}
@@ -184,25 +219,21 @@ export default function DashboardPage() {
           )}
         </Card>
 
-        {/* Rank */}
-        <Card>
+        {/* Rank — clean display */}
+        <Card className="glass-card-sm">
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {BRANCH_DASHBOARD.YOUR_RANK}
             </p>
-            <InfoTooltip text="Your position among all branches. Higher score = lower rank number. Top ranks earn bigger daily rewards." />
           </div>
           {scoreLoading ? (
             <Skeleton className="h-10 w-20" />
           ) : score ? (
             <div className="flex items-baseline gap-3">
-              <span className="font-mono text-5xl font-bold text-foreground">
+              <span className="font-mono text-4xl font-bold text-foreground">
                 #{score.final_rank}
               </span>
-              <div className="flex flex-col gap-1">
-                <RankBadge rank={score.final_rank} totalBranches={totalBranches} />
-                <ChangeIndicator value={score.rank_movement} suffix="" />
-              </div>
+              <ChangeIndicator value={score.rank_movement} suffix="" />
             </div>
           ) : (
             <span className="font-mono text-2xl text-muted-foreground">—</span>
@@ -210,7 +241,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Period Reward */}
-        <Card>
+        <Card className="glass-card-sm">
           <div className="mb-1 flex items-center gap-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Last Reward
@@ -257,7 +288,7 @@ export default function DashboardPage() {
           </div>
         </div>
         {candlesticksLoading ? (
-          <Skeleton variant="rect" className="h-[400px]" />
+          <Skeleton variant="rect" className="h-100" />
         ) : slicedCandles.length > 0 ? (
           <MultiChart
             type={chartType}
@@ -280,146 +311,131 @@ export default function DashboardPage() {
           <InfoTooltip text="Number of transactions you completed each period. More transactions generally improve your Dukaan Activity score." />
         </div>
         {volumeLoading ? (
-          <Skeleton variant="rect" className="h-[120px]" />
-        ) : slicedVolume.length > 0 ? (
-          <VolumeChart data={slicedVolume} height={120} />
+          <Skeleton variant="rect" className="h-30" />
+        ) : volumeBars.length > 0 ? (
+          <VolumeChart data={volumeBars} height={120} />
         ) : (
           <EmptyState title="No volume data" />
         )}
       </Card>
 
       {/* Activity Feed + Quick Actions */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Card className="glass-card-sm">
           <ActivityTicker />
         </Card>
-        <Card>
+        <Card className="glass-card-sm">
           <QuickActions />
         </Card>
       </div>
 
-      {/* Parameter Meters — All 8 v2 sub-scores with weightage */}
-      <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Your Score Parameters
-            </h2>
-            <InfoTooltip text="Your score is made up of 8 parameters. Each has a different weight (importance). The percentage shows how much each parameter affects your total score." />
-          </div>
-          <div className="flex gap-1 rounded-lg border border-glass-border p-0.5">
-            {(["radar", "bars"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setParamView(v)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 font-mono text-[10px] uppercase transition-all",
-                  paramView === v
-                    ? "bg-accent/10 text-accent"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {v === "radar" ? "⬡ Radar" : "▰ Bars"}
-              </button>
-            ))}
-          </div>
+      {/* Score Parameters — Card Grid */}
+      <div>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Your Score Parameters
+          </h2>
+          <InfoTooltip text="Your score is made up of 8 parameters. Each has a different weight." />
         </div>
-        {scoreLoading ? (
-          <div className="space-y-4">
+        {scoreLoading && subScores.length === 0 ? (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-12" />
+              <Skeleton key={i} className="h-28 rounded-xl" />
             ))}
           </div>
         ) : subScores.length > 0 ? (
-          paramView === "radar" ? (
-            <ScoreRadar scores={subScores} />
-          ) : (
-            <div className="space-y-4">
-              {subScores.map((s) => (
-                <ParameterMeter
-                  key={s.key}
-                  label={SUB_SCORE_LABELS[s.key] ?? s.key}
-                  value={s.value}
-                  weight={SUB_SCORE_WEIGHTS[s.key] ?? 0}
-                  description={SUB_SCORE_DESCRIPTIONS[s.key]}
-                />
-              ))}
-            </div>
-          )
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {subScores.map((s) => {
+              const weightPct = Math.round((SUB_SCORE_WEIGHTS[s.key] ?? 0.125) * 100);
+              const contribution = (s.value * (SUB_SCORE_WEIGHTS[s.key] ?? 0.125)).toFixed(1);
+              return (
+                <div key={s.key} className="glass-card-sm p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-foreground leading-tight">
+                      {SUB_SCORE_LABELS[s.key] ?? s.key}
+                    </span>
+                    <span className="rounded-full bg-accent/10 px-1.5 py-0.5 font-mono text-[9px] text-accent">
+                      {weightPct}%
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className={cn("font-mono text-2xl font-bold", getScoreColor(s.value))}>
+                      {s.value.toFixed(0)}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground">/100</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-border overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(s.value, 100)}%`, backgroundColor: getBarColor(s.value) }}
+                    />
+                  </div>
+                  <p className="font-mono text-[9px] text-muted-foreground">+{contribution} to total</p>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <EmptyState title="No score breakdown" />
         )}
-      </Card>
-
-      {/* Bottom Row: Improvement Suggestions + Period Details */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Improvement Suggestions */}
-        {!scoreLoading && weakestScores.length > 0 && (
-          <ImprovementCard weakestScores={weakestScores} />
-        )}
-
-        {/* Period Details */}
-        <Card>
-          <div className="mb-4 flex items-center gap-2">
-            <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Period Details
-            </h2>
-            <InfoTooltip text="Detailed numbers for the selected scoring period. These raw numbers are used to calculate your parameters." />
-          </div>
-          {score ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <span className="flex items-center gap-1 text-muted-foreground">
-                Total Sales
-                <InfoTooltip text="Total number of transactions during this period. More transactions improve your Shop Activity score (35% weight). Values are log-normalized before scoring to keep the scale fair across small and large merchants." />
-              </span>
-              <span className="font-mono text-foreground text-right">
-                {formatINR(score.raw_transaction_volume)}
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                Revenue
-                <InfoTooltip text="Sum of all transaction amounts (₹) for this period. Combined with transaction count, this forms your trading performance — the highest-weighted parameter at 35%. Both values are log-normalized: Revenue Score = log(revenue + 1)." />
-              </span>
-              <span className="font-mono text-foreground text-right">
-                {formatINR(score.raw_revenue)}
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                Category Rank
-                <InfoTooltip text="Your rank compared to merchants in the same business category (like all kiranas or all pharmacies)." />
-              </span>
-              <span className="font-mono text-foreground text-right">
-                {typeof score.sector_percentile_rank === "number"
-                  ? `Top ${(score.sector_percentile_rank * 100).toFixed(0)}%`
-                  : "--"}
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                Area Boost
-                <InfoTooltip text="Location multiplier based on your city tier. Smaller cities get a higher boost." />
-              </span>
-              <span className="font-mono text-foreground text-right">
-                {typeof score.location_opportunity_multiplier === "number"
-                  ? `${score.location_opportunity_multiplier.toFixed(2)}x`
-                  : "--"}
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                Growth Speed
-                <InfoTooltip text="Your momentum score — how much you're improving day over day." />
-              </span>
-              <span className="font-mono text-foreground text-right">
-                {formatScore(score.momentum_score)}/100
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                Community Points
-                <InfoTooltip text="Extra score from referring other merchants. Max 5% of your total score." />
-              </span>
-              <span className="font-mono text-foreground text-right">
-                {formatScore(score.ecosystem_contribution_score)}/100
-              </span>
-            </div>
-          ) : (
-            <EmptyState title="Select a period to see details" />
-          )}
-        </Card>
       </div>
+
+      {/* Where to Improve — Horizontal Slideshow */}
+      {weakestScores.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Where to Improve
+            </h2>
+            <InfoTooltip text="Focus on these areas to boost your ranking and earn more rewards." />
+          </div>
+          <div
+            ref={improvementScrollRef}
+            className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory -mx-1 px-1"
+          >
+            {weakestScores.map(({ key, value, label }) => {
+              const tips = IMPROVEMENT_TIPS[key] ?? [];
+              const target = value < 25 ? 25 : value < 50 ? 50 : value < 75 ? 75 : 100;
+              const gap = target - value;
+              const weight = SUB_SCORE_WEIGHTS[key] ?? 0;
+              const scoreImpact = gap * weight;
+
+              return (
+                <div key={key} className="glass-card-sm shrink-0 w-70 snap-start p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className={cn("text-sm font-semibold", getScoreColor(value))}>
+                      {label}
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">{value.toFixed(0)}/100</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="h-2 rounded-full bg-border overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${(value / target) * 100}%`, backgroundColor: getBarColor(value) }}
+                      />
+                    </div>
+                    <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
+                      <span>{gap.toFixed(0)} pts to next level</span>
+                      <span className="text-gain">+{scoreImpact.toFixed(1)} impact</span>
+                    </div>
+                  </div>
+                  {tips.length > 0 && (
+                    <ul className="space-y-1">
+                      {tips.slice(0, 2).map((tip, i) => (
+                        <li key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                          <span className="mt-0.5 shrink-0">*</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
