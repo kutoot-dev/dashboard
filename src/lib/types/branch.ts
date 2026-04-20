@@ -1,14 +1,7 @@
 /**
- * Types: Branch entity (formerly Merchant)
+ * Types: Branch entity (a single MerchantLocation)
  *
- * DB TABLE: branches
- * COLUMNS: branch_id (UUID PK), ho_id (FK), business_name, owner_name, phone, email,
- *   gst_number (nullable), registration_date, sector_id (FK), location_id (FK),
- *   business_type (enum), transaction_pattern (enum), operating_hours_per_week (int),
- *   is_franchise (bool), is_regulated_margin (bool), declared_capacity (nullable int),
- *   platform_capture_percentage (decimal), status (enum), created_at, updated_at
- * INDEXES: branch_id, ho_id, sector_id, location_id, status
- * CONSTRAINTS: FK to head_offices(ho_id), FK to sectors(sector_id), FK to locations(location_id)
+ * Every business is modelled as a flat list of branches (no Head Office concept).
  */
 
 export type BranchStatus = "active" | "dormant" | "suspended" | "under_review";
@@ -23,7 +16,6 @@ export type TransactionPattern =
 
 export interface Branch {
   branch_id: string;
-  ho_id: string;
   business_name: string;
   owner_name: string;
   phone: string;

@@ -301,7 +301,7 @@ export const VALIDATION_RULES = {
   owner_name: { minLength: 2, maxLength: 100, pattern: /^[A-Za-z\s.]+$/ },
   shop_name: { minLength: 2, maxLength: 150 },
   pin_code: { minLength: 6, maxLength: 6, pattern: /^\d{6}$/ },
-  commission_rate: { min: 2.0, max: 15.0 },
+  commission_rate: { min: 0, max: 99.99 },
   gst_number: {
     length: 15,
     pattern: /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}\d{1}Z[A-Z0-9]{1}$/,
@@ -552,8 +552,8 @@ export const ONBOARDING_STRINGS = {
   EXISTING_LEAD: "A lead already exists for this number.",
   PHONE_AVAILABLE: "This number is available for registration.",
 
-  COMMISSION_MIN_ERROR: "Commission rate cannot be less than 2%",
-  COMMISSION_MAX_ERROR: "Commission rate cannot exceed 15%",
+  COMMISSION_MIN_ERROR: "Commission rate cannot be negative.",
+  COMMISSION_MAX_ERROR: "Commission rate cannot exceed 99.99%.",
   COMMISSION_AGREEMENT: "I understand and agree to the commission terms above",
 
   PHOTO_REQUIRED: "Shop storefront photo is mandatory for all applications",

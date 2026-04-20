@@ -13,6 +13,7 @@
 
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
+import { AUTH_TOKEN_STORAGE_KEY, BACKEND_BASE_URL } from "@/lib/api/client";
 
 declare global {
   interface Window {
@@ -31,6 +32,21 @@ export function getEcho(): Echo<"reverb"> {
 
   window.Pusher = Pusher;
 
+  // Derive Laravel root URL from the dashboard API base, e.g.
+  //   http://kutoot.test/api/dashboard  →  http://kutoot.test/broadcasting/auth
+  let authEndpoint = "/broadcasting/auth";
+  try {
+    const apiUrl = new URL(BACKEND_BASE_URL);
+    authEndpoint = `${apiUrl.protocol}//${apiUrl.host}/broadcasting/auth`;
+  } catch {
+    /* keep relative fallback */
+  }
+
+  const token =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) ?? ""
+      : "";
+
   echo = new Echo({
     broadcaster: "reverb",
     key: process.env.NEXT_PUBLIC_REVERB_APP_KEY ?? "",
@@ -40,9 +56,11 @@ export function getEcho(): Echo<"reverb"> {
     forceTLS: (process.env.NEXT_PUBLIC_REVERB_SCHEME ?? "http") === "https",
     enabledTransports: ["ws", "wss"],
     disableStats: true,
-    // Private/presence channels are authorised via the Next.js BFF which forwards
-    // the merchant's Sanctum bearer token from the httpOnly cookie.
-    authEndpoint: "/api/broadcasting/auth",
+    // Direct Reverb auth at Laravel; Bearer token attached for Sanctum guard.
+    authEndpoint,
+    auth: {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
   });
 
   return echo;

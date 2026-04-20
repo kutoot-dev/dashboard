@@ -142,7 +142,11 @@ export default function LeaderboardMerchantProfilePage() {
               {deals.map((deal, i: number) => (
                 <div key={i} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
                   <div>
-                    <p className="font-medium text-foreground">{deal.title}</p>
+                    <p className="font-medium text-foreground">
+                      {deal.discount_type === "percentage"
+                        ? `${deal.discount_value}% OFF`
+                        : `${"\u20B9"}${deal.discount_value} OFF`}
+                    </p>
                     <p className="text-[10px] text-muted-foreground">
                       Min order: {"\u20B9"}{deal.min_order} {deal.max_discount ? `| Max off: ${"\u20B9"}${deal.max_discount}` : ""}
                     </p>

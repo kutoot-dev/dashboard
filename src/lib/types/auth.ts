@@ -1,9 +1,8 @@
 /**
- * Types: Authentication types for mock auth system
+ * Types: Authentication types
  *
- * Mock auth stores { role, branch_id, ho_id } in a cookie.
- * When migrating to real auth (JWT/session), replace the cookie-based
- * approach with proper token-based auth from your backend.
+ * Auth user is a single MerchantLocation (branch). The platform no longer
+ * has a Head Office concept — every location is a standalone branch.
  */
 
 export type UserRole = "merchant";
@@ -14,7 +13,6 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   branch_id: string | null;
-  ho_id: string | null;
   is_test?: boolean;
 }
 

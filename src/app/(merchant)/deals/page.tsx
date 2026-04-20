@@ -37,7 +37,6 @@ const STATUS_OPTIONS = [
 ];
 
 const INITIAL_FORM: CreateDealPayload = {
-  title: "",
   discount_type: "percentage",
   discount_value: 0,
   min_order_value: null,
@@ -52,16 +51,16 @@ const INITIAL_FORM: CreateDealPayload = {
  * Clicking a chip prefills the create modal with sensible defaults.
  */
 const DEAL_PRESETS: ReadonlyArray<{ label: string; payload: Partial<CreateDealPayload> }> = [
-  { label: "Welcome 10%", payload: { title: "Welcome 10% Off", discount_type: "percentage", discount_value: 10 } },
-  { label: "Weekend ₹100", payload: { title: "Weekend ₹100 Off", discount_type: "fixed", discount_value: 100, min_order_value: 500 } },
-  { label: "Combo 15%", payload: { title: "Combo Saver 15%", discount_type: "percentage", discount_value: 15, min_order_value: 800, max_discount_amount: 250 } },
-  { label: "First Order ₹50", payload: { title: "First Order ₹50 Off", discount_type: "fixed", discount_value: 50, min_order_value: 200 } },
-  { label: "Lunch Hour 20%", payload: { title: "Lunch Hour 20% Off", discount_type: "percentage", discount_value: 20, max_discount_amount: 200 } },
-  { label: "Late Night 25%", payload: { title: "Late Night 25% Off", discount_type: "percentage", discount_value: 25, min_order_value: 300, max_discount_amount: 300 } },
-  { label: "Big Spender ₹250", payload: { title: "Big Spender ₹250 Off", discount_type: "fixed", discount_value: 250, min_order_value: 1500 } },
-  { label: "Festive 30%", payload: { title: "Festive 30% Off", discount_type: "percentage", discount_value: 30, max_discount_amount: 500 } },
-  { label: "Loyalty ₹150", payload: { title: "Loyalty ₹150 Off", discount_type: "fixed", discount_value: 150, min_order_value: 800 } },
-  { label: "Flash 5%", payload: { title: "Flash 5% Off", discount_type: "percentage", discount_value: 5 } },
+  { label: "Welcome 10%", payload: { discount_type: "percentage", discount_value: 10 } },
+  { label: "Weekend ₹100", payload: { discount_type: "fixed", discount_value: 100, min_order_value: 500 } },
+  { label: "Combo 15%", payload: { discount_type: "percentage", discount_value: 15, min_order_value: 800, max_discount_amount: 250 } },
+  { label: "First Order ₹50", payload: { discount_type: "fixed", discount_value: 50, min_order_value: 200 } },
+  { label: "Lunch Hour 20%", payload: { discount_type: "percentage", discount_value: 20, max_discount_amount: 200 } },
+  { label: "Late Night 25%", payload: { discount_type: "percentage", discount_value: 25, min_order_value: 300, max_discount_amount: 300 } },
+  { label: "Big Spender ₹250", payload: { discount_type: "fixed", discount_value: 250, min_order_value: 1500 } },
+  { label: "Festive 30%", payload: { discount_type: "percentage", discount_value: 30, max_discount_amount: 500 } },
+  { label: "Loyalty ₹150", payload: { discount_type: "fixed", discount_value: 150, min_order_value: 800 } },
+  { label: "Flash 5%", payload: { discount_type: "percentage", discount_value: 5 } },
 ];
 
 function statusVariant(status: string): "gain" | "loss" | "neutral" | "warning" {
@@ -119,7 +118,6 @@ export default function DealsPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-    if (!form.title.trim()) { setFormError("Title is required"); return; }
     if (!form.discount_value || form.discount_value <= 0) { setFormError("Discount value must be > 0"); return; }
     if (form.discount_type === "percentage" && form.discount_value > 100) { setFormError("Percentage cannot exceed 100"); return; }
     submitDeal(form);
@@ -173,8 +171,7 @@ export default function DealsPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {deals.map((deal) => (
             <Card key={deal.id} className="p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-mono text-sm font-semibold text-foreground leading-tight">{deal.title}</h3>
+              <div className="flex items-start justify-end gap-2">
                 <Badge variant={statusVariant(deal.status)} className="shrink-0 uppercase text-[10px]">
                   {deal.status}
                 </Badge>
@@ -220,8 +217,6 @@ export default function DealsPage() {
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); setFormError(null); setForm(INITIAL_FORM); }} title="Create New Deal">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label="Deal Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. Weekend Flat 20% Off" required />
-
           <Select
             options={DISCOUNT_TYPES}
             value={form.discount_type}
@@ -280,7 +275,7 @@ export default function DealsPage() {
             />
           </div>
 
-          <p className="text-xs text-muted-foreground">Deal will be sent to HO for approval before going live.</p>
+          <p className="text-xs text-muted-foreground">Deal will go live immediately.</p>
 
           {formError && (
             <p className="text-xs text-destructive font-mono">{formError}</p>
@@ -289,7 +284,7 @@ export default function DealsPage() {
           <div className="flex gap-3 justify-end pt-2">
             <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={submitting} className="bg-primary hover:bg-primary/90 text-white">
-              Submit for Approval
+              Publish Deal
             </Button>
           </div>
         </form>

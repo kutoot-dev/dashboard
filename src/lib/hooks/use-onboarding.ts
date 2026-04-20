@@ -22,7 +22,6 @@ export function useApplicationList(filters?: {
   status?: string;
   exec_id?: string;
   phone?: string;
-  ho_id?: string;
 }) {
   return useQuery({
     queryKey: ["onboarding", "list", filters],

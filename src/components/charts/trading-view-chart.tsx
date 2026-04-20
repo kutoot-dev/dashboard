@@ -283,10 +283,10 @@ export function TradingViewChart({
   const colors  = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
 
   return (
-    <div className={cn("relative flex flex-col rounded-lg overflow-hidden border border-border/40", className)}>
+    <div className={cn("relative flex flex-col rounded-lg border border-border/40 overflow-hidden min-h-[260px]", className)}>
       {/* ── Top toolbar ────────────────────────────────────────────────────── */}
       {showToolbar && (
-        <div className="flex items-center justify-between px-3 py-1.5 bg-background/80 border-b border-border/30 gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 py-1.5 bg-background/80 border-b border-border/30">
           {/* OHLCV overlay */}
           {showOhlcOverlay && ohlc && (
             <div className="flex items-center gap-3 text-[10px] font-mono">

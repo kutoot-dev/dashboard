@@ -160,17 +160,17 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
           <div className="flex items-center gap-2">
             <Input
               type="number"
-              placeholder="2.00"
+              placeholder="5.00"
               value={formData.commission_rate?.toString() || ""}
               onChange={(e) => handleRateChange(e.target.value)}
-              min={2}
-              max={15}
-              step={0.1}
+              min={0}
+              max={99.99}
+              step={0.01}
               className="w-32"
             />
             <span className="text-sm text-muted-foreground">%</span>
           </div>
-          {formData.commission_rate !== null && formData.commission_rate >= 2 && (
+          {formData.commission_rate !== null && formData.commission_rate > 0 && (
             <div className="mt-2 p-3 bg-card border border-border rounded-md">
               <p className="text-sm text-muted-foreground">
                 On a ₹1,000 transaction:

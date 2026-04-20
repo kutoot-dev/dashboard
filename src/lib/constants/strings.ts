@@ -16,14 +16,11 @@ export const COMMON = {
   INDEX_SHORT: "KBI",
 
   // Roles
-  ROLE_HO: "Head Office",
   ROLE_BRANCH: "Branch",
 
   // Entity labels
   ENTITY_BRANCH: "Branch",
   ENTITY_BRANCHES: "Branches",
-  ENTITY_HO: "Head Office",
-  ENTITY_HO_SHORT: "HO",
 
   // Score labels
   SCORE: "Score",
@@ -95,7 +92,6 @@ export const LOGIN = {
   SIGN_IN: "Sign In",
   QUICK_ACCESS: "Quick Access",
   QUICK_BRANCH: "Branch",
-  QUICK_HO: "Head Office",
   ERROR_DEFAULT: "Login failed",
 } as const;
 

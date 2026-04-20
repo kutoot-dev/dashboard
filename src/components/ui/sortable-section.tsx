@@ -30,11 +30,18 @@ export function SortableSection({ id, children, className }: SortableSectionProp
       <button
         type="button"
         aria-label="Drag to reorder"
-        className="absolute -left-1 top-1 z-10 hidden h-6 w-4 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity group-hover/sortable:flex group-hover/sortable:opacity-100 active:cursor-grabbing"
+        className={cn(
+          "absolute left-1 top-1 z-20 hidden h-6 w-6 cursor-grab items-center justify-center rounded-md",
+          "border border-border/40 bg-background/80 text-muted-foreground shadow-sm backdrop-blur-sm",
+          "opacity-0 transition-opacity",
+          "group-hover/sortable:flex group-hover/sortable:opacity-100",
+          "focus-visible:flex focus-visible:opacity-100",
+          "active:cursor-grabbing",
+        )}
         {...attributes}
         {...listeners}
       >
-        <span aria-hidden className="leading-none text-[10px]">⋮⋮</span>
+        <span aria-hidden className="leading-none text-[11px]">⋮⋮</span>
       </button>
       {children}
     </div>

@@ -27,9 +27,16 @@ export function middleware(request: NextRequest) {
   let user: { role?: string } | null = null;
   if (cookie?.value) {
     try {
-      user = JSON.parse(cookie.value);
+      // Cookie value is URL-encoded JSON when set from the browser via document.cookie
+      const decoded = decodeURIComponent(cookie.value);
+      user = JSON.parse(decoded);
     } catch {
-      user = null;
+      try {
+        // Fallback: legacy server-set cookie that was raw JSON
+        user = JSON.parse(cookie.value);
+      } catch {
+        user = null;
+      }
     }
   }
 

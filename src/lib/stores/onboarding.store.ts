@@ -13,7 +13,6 @@ import type {
   CommissionTier,
   VisitOutcome,
   FollowUpSchedule,
-  NewHORequest,
 } from "@/lib/types";
 import { WIZARD_STEPS } from "@/lib/types";
 
@@ -37,10 +36,6 @@ interface OnboardingFormData {
   state: string;
   pin_code: string;
   branch_name: string;
-  has_ho: boolean | null;
-  ho_id: string;
-  ho_selection_mode: "none" | "existing" | "other";
-  new_ho_request: NewHORequest;
   storefront_photo_url: string | null;
   storefront_photo_status: "pending" | "uploaded" | "failed";
   gps_lat: number | null;
@@ -146,15 +141,6 @@ const initialFormData: OnboardingFormData = {
   state: "",
   pin_code: "",
   branch_name: "",
-  has_ho: null,
-  ho_id: "",
-  ho_selection_mode: "none",
-  new_ho_request: {
-    name: "",
-    contact_person: "",
-    phone: "",
-    email: "",
-  },
   storefront_photo_url: null,
   storefront_photo_status: "pending",
   gps_lat: null,

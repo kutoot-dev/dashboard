@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { OtpInput } from "@/components/onboarding/otp-input";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useSendOtp, useVerifyOtp, useVerifyExecutive } from "@/lib/hooks";
@@ -13,15 +12,21 @@ import {
   VALIDATION_RULES,
 } from "@/lib/constants/onboarding";
 import { onboardingService } from "@/lib/api/services";
+import { cn } from "@/lib/utils/cn";
 
 type ResumeMode = "select" | "merchant" | "executive";
 type MerchantStep = "phone" | "otp";
+
+const cardClass =
+  "glass-card-transparent rounded-2xl p-5 sm:p-6 space-y-4 transition-shadow hover:shadow-lg";
+
+const selectTileClass =
+  "glass-card-transparent cursor-pointer rounded-2xl p-6 transition-all hover:ring-2 hover:ring-accent/40 hover:shadow-md active:scale-[0.99]";
 
 const toResumePayload = (app: Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"][number]) => ({
   ...app,
   application_id: app.application_id,
   current_step: app.current_step,
-  ho_id: app.ho_id ?? undefined,
 });
 
 export default function ResumePage() {
@@ -73,7 +78,6 @@ export default function ResumePage() {
       { phone, otp },
       {
         onSuccess: async () => {
-          // Fetch the application for this phone
           await loadApplication(phone);
         },
         onError: () => setError("Invalid OTP. Try again."),
@@ -93,11 +97,27 @@ export default function ResumePage() {
           setError(res.data.message || "Invalid employee code.");
           return;
         }
-        // Fetch applications by executive — load most recent draft
         await loadApplicationByExec(res.data.exec_id || "");
       },
       onError: () => setError("Verification failed. Try again."),
     });
+  };
+
+  const hydrateAndGo = async (applicationId: string) => {
+    try {
+      const detail = await onboardingService.getApplication(applicationId);
+      const fullApp = detail.data ?? null;
+      if (fullApp) {
+        loadFromApplication({
+          ...(fullApp as unknown as Record<string, unknown>),
+          application_id: applicationId,
+          current_step: fullApp.current_step,
+        } as Parameters<typeof loadFromApplication>[0]);
+      }
+    } catch {
+      // fall through with whatever the listing already returned
+    }
+    router.push("/onboard?mode=resume");
   };
 
   const loadApplication = async (phone: string) => {
@@ -108,7 +128,7 @@ export default function ResumePage() {
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];
         loadFromApplication(toResumePayload(app));
-        router.push("/onboard?mode=resume");
+        await hydrateAndGo(app.application_id);
       } else {
         setError("No draft application found for this number.");
       }
@@ -127,7 +147,7 @@ export default function ResumePage() {
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];
         loadFromApplication(toResumePayload(app));
-        router.push("/onboard?mode=resume");
+        await hydrateAndGo(app.application_id);
       } else {
         setError("No draft applications found for your account.");
       }
@@ -139,37 +159,56 @@ export default function ResumePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           {ONBOARDING_STRINGS.RESUME_TITLE}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
           {ONBOARDING_STRINGS.RESUME_SUBTITLE}
         </p>
+        <div className="mt-4 h-px w-16 bg-gradient-to-r from-transparent via-primary to-transparent" />
       </div>
 
       {mode === "select" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => setMode("merchant")}
-            className="cursor-pointer rounded-lg border border-border bg-card p-6 transition-all hover:ring-1 hover:ring-accent"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setMode("merchant");
+              }
+            }}
+            className={selectTileClass}
           >
-            <div className="text-3xl mb-3">📱</div>
+            <div className="mb-3 text-3xl" aria-hidden>
+              📱
+            </div>
             <h3 className="font-semibold text-foreground">I am a Merchant</h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Resume using your mobile number + OTP
             </p>
           </div>
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => setMode("executive")}
-            className="cursor-pointer rounded-lg border border-border bg-card hover:ring-1 hover:ring-accent transition-all p-6"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setMode("executive");
+              }
+            }}
+            className={selectTileClass}
           >
-            <div className="text-3xl mb-3">🪪</div>
-            <h3 className="font-semibold text-foreground">
-              I am a Field Executive
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="mb-3 text-3xl" aria-hidden>
+              🪪
+            </div>
+            <h3 className="font-semibold text-foreground">I am a Field Executive</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Resume using your employee code
             </p>
           </div>
@@ -177,10 +216,10 @@ export default function ResumePage() {
       )}
 
       {mode === "merchant" && merchantStep === "phone" && (
-        <Card className="p-6 space-y-4">
+        <div className={cn(cardClass)}>
           <h3 className="font-semibold text-foreground">Enter your mobile number</h3>
-          <div className="flex gap-2">
-            <div className="flex items-center px-3 bg-card border border-border rounded-md text-sm text-muted-foreground">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+            <div className="flex shrink-0 items-center justify-center rounded-lg border border-border/80 bg-background/40 px-3 py-2.5 text-sm text-muted-foreground backdrop-blur-sm sm:py-2">
               +91
             </div>
             <Input
@@ -191,26 +230,28 @@ export default function ResumePage() {
               }
               maxLength={10}
               inputMode="numeric"
+              className="min-h-11 flex-1"
             />
           </div>
           {error && <p className="text-xs text-error">{error}</p>}
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setMode("select")}>
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap sm:gap-3">
+            <Button variant="ghost" className="min-h-11 w-full sm:w-auto" onClick={() => setMode("select")}>
               Back
             </Button>
             <Button
               variant="primary"
+              className="min-h-11 w-full sm:w-auto"
               onClick={handleSendOtp}
               loading={sendOtp.isPending}
             >
               Send OTP
             </Button>
           </div>
-        </Card>
+        </div>
       )}
 
       {mode === "merchant" && merchantStep === "otp" && (
-        <Card className="p-6 space-y-4">
+        <div className={cn(cardClass)}>
           <h3 className="font-semibold text-foreground">
             Enter OTP sent to +91 {phone}
           </h3>
@@ -223,21 +264,25 @@ export default function ResumePage() {
             disabled={verifyOtp.isPending || loading}
           />
           {error && <p className="text-xs text-error">{error}</p>}
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setMerchantStep("phone")}>
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:gap-4">
+            <Button
+              variant="ghost"
+              className="min-h-11 w-full sm:w-auto"
+              onClick={() => setMerchantStep("phone")}
+            >
               Change Number
             </Button>
             {(verifyOtp.isPending || loading) && (
-              <span className="text-xs text-muted-foreground self-center">
+              <span className="text-center text-xs text-muted-foreground sm:text-left">
                 Loading...
               </span>
             )}
           </div>
-        </Card>
+        </div>
       )}
 
       {mode === "executive" && (
-        <Card className="p-6 space-y-4">
+        <div className={cn(cardClass)}>
           <h3 className="font-semibold text-foreground">Enter your employee code</h3>
           <Input
             placeholder="KT1234"
@@ -246,28 +291,30 @@ export default function ResumePage() {
               setEmployeeCode(e.target.value.toUpperCase().slice(0, 8))
             }
             maxLength={8}
+            className="min-h-11"
           />
           {error && <p className="text-xs text-error">{error}</p>}
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setMode("select")}>
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:gap-3">
+            <Button variant="ghost" className="min-h-11 w-full sm:w-auto" onClick={() => setMode("select")}>
               Back
             </Button>
             <Button
               variant="primary"
+              className="min-h-11 w-full sm:w-auto"
               onClick={handleExecResume}
               loading={verifyExec.isPending || loading}
             >
               Resume
             </Button>
           </div>
-        </Card>
+        </div>
       )}
 
       <div className="text-center">
         <button
           type="button"
           onClick={() => router.push("/onboard/start")}
-          className="text-sm text-accent hover:underline"
+          className="text-sm font-medium text-accent underline-offset-4 transition-colors hover:text-accent/90 hover:underline"
         >
           Start a new application instead
         </button>

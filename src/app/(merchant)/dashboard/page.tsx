@@ -222,44 +222,33 @@ export default function DashboardPage() {
       </Card>
     ),
     "score-history": (
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Card className="overflow-hidden p-0">
-          <div className="flex items-center gap-2 border-b border-border px-4 py-2">
-            <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Score History
-            </h2>
-            <InfoTooltip text="Candlestick chart of your daily score. Green = up, Red = down." />
-          </div>
-          <TradingViewChart locationId={Number(branchId) || 1} height={220} defaultResolution="D" />
-        </Card>
-        <Card className="overflow-hidden p-3 space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Score Parameters
-            </h2>
-            <InfoTooltip text="Each slice is weighted by the parameter's contribution to your composite score. Hover a slice to inspect the sub-score." />
-          </div>
-          {scoreLoading && subScores.length === 0 ? (
-            <Skeleton variant="rect" className="h-56" />
-          ) : (
-            <ScorePie
-              size={220}
-              composite={score?.composite_index_score ?? undefined}
-              rank={score?.final_rank ?? null}
-              data={subScores.map((s) => ({
-                key: s.key,
-                label: SUB_SCORE_LABELS[s.key] ?? s.key,
-                value: s.value,
-                weight: SUB_SCORE_WEIGHTS[s.key] ?? 0.125,
-              }))}
-            />
-          )}
-          <ScoringParametersExplainer
-            collapsible
-            values={Object.fromEntries(subScores.map((s) => [s.key, s.value]))}
+      <Card className="overflow-hidden p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Score Parameters
+          </h2>
+          <InfoTooltip text="Each slice is weighted by the parameter's contribution to your composite score. Hover a slice to inspect the sub-score." />
+        </div>
+        {scoreLoading && subScores.length === 0 ? (
+          <Skeleton variant="rect" className="h-56" />
+        ) : (
+          <ScorePie
+            size={220}
+            composite={score?.composite_index_score ?? undefined}
+            rank={score?.final_rank ?? null}
+            data={subScores.map((s) => ({
+              key: s.key,
+              label: SUB_SCORE_LABELS[s.key] ?? s.key,
+              value: s.value,
+              weight: SUB_SCORE_WEIGHTS[s.key] ?? 0.125,
+            }))}
           />
-        </Card>
-      </div>
+        )}
+        <ScoringParametersExplainer
+          collapsible
+          values={Object.fromEntries(subScores.map((s) => [s.key, s.value]))}
+        />
+      </Card>
     ),
     "redemptions": <RecentRedemptionsSlideshow />,
     "volume": (

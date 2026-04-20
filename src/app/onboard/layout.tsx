@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { KutootLogo } from "@/components/branding";
 
 export const metadata: Metadata = {
   title: "Merchant Onboarding — Kutoot",
@@ -11,29 +12,37 @@ export default function OnboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Minimal public header — no sidebar/AppShell */}
-      <header className="sticky top-0 z-30 border-b border-border bg-surface px-4 py-3">
-        <div className="mx-auto max-w-2xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-sm">
-              K
-            </div>
-            <span className="text-lg font-bold text-foreground">Kutoot</span>
-          </div>
-          <span className="text-xs text-muted-foreground hidden sm:block">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-background" />
+      <div className="pointer-events-none absolute inset-0 opacity-35 dark:opacity-25">
+        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/25 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary/15 blur-3xl" />
+      </div>
+
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
+          <KutootLogo size="sm" className="max-h-7 w-auto max-w-[min(100%,11rem)]" />
+          <span className="hidden text-xs font-medium tracking-wide text-muted-foreground sm:block">
             Merchant Onboarding
           </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-6">{children}</main>
+      <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+        {children}
+      </main>
 
-      <footer className="border-t border-border py-4 mt-8">
-        <div className="mx-auto max-w-2xl px-4 text-center text-xs text-muted-foreground">
+      <footer className="relative z-10 mt-auto border-t border-border/60 py-5">
+        <div className="mx-auto max-w-3xl px-4 text-center text-xs text-muted-foreground sm:px-6">
           © {new Date().getFullYear()} Kutoot. All rights reserved. •{" "}
-          <span className="text-accent cursor-pointer">Privacy Policy</span> •{" "}
-          <span className="text-accent cursor-pointer">Terms of Service</span>
+          <span className="cursor-pointer text-accent transition-colors hover:text-accent/90">
+            Privacy Policy
+          </span>{" "}
+          •{" "}
+          <span className="cursor-pointer text-accent transition-colors hover:text-accent/90">
+            Terms of Service
+          </span>
         </div>
       </footer>
     </div>

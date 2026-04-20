@@ -23,7 +23,11 @@ export interface Deal {
 }
 
 export interface CreateDealPayload {
-  title: string;
+  /**
+   * Optional — server auto-generates a short title from the discount values
+   * if omitted (e.g. "10% OFF" or "₹100 OFF"). Merchants no longer pick a title.
+   */
+  title?: string;
   discount_type: "percentage" | "fixed";
   discount_value: number;
   min_order_value?: number | null;

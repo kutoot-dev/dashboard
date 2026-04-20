@@ -20,25 +20,6 @@ import type {
 } from "@/lib/types";
 import apiClient from "../client";
 
-// ── Head Offices (for dropdown) ────────────────────────────────────
-
-export interface OnboardingHeadOffice {
-  ho_id: string;
-  name: string;
-  contact_person: string;
-  email: string;
-  phone: string;
-  total_branches: number;
-  status: string;
-}
-
-export async function getHeadOffices() {
-  const res = await apiClient.get<ApiResponse<OnboardingHeadOffice[]>>(
-    "/onboarding/head-offices",
-  );
-  return res.data;
-}
-
 // ── Application CRUD ───────────────────────────────────────────────
 
 export async function createApplication(
@@ -73,7 +54,6 @@ export async function listApplications(filters?: {
   status?: string;
   exec_id?: string;
   phone?: string;
-  ho_id?: string;
 }) {
   const params = filters || {};
   const res = await apiClient.get<

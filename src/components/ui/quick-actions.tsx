@@ -34,7 +34,6 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
   const [showTxnModal, setShowTxnModal] = useState(false);
 
   const [dealForm, setDealForm] = useState<CreateDealPayload>({
-    title: "",
     discount_type: "percentage",
     discount_value: 0,
     min_order_value: null,
@@ -53,7 +52,6 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
       qc.invalidateQueries({ queryKey: ["deals"] });
       setShowDealModal(false);
       setDealForm({
-        title: "",
         discount_type: "percentage",
         discount_value: 0,
         min_order_value: null,
@@ -84,14 +82,14 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <button
+      {/* <button
         type="button"
         onClick={() => setShowDealModal(true)}
         className="inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-3 text-xs font-medium text-foreground transition-colors hover:bg-primary/15"
       >
         <span aria-hidden>🏷️</span>
         {compact && <span className="font-mono">Create Deal</span>}
-      </button>
+      </button> */}
       <button
         type="button"
         onClick={() => setShowTxnModal(true)}
@@ -103,12 +101,6 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
 
       <Modal isOpen={showDealModal} onClose={() => setShowDealModal(false)} title="Create New Deal">
         <div className="space-y-3">
-          <Input
-            label="Deal Title"
-            value={dealForm.title}
-            onChange={(e) => setDealForm((p) => ({ ...p, title: e.target.value }))}
-            placeholder="e.g. 15% off on weekends"
-          />
           <div className="grid grid-cols-2 gap-3">
             <Select
               options={DISCOUNT_TYPES}
@@ -154,10 +146,10 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
           />
           <Button
             onClick={() => submitDeal(dealForm)}
-            disabled={!dealForm.title || !dealForm.discount_value || dealSubmitting}
+            disabled={!dealForm.discount_value || dealSubmitting}
             className="w-full"
           >
-            {dealSubmitting ? "Creating..." : "Create Deal"}
+            {dealSubmitting ? "Creating..." : "Publish Deal"}
           </Button>
         </div>
       </Modal>
