@@ -9,6 +9,8 @@ import type {
   ApiResponse,
   OnboardingApplication,
   ApplicationSummary,
+  FollowUpSchedule,
+  MerchantStage,
   PhoneCheckResult,
   ExecutiveVerifyResult,
   OtpSendResult,
@@ -52,6 +54,7 @@ export async function updateApplication(
 
 export async function listApplications(filters?: {
   status?: string;
+  stage?: MerchantStage;
   exec_id?: string;
   phone?: string;
 }) {
@@ -59,6 +62,28 @@ export async function listApplications(filters?: {
   const res = await apiClient.get<
     ApiResponse<PaginatedData<ApplicationSummary>>
   >("/onboarding", { params });
+  return res.data;
+}
+
+/**
+ * Explicitly move a merchant to a new stage (for example, logging a visit
+ * outcome or rescheduling a follow-up). The backend's update endpoint
+ * accepts `stage` + `follow_up_schedules` directly, so we reuse it here
+ * instead of adding a separate route.
+ */
+export async function setStage(
+  id: string,
+  stage: MerchantStage,
+  extras?: {
+    follow_up_schedules?: FollowUpSchedule[];
+    visit_notes?: string;
+    admin_notes?: string;
+  },
+) {
+  const res = await apiClient.patch<ApiResponse<OnboardingApplication>>(
+    `/onboarding/${encodeURIComponent(id)}`,
+    { stage, ...(extras ?? {}) },
+  );
   return res.data;
 }
 

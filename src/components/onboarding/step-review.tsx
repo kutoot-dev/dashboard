@@ -88,6 +88,11 @@ export function StepReview({ onBack }: StepReviewProps) {
         operating_hours: `${formData.operating_hours_start} - ${formData.operating_hours_end}`,
         expected_monthly_volume: formData.expected_monthly_volume,
       }),
+      // Send the canonical `stage` field; the backend retains `status` as a
+      // deprecated alias for one release.
+      stage: isFeVisitOnly
+        ? ((formData.visit_outcome ?? "revisit") as string)
+        : "submitted",
       status: (isFeVisitOnly ? "visit_record" : "pending_review") as ApplicationStatus,
       current_step: "review" as WizardStepId,
       website_url: formData.website_url, // honeypot

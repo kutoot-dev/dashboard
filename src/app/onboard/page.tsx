@@ -15,7 +15,12 @@ import { ApplicationStatusScreen } from "@/components/onboarding/application-sta
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useApplication, useUpdateApplication, useCreateApplication } from "@/lib/hooks";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
-import type { WizardStepId, ApplicationStatus, OnboardingApplication, WizardStepConfig } from "@/lib/types";
+import type {
+  WizardStepId,
+  MerchantStage,
+  OnboardingApplication,
+  WizardStepConfig,
+} from "@/lib/types";
 
 // ── Compute active steps based on channel + visit outcome ─────────
 
@@ -52,6 +57,16 @@ function getActiveSteps(
   return ["identity"];
 }
 
+/**
+ * Stages in which the wizard is still editable. Anything outside this set
+ * bounces to the read-only `ApplicationStatusScreen`.
+ */
+const EDITABLE_STAGES: ReadonlySet<string> = new Set([
+  "lead",
+  "invited",
+  "in_progress",
+]);
+
 export default function OnboardPage() {
   const router = useRouter();
   const {
@@ -72,16 +87,19 @@ export default function OnboardPage() {
     }
   }, [applicationId, router]);
 
-  // When resuming, if the application has already left draft state we surface
-  // the read-only status screen instead of letting the merchant edit a
-  // submitted record. Only polled for non-draft applications.
+  // When resuming, if the application has already left an editable stage
+  // we surface the read-only status screen. Editable stages are:
+  //   lead, invited, in_progress.
+  // Anything else (visit outcomes, submitted, approved, rejected, …) locks
+  // the merchant out of the wizard.
   const resumedApp = useApplication(applicationId);
-  const lockedStatus = useMemo(() => {
-    const s = resumedApp.data?.status;
-    if (!s) return null;
-    if (s === "draft" || s === "pending_photo") return null;
-    return s;
-  }, [resumedApp.data?.status]);
+  const lockedStage = useMemo(() => {
+    const data = resumedApp.data as OnboardingApplication | undefined;
+    const stage = data?.stage ?? (data?.status as string | undefined) ?? null;
+    if (!stage) return null;
+    if (EDITABLE_STAGES.has(stage)) return null;
+    return stage as MerchantStage;
+  }, [resumedApp.data]);
 
   // Compute which steps are active for this session
   const activeStepIds = useMemo(
@@ -119,7 +137,9 @@ export default function OnboardPage() {
       const payload = {
         current_step: fromStep,
         ...formData,
-        status: "draft" as ApplicationStatus,
+        // Send the new stage field; backend still accepts the legacy
+        // `status: "draft"` alias for one release.
+        stage: "in_progress" as MerchantStage,
       } as Record<string, unknown>;
 
       if (applicationId) {
@@ -172,7 +192,7 @@ export default function OnboardPage() {
     }
   };
 
-  if (applicationId && lockedStatus) {
+  if (applicationId && lockedStage) {
     return (
       <div className="space-y-6">
         <ApplicationStatusScreen

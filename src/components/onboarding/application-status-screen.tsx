@@ -4,8 +4,16 @@ import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useApplication } from "@/lib/hooks";
-import { APPLICATION_STATUS_LABELS } from "@/lib/constants/onboarding";
-import type { OnboardingApplication } from "@/lib/types";
+import { STAGE_LABELS, STAGE_COLORS } from "@/lib/constants/onboarding";
+import {
+  SCHEDULE_STAGES,
+  TERMINAL_STAGES,
+  STAGE_PHASES,
+} from "@/lib/types/onboarding";
+import type {
+  MerchantStage,
+  OnboardingApplication,
+} from "@/lib/types";
 
 interface ApplicationStatusScreenProps {
   applicationId: string;
@@ -15,10 +23,17 @@ interface ApplicationStatusScreenProps {
 }
 
 /**
- * Read-only status screen for a submitted merchant application. Polls the
- * backend so the merchant sees the live approval/rejection state without
- * re-entering the wizard. Shared by the submit-confirmation view and the
- * resume flow when the application is no longer a draft.
+ * Stage-aware status screen for a submitted merchant application.
+ *
+ * Renders one of four variants based on the backend `stage` value:
+ *   - Visit phase (revisit / owner_absent / shop_closed / competitor_user)
+ *     shows the next scheduled visit datetime and lets the merchant
+ *     re-confirm interest or reschedule.
+ *   - Onboarding phase (submitted / under_review / in_progress / invited)
+ *     shows the standard "under review" message and auto-polls.
+ *   - Post-onboarding (approved / active) routes to the dashboard.
+ *   - Terminal stages (rejected / suspended / churned / permanently_closed /
+ *     not_interested) show a "needs attention" message.
  */
 export function ApplicationStatusScreen({
   applicationId,
@@ -34,47 +49,72 @@ export function ApplicationStatusScreen({
     return () => clearInterval(id);
   }, [applicationId, pollMs, appQuery]);
 
-  const status = appQuery.data?.status ?? null;
+  const data = appQuery.data as OnboardingApplication | undefined;
+  // Prefer the new `stage` field; fall back to the deprecated `status` for
+  // transitional API responses.
+  const stage: MerchantStage | null = useMemo(() => {
+    if (!data) return null;
+    if (data.stage) return data.stage;
+    const legacy = (data as unknown as { status?: string }).status;
+    return (legacy ?? null) as MerchantStage | null;
+  }, [data]);
+
   const rejectionReason = useMemo(() => {
-    if (!appQuery.data) return null;
-    const rec = appQuery.data as unknown as Record<string, unknown>;
-    return (rec.rejection_reason ?? rec.rejected_reason ?? rec.notes ?? null) as
+    if (!data) return null;
+    const rec = data as unknown as Record<string, unknown>;
+    return (rec.rejection_reason ?? rec.rejected_reason ?? rec.admin_notes ?? rec.notes ?? null) as
       | string
       | null;
-  }, [appQuery.data]);
-  const displayPhone =
-    phone ?? ((appQuery.data as OnboardingApplication | undefined)?.phone ?? null);
+  }, [data]);
 
-  const isApproved = status === "active";
-  const isRejected = status === "rejected" || status === "suspended";
-  const isVerifying = status === "pending_kyc_review" || status === "pending_bank_verify";
-  const isActivating = status === "pending_activation";
+  const displayPhone = phone ?? (data?.phone ?? null);
+  const phase = stage ? STAGE_PHASES[stage] : null;
+  const nextFollowUpAt = data?.next_follow_up_at ?? null;
+
+  const isApproved = stage === "approved" || stage === "active";
+  const isTerminal = stage ? TERMINAL_STAGES.has(stage) : false;
+  const isVisitPhase = stage ? SCHEDULE_STAGES.has(stage) : false;
+  const isOnboardingPhase = phase === "onboarding";
+
+  const nextVisitLabel = useMemo(() => {
+    if (!nextFollowUpAt) return null;
+    try {
+      const dt = new Date(nextFollowUpAt);
+      return dt.toLocaleString(undefined, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return null;
+    }
+  }, [nextFollowUpAt]);
 
   return (
     <div className="text-center py-12 space-y-4">
       <div className="text-5xl">
-        {isApproved ? "✅" : isRejected ? "⚠️" : "🎉"}
+        {isApproved ? "✅" : isTerminal ? "⚠️" : isVisitPhase ? "📅" : "🎉"}
       </div>
       <h2 className="text-2xl font-bold text-foreground">
         {isApproved
           ? "You're Approved!"
-          : isRejected
+          : isTerminal
             ? "Application Needs Attention"
-            : "Application Received"}
+            : isVisitPhase
+              ? "Visit Scheduled"
+              : "Application Received"}
       </h2>
 
-      {status && (
+      {stage && (
         <div className="flex justify-center">
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-              isApproved
-                ? "bg-success/10 text-success border-success/30"
-                : isRejected
-                  ? "bg-error/10 text-error border-error/30"
-                  : "bg-warning/10 text-warning border-warning/30"
-            }`}
+              STAGE_COLORS[stage]?.bg ?? "bg-muted"
+            } ${STAGE_COLORS[stage]?.text ?? "text-foreground"}`}
           >
-            {APPLICATION_STATUS_LABELS[status] ?? status}
+            {STAGE_LABELS[stage] ?? stage}
           </span>
         </div>
       )}
@@ -96,12 +136,18 @@ export function ApplicationStatusScreen({
             </Button>
           </div>
         </div>
-      ) : isRejected ? (
+      ) : isTerminal ? (
         <div className="space-y-3">
           <p className="text-muted-foreground max-w-md mx-auto">
-            Our team flagged this application. Reach out to support with your
-            application ID for details, or submit a fresh application with the
-            corrected info.
+            {stage === "rejected"
+              ? "Our team flagged this application. Reach out to support with your application ID or submit a fresh application with corrected info."
+              : stage === "not_interested"
+                ? "We&apos;ve logged that you&apos;re not interested. Reach out anytime to restart the onboarding process."
+                : stage === "permanently_closed"
+                  ? "This shop is marked permanently closed in our records. Contact support to reopen."
+                  : stage === "churned"
+                    ? "This merchant account has been closed. Contact support to reactivate."
+                    : "This application has been suspended. Contact support for next steps."}
           </p>
           {rejectionReason && (
             <p className="mx-auto max-w-md rounded-md border border-error/30 bg-error/5 px-4 py-2 text-sm text-error">
@@ -126,16 +172,48 @@ export function ApplicationStatusScreen({
             </Button>
           </div>
         </div>
+      ) : isVisitPhase ? (
+        <div className="space-y-3">
+          <p className="text-muted-foreground max-w-md mx-auto">
+            {stage === "revisit"
+              ? "A field executive will revisit you"
+              : stage === "owner_absent"
+                ? "Our field executive will return to meet the owner"
+                : stage === "shop_closed"
+                  ? "Our field executive will come back when the shop is open"
+                  : "A field executive will reach out shortly"}
+            {nextVisitLabel ? (
+              <>
+                {" "}on <span className="font-semibold">{nextVisitLabel}</span>.
+              </>
+            ) : (
+              "."
+            )}
+          </p>
+          <div className="flex justify-center">
+            <Button
+              variant="primary"
+              onClick={() =>
+                window.open(
+                  "mailto:support@kutoot.com?subject=Reschedule%20Visit",
+                  "_blank",
+                )
+              }
+            >
+              Reschedule
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="space-y-3">
           <p className="text-muted-foreground max-w-md mx-auto">
-            {isActivating
-              ? "KYC is verified — we're attaching a QR code to your store. You'll get login credentials the moment we're done."
-              : isVerifying
-                ? "Verifying your KYC & bank details. This usually takes under 15 minutes."
-                : displayPhone
-                  ? `Your application is under review. You'll receive an SMS on +91 ${displayPhone} once approved.`
-                  : "Your application is under review. You'll receive an SMS once approved."}
+            {stage === "under_review"
+              ? "Our team is reviewing your documents. This usually takes under 15 minutes."
+              : isOnboardingPhase
+                ? displayPhone
+                  ? `Your application is under review. You&apos;ll receive an SMS on +91 ${displayPhone} once approved.`
+                  : "Your application is under review. You&apos;ll receive an SMS once approved."
+                : "We're processing your application."}
           </p>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <span className="relative flex h-2 w-2">
