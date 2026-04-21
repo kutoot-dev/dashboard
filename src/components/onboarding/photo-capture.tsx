@@ -8,6 +8,7 @@ interface PhotoCaptureProps {
   label: string;
   value: string | null;
   onChange: (dataUrl: string) => void;
+  onLocationCaptured?: (coords: { lat: number; long: number; accuracy: number }) => void;
   required?: boolean;
   error?: string;
   hint?: string;
@@ -22,6 +23,7 @@ export function PhotoCapture({
   label,
   value,
   onChange,
+  onLocationCaptured,
   required,
   error,
   hint,
@@ -33,7 +35,90 @@ export function PhotoCapture({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const startCamera = useCallback(async () => {
+  function handleFileSelect(file: File) {
+    if (file.size < 100 * 1024 || file.size > 10 * 1024 * 1024) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        addWatermark(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function capturePhoto() {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+
+    // Stop camera
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    setCapturing(false);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    addWatermark(dataUrl);
+  }
+
+  function addWatermark(dataUrl: string) {
+    // Get GPS for watermark
+    if (navigator.geolocation) {
+      setGpsStatus("Getting location...");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setGpsStatus("");
+          onLocationCaptured?.({
+            lat: Number(pos.coords.latitude.toFixed(6)),
+            long: Number(pos.coords.longitude.toFixed(6)),
+            accuracy: Number(pos.coords.accuracy.toFixed(2)),
+          });
+          const now = new Date();
+          const watermarkText = `${now.toLocaleString("en-IN")} | ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+          applyWatermark(dataUrl, watermarkText);
+        },
+        () => {
+          setGpsStatus("GPS unavailable");
+          const watermarkText = `${new Date().toLocaleString("en-IN")} | GPS unavailable`;
+          applyWatermark(dataUrl, watermarkText);
+        },
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    } else {
+      const watermarkText = `${new Date().toLocaleString("en-IN")}`;
+      applyWatermark(dataUrl, watermarkText);
+    }
+  }
+
+  function applyWatermark(dataUrl: string, text: string) {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+
+      // Watermark bar
+      const barHeight = 40;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillRect(0, img.height - barHeight, img.width, barHeight);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "16px monospace";
+      ctx.fillText(text, 10, img.height - 14);
+
+      onChange(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.src = dataUrl;
+  }
+
+  async function startCamera() {
     try {
       setCapturing(true);
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -57,85 +142,7 @@ export function PhotoCapture({
       };
       input.click();
     }
-  }, []);
-
-  const handleFileSelect = (file: File) => {
-    if (file.size < 100 * 1024 || file.size > 10 * 1024 * 1024) {
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        addWatermark(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-
-    // Stop camera
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setCapturing(false);
-
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    addWatermark(dataUrl);
-  }, []);
-
-  const addWatermark = (dataUrl: string) => {
-    // Get GPS for watermark
-    if (navigator.geolocation) {
-      setGpsStatus("Getting location...");
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setGpsStatus("");
-          const now = new Date();
-          const watermarkText = `${now.toLocaleString("en-IN")} | ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-          applyWatermark(dataUrl, watermarkText);
-        },
-        () => {
-          setGpsStatus("GPS unavailable");
-          const watermarkText = `${new Date().toLocaleString("en-IN")} | GPS unavailable`;
-          applyWatermark(dataUrl, watermarkText);
-        },
-        { enableHighAccuracy: true, timeout: 10000 },
-      );
-    } else {
-      const watermarkText = `${new Date().toLocaleString("en-IN")}`;
-      applyWatermark(dataUrl, watermarkText);
-    }
-  };
-
-  const applyWatermark = (dataUrl: string, text: string) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-
-      // Watermark bar
-      const barHeight = 40;
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-      ctx.fillRect(0, img.height - barHeight, img.width, barHeight);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "16px monospace";
-      ctx.fillText(text, 10, img.height - 14);
-
-      onChange(canvas.toDataURL("image/jpeg", 0.85));
-    };
-    img.src = dataUrl;
-  };
+  }
 
   const cancelCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());

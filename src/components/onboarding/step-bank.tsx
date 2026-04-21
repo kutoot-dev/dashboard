@@ -24,7 +24,7 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
 
   // IFSC auto-verification on blur
   const handleIfscBlur = () => {
-    const ifsc = formData.bank_ifsc.toUpperCase();
+    const ifsc = (formData.bank_ifsc ?? "").toUpperCase();
     if (!ifsc || !VALIDATION_RULES.bank_ifsc.pattern.test(ifsc)) return;
 
     // Mock bank name lookup from IFSC
@@ -51,16 +51,18 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
   // Trigger penny drop on both account + IFSC present
   useEffect(() => {
     const { bank_account_number, bank_ifsc, penny_drop_status } = formData;
+    const accountNumber = bank_account_number ?? "";
+    const ifsc = (bank_ifsc ?? "").toUpperCase();
     if (
-      bank_account_number.length >= 9 &&
-      VALIDATION_RULES.bank_ifsc.pattern.test(bank_ifsc.toUpperCase()) &&
+      accountNumber.length >= 9 &&
+      VALIDATION_RULES.bank_ifsc.pattern.test(ifsc) &&
       penny_drop_status === "not_started"
     ) {
       updateFormData({ penny_drop_status: "pending", bank_status: "pending" });
       verifyBank.mutate(
         {
-          accountNumber: bank_account_number,
-          ifsc: bank_ifsc.toUpperCase(),
+          accountNumber,
+          ifsc,
         },
         {
           onSuccess: (res) => {
@@ -98,17 +100,21 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
+    const accountName = formData.bank_account_name ?? "";
+    const accountNumber = formData.bank_account_number ?? "";
+    const accountConfirm = formData.bank_account_confirm ?? "";
+    const ifsc = (formData.bank_ifsc ?? "").toUpperCase();
 
-    if (!formData.bank_account_name.trim()) {
+    if (!accountName.trim()) {
       e.bank_account_name = "Account holder name is required.";
     }
-    if (!VALIDATION_RULES.bank_account_number.pattern.test(formData.bank_account_number)) {
+    if (!VALIDATION_RULES.bank_account_number.pattern.test(accountNumber)) {
       e.bank_account_number = "Enter a valid account number (9-18 digits).";
     }
-    if (formData.bank_account_number !== formData.bank_account_confirm) {
+    if (accountNumber !== accountConfirm) {
       e.bank_account_confirm = "Account numbers do not match.";
     }
-    if (!VALIDATION_RULES.bank_ifsc.pattern.test(formData.bank_ifsc.toUpperCase())) {
+    if (!VALIDATION_RULES.bank_ifsc.pattern.test(ifsc)) {
       e.bank_ifsc = "Enter a valid 11-character IFSC code.";
     }
 
@@ -218,7 +224,7 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
       </FieldWithInfo>
 
       {/* Penny drop status */}
-      {formData.penny_drop_status !== "not_started" && (
+      {/* {formData.penny_drop_status !== "not_started" && (
         <div className="p-3 bg-card border border-border rounded-lg">
           <div className="flex items-center justify-between">
             <span className="text-sm text-foreground">
@@ -232,7 +238,7 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
             </p>
           )}
         </div>
-      )}
+      )} */}
 
       {/* Navigation */}
       <div className="flex justify-between pt-4">

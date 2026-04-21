@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/theme-provider";
 import { createChart, AreaSeries, type IChartApi } from "lightweight-charts";
 import { CHART_THEME_DARK, CHART_THEME_LIGHT } from "@/lib/constants/theme";
 import { useKMI } from "@/lib/hooks/use-kmi";

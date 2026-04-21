@@ -211,8 +211,8 @@ export function ApplicationStatusScreen({
               ? "Our team is reviewing your documents. This usually takes under 15 minutes."
               : isOnboardingPhase
                 ? displayPhone
-                  ? `Your application is under review. You&apos;ll receive an SMS on +91 ${displayPhone} once approved.`
-                  : "Your application is under review. You&apos;ll receive an SMS once approved."
+                  ? `Your application is under review. You will receive an SMS on +91 ${displayPhone} once approved.`
+                  : "Your application is under review. You will receive an SMS once approved."
                 : "We're processing your application."}
           </p>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">

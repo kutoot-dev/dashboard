@@ -13,6 +13,7 @@ import {
 } from "@/lib/constants/onboarding";
 import { onboardingService } from "@/lib/api/services";
 import { cn } from "@/lib/utils/cn";
+import type { WizardStepId } from "@/lib/types";
 
 type ResumeMode = "select" | "merchant" | "executive";
 type MerchantStep = "phone" | "otp";
@@ -23,10 +24,58 @@ const cardClass =
 const selectTileClass =
   "glass-card-transparent cursor-pointer rounded-2xl p-6 transition-all hover:ring-2 hover:ring-accent/40 hover:shadow-md active:scale-[0.99]";
 
-const toResumePayload = (app: Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"][number]) => ({
+function getActiveStepsForResume(
+  channel: string | null | undefined,
+  visitOutcome: string | null | undefined,
+): WizardStepId[] {
+  if (channel === "merchant") {
+    return ["identity", "basic_details", "commission", "kyc", "bank", "review"];
+  }
+  if (channel === "field_executive") {
+    if (visitOutcome === "interested") {
+      return [
+        "identity",
+        "visit_outcome",
+        "basic_details",
+        "commission",
+        "kyc",
+        "bank",
+        "qr_activation",
+        "review",
+      ];
+    }
+    if (visitOutcome === null || visitOutcome === undefined) {
+      return ["identity", "visit_outcome"];
+    }
+    return ["identity", "visit_outcome", "basic_details", "review"];
+  }
+  return ["identity"];
+}
+
+function inferCompletedSteps(
+  currentStep: WizardStepId | null | undefined,
+  channel: string | null | undefined,
+  visitOutcome: string | null | undefined,
+): WizardStepId[] {
+  const activeSteps = getActiveStepsForResume(channel, visitOutcome);
+  if (!currentStep) return [];
+
+  const currentIndex = activeSteps.indexOf(currentStep);
+  if (currentIndex <= 0) return [];
+
+  return activeSteps.slice(0, currentIndex);
+}
+
+const toResumePayload = (
+  app: Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"][number],
+) => ({
   ...app,
   application_id: app.application_id,
   current_step: app.current_step,
+  completed_steps:
+    app.completed_steps && Array.isArray(app.completed_steps)
+      ? app.completed_steps
+      : inferCompletedSteps(app.current_step, app.channel, app.visit_outcome),
 });
 
 export default function ResumePage() {
@@ -112,6 +161,14 @@ export default function ResumePage() {
           ...(fullApp as unknown as Record<string, unknown>),
           application_id: applicationId,
           current_step: fullApp.current_step,
+          completed_steps:
+            Array.isArray((fullApp as { completed_steps?: unknown }).completed_steps)
+              ? (fullApp as { completed_steps: WizardStepId[] }).completed_steps
+              : inferCompletedSteps(
+                  fullApp.current_step,
+                  (fullApp as { channel?: string | null }).channel,
+                  (fullApp as { visit_outcome?: string | null }).visit_outcome,
+                ),
         } as Parameters<typeof loadFromApplication>[0]);
       }
     } catch {
@@ -123,7 +180,7 @@ export default function ResumePage() {
   const loadApplication = async (phone: string) => {
     setLoading(true);
     try {
-      const res = await onboardingService.listApplications({ phone, status: "draft" });
+      const res = await onboardingService.listApplications({ phone, status: "inprogress" });
       const apps = res.data?.items || [];
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];
@@ -142,7 +199,7 @@ export default function ResumePage() {
   const loadApplicationByExec = async (execId: string) => {
     setLoading(true);
     try {
-      const res = await onboardingService.listApplications({ exec_id: execId, status: "draft" });
+      const res = await onboardingService.listApplications({ exec_id: execId, status: "inprogress" });
       const apps = res.data?.items || [];
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];

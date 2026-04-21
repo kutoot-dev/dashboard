@@ -3,11 +3,11 @@
  *
  * Talks DIRECTLY to the kutoot Laravel backend (no Next.js proxy layer).
  * Configure NEXT_PUBLIC_BACKEND_URL to the dashboard API root, e.g.
- *   http://kutoot.test/api/dashboard
+ *   https://kutoot.test/api/dashboard
  */
 import axios from "axios";
 
-const DEFAULT_BACKEND = "http://kutoot.test/api/dashboard";
+const DEFAULT_BACKEND = "https://kutoot.test/api/dashboard";
 
 export const BACKEND_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||

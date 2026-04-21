@@ -1,7 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getStates, type GeoState } from "@/lib/api/services/geo.service";
+import {
+  getCitiesByStateId,
+  getMerchantCategories,
+  getStates,
+  type GeoState,
+  type MerchantCategoryOption,
+} from "@/lib/api/services/geo.service";
 
 const FALLBACK_STATES: GeoState[] = [
   { code: "AP", name: "Andhra Pradesh", type: "state" },
@@ -40,7 +46,10 @@ const FALLBACK_STATES: GeoState[] = [
   { code: "LA", name: "Ladakh", type: "union_territory" },
   { code: "LD", name: "Lakshadweep", type: "union_territory" },
   { code: "PY", name: "Puducherry", type: "union_territory" },
-];
+].map((state, index) => ({
+  id: -(index + 1),
+  ...state,
+}));
 
 /**
  * Fetches the list of Indian states from the backend.
@@ -61,5 +70,47 @@ export function useStates() {
   return {
     ...query,
     states: query.data ?? FALLBACK_STATES,
+  };
+}
+
+/**
+ * Cities for the selected state (from dashboard geo API).
+ */
+export function useCities(stateId: number | null) {
+  const query = useQuery({
+    queryKey: ["geo", "cities", stateId],
+    queryFn: async () => {
+      if (!stateId) return [];
+      const res = await getCitiesByStateId(stateId);
+      return res.data?.cities ?? [];
+    },
+    enabled: !!stateId,
+    staleTime: 24 * 60 * 60 * 1000, // 24h
+    retry: 1,
+  });
+
+  return {
+    ...query,
+    cities: query.data ?? ([] as string[]),
+  };
+}
+
+/**
+ * Merchant business categories for onboarding (from DB via dashboard API).
+ */
+export function useMerchantCategories() {
+  const query = useQuery({
+    queryKey: ["geo", "merchant-categories"],
+    queryFn: async () => {
+      const res = await getMerchantCategories();
+      return res.data?.categories ?? [];
+    },
+    staleTime: 5 * 60 * 1000, // 5m — aligned with backend cache
+    retry: 1,
+  });
+
+  return {
+    ...query,
+    categories: query.data ?? ([] as MerchantCategoryOption[]),
   };
 }

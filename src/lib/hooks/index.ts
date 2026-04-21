@@ -25,4 +25,4 @@ export {
   useVerifyPan,
   useVerifyBank,
 } from "./use-onboarding";
-export { useStates } from "./use-geo";
+export { useStates, useCities, useMerchantCategories } from "./use-geo";

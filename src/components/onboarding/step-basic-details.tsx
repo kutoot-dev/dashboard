@@ -6,14 +6,11 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
 import { PhotoCapture } from "./photo-capture";
+import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useCheckPhone, useStates } from "@/lib/hooks";
-import {
-  ONBOARDING_FIELDS,
-  SECTOR_OPTIONS,
-  VALIDATION_RULES,
-} from "@/lib/constants/onboarding";
+import { useCheckPhone, useCities, useMerchantCategories, useStates } from "@/lib/hooks";
+import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus } from "@/lib/types";
 
 interface StepBasicDetailsProps {
@@ -26,6 +23,8 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     useOnboardingStore();
   const checkPhone = useCheckPhone();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [gpsStatus, setGpsStatus] = useState<string>("");
+  const [selectedStateId, setSelectedStateId] = useState<string>("");
 
   // FE visiting a non-interested (or any non-onboarding) merchant → relaxed rules
   const isFeVisitOnly =
@@ -127,6 +126,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!formData.state) {
       e.state = "State is required.";
     }
+    if (formData.gps_lat == null || formData.gps_long == null) {
+      e.gps = "Select map location to capture latitude and longitude.";
+    }
     // Storefront photo: required only for interested / merchant flows
     if (!isFeVisitOnly && !formData.storefront_photo_url) {
       e.storefront_photo = "Shop storefront photo is mandatory.";
@@ -148,6 +150,58 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const isPhoneBlocked = !!phoneCheckResult?.exists;
 
   const { states } = useStates();
+  const selectedState =
+    states.find((s) => String(s.id) === selectedStateId) ??
+    states.find((s) => s.name === formData.state) ??
+    null;
+  const {
+    cities,
+    isLoading: citiesLoading,
+    isError: citiesError,
+  } = useCities(selectedState?.id ?? null);
+  const {
+    categories: merchantCategories,
+    isLoading: categoriesLoading,
+    isError: categoriesError,
+  } = useMerchantCategories();
+
+  const sectorSelectOptions = merchantCategories.map((c) => ({
+    value: String(c.id),
+    label: c.name,
+  }));
+  const cityOptions = cities;
+  const selectedStateValue =
+    selectedStateId ||
+    (states.find((s) => s.name === formData.state)?.id != null
+      ? String(states.find((s) => s.name === formData.state)?.id)
+      : "");
+
+  const pickCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGpsStatus("Geolocation not supported on this device.");
+      return;
+    }
+    setGpsStatus("Fetching current location...");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        updateFormData({
+          gps_lat: Number(pos.coords.latitude.toFixed(6)),
+          gps_long: Number(pos.coords.longitude.toFixed(6)),
+          gps_accuracy: Number(pos.coords.accuracy.toFixed(2)),
+        });
+        setGpsStatus("Location captured.");
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.gps;
+          return next;
+        });
+      },
+      () => {
+        setGpsStatus("Unable to capture location. Please enable location access.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }, [updateFormData]);
 
   return (
     <div className="space-y-6">
@@ -253,16 +307,27 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
-      {/* Sector */}
+      {/* Sector / merchant category (from API) */}
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.sector} required error={errors.sector}>
+        {categoriesError && (
+          <p className="text-sm text-destructive mb-2">
+            Could not load business categories. Check your connection and refresh the page.
+          </p>
+        )}
         <Select
-          options={SECTOR_OPTIONS}
-          value={formData.sector_id}
+          options={sectorSelectOptions}
+          value={formData.sector_id != null ? String(formData.sector_id) : ""}
           onChange={(v) => {
-            const opt = SECTOR_OPTIONS.find((o) => o.value === v);
-            updateFormData({ sector_id: v, sector_name: opt?.label || "" });
+            const opt = merchantCategories.find((c) => String(c.id) === v);
+            updateFormData({
+              sector_id: v,
+              sector_name: opt?.name || "",
+              minimum_commission_percentage:
+                opt?.minimum_commission_percentage ?? null,
+            });
           }}
-          placeholder="Select category..."
+          placeholder={categoriesLoading ? "Loading categories…" : "Select category..."}
+          disabled={categoriesLoading || categoriesError || sectorSelectOptions.length === 0}
         />
       </FieldWithInfo>
 
@@ -275,7 +340,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
-      {/* PIN / City / State */}
+      {/* PIN / State / City */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.pin_code} required error={errors.pin_code}>
           <Input
@@ -290,23 +355,75 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             inputMode="numeric"
           />
         </FieldWithInfo>
-        <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} required error={errors.city}>
-          <Input
-            placeholder="Bengaluru"
-            value={formData.city}
-            onChange={(e) => updateFormData({ city: e.target.value })}
+        <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} required error={errors.state}>
+          <Select
+            options={states.map((s) => ({ value: String(s.id), label: s.name }))}
+            value={selectedStateValue}
+            onChange={(v) => {
+              const state = states.find((s) => String(s.id) === v);
+              setSelectedStateId(v);
+              updateFormData({ state: state?.name ?? "", city: "" });
+            }}
+            placeholder="Select state..."
           />
         </FieldWithInfo>
       </div>
 
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} required error={errors.state}>
+      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} required error={errors.city}>
+        {citiesError && (
+          <p className="text-xs text-destructive mb-2">
+            Could not load cities for selected state.
+          </p>
+        )}
         <Select
-          options={states.map((s) => ({ value: s.name, label: s.name }))}
-          value={formData.state}
-          onChange={(v) => updateFormData({ state: v })}
-          placeholder="Select state..."
+          options={cityOptions.map((city) => ({ value: city, label: city }))}
+          value={formData.city}
+          onChange={(v) => updateFormData({ city: v })}
+          placeholder={
+            !selectedState
+              ? "Select state first"
+              : citiesLoading
+                ? "Loading cities..."
+                : "Select city..."
+          }
+          disabled={!selectedState || citiesLoading || citiesError}
         />
       </FieldWithInfo>
+
+      <div className="space-y-2 rounded-lg border border-border p-3">
+        <p className="text-sm font-medium text-foreground">Map Location</p>
+        <p className="text-xs text-muted-foreground">
+          Select visually from map or capture your current location.
+        </p>
+        <MapLocationPicker
+          value={
+            formData.gps_lat != null && formData.gps_long != null
+              ? { lat: formData.gps_lat, long: formData.gps_long }
+              : null
+          }
+          onSelect={(coords) => {
+            updateFormData({
+              gps_lat: coords.lat,
+              gps_long: coords.long,
+            });
+            setGpsStatus("Location selected from map.");
+            setErrors((prev) => {
+              const next = { ...prev };
+              delete next.gps;
+              return next;
+            });
+          }}
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input value={formData.gps_lat ?? ""} readOnly placeholder="Latitude" />
+          <Input value={formData.gps_long ?? ""} readOnly placeholder="Longitude" />
+        </div>
+        <Button type="button" variant="secondary" onClick={pickCurrentLocation}>
+          Current Location
+        </Button>
+        {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
+        {errors.gps && <p className="text-xs text-error">{errors.gps}</p>}
+      </div>
 
       {/* Branch / outlet name (optional, helpful when the merchant runs multiple outlets) */}
       <div className="space-y-1.5">
@@ -328,6 +445,13 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           updateFormData({
             storefront_photo_url: url,
             storefront_photo_status: "uploaded",
+          })
+        }
+        onLocationCaptured={(coords) =>
+          updateFormData({
+            gps_lat: coords.lat,
+            gps_long: coords.long,
+            gps_accuracy: coords.accuracy,
           })
         }
         required={!isFeVisitOnly}

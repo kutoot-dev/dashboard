@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/components/providers/theme-provider";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { StepIdentity } from "@/components/onboarding/step-identity";
 import { StepVisitOutcome } from "@/components/onboarding/step-visit-outcome";
@@ -69,6 +70,12 @@ const EDITABLE_STAGES: ReadonlySet<string> = new Set([
 
 export default function OnboardPage() {
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const {
     currentStep,
     completedSteps,
@@ -86,6 +93,19 @@ export default function OnboardPage() {
       router.replace("/onboard/start");
     }
   }, [applicationId, router]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   // When resuming, if the application has already left an editable stage
   // we surface the read-only status screen. Editable stages are:
@@ -192,9 +212,26 @@ export default function OnboardPage() {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
+
+  const themeToggle = (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-muted-foreground transition-colors hover:bg-card-hover hover:text-foreground"
+      aria-label="Toggle dark and light mode"
+      title="Toggle dark and light mode"
+    >
+      {!mounted ? "Theme" : resolvedTheme === "dark" ? "Light Mode" : "Dark Mode"}
+    </button>
+  );
+
   if (applicationId && lockedStage) {
     return (
       <div className="space-y-6">
+        <div className="flex justify-end">{themeToggle}</div>
         <ApplicationStatusScreen
           applicationId={applicationId}
           phone={formData.phone ?? null}
@@ -205,6 +242,7 @@ export default function OnboardPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">{themeToggle}</div>
       <WizardShell
         currentStep={currentStep}
         completedSteps={completedSteps}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
@@ -12,6 +12,7 @@ import {
   ONBOARDING_STRINGS,
 } from "@/lib/constants/onboarding";
 import type { CommissionModel, CommissionTier } from "@/lib/types";
+import { useMerchantCategories } from "@/lib/hooks";
 
 interface StepCommissionProps {
   onNext: () => void;
@@ -21,6 +22,23 @@ interface StepCommissionProps {
 export function StepCommission({ onNext, onBack }: StepCommissionProps) {
   const { formData, updateFormData } = useOnboardingStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { categories } = useMerchantCategories();
+
+  const selectedCategory = useMemo(
+    () => categories.find((c) => String(c.id) === formData.sector_id),
+    [categories, formData.sector_id],
+  );
+  const categoryMinCommission = useMemo(() => {
+    const rawFromApplication = formData.minimum_commission_percentage;
+    const raw =
+      rawFromApplication != null
+        ? rawFromApplication
+        : selectedCategory?.minimum_commission_percentage;
+    if (raw == null || Number.isNaN(Number(raw))) {
+      return VALIDATION_RULES.commission_rate.min;
+    }
+    return Math.max(VALIDATION_RULES.commission_rate.min, Number(raw));
+  }, [selectedCategory]);
 
   const handleModelChange = (model: CommissionModel) => {
     if (model === "tiered" && !formData.commission_tiers?.length) {
@@ -28,10 +46,33 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
         commission_model: model,
         commission_tiers: DEFAULT_COMMISSION_TIERS,
       });
+    } else if (model === "flat") {
+      updateFormData({
+        commission_model: model,
+        commission_rate:
+          formData.commission_rate === null
+            ? categoryMinCommission
+            : Math.max(formData.commission_rate, categoryMinCommission),
+      });
     } else {
       updateFormData({ commission_model: model });
     }
   };
+
+  useEffect(() => {
+    if (
+      formData.commission_model === "flat" &&
+      formData.commission_rate !== null &&
+      formData.commission_rate < categoryMinCommission
+    ) {
+      updateFormData({ commission_rate: categoryMinCommission });
+    }
+  }, [
+    categoryMinCommission,
+    formData.commission_model,
+    formData.commission_rate,
+    updateFormData,
+  ]);
 
   const handleRateChange = (value: string) => {
     const num = parseFloat(value);
@@ -40,7 +81,11 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
       return;
     }
     if (!isNaN(num)) {
-      updateFormData({ commission_rate: num });
+      const clamped = Math.min(
+        VALIDATION_RULES.commission_rate.max,
+        Math.max(categoryMinCommission, num),
+      );
+      updateFormData({ commission_rate: clamped });
     }
   };
 
@@ -65,9 +110,9 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
     if (formData.commission_model === "flat") {
       if (
         formData.commission_rate === null ||
-        formData.commission_rate < VALIDATION_RULES.commission_rate.min
+        formData.commission_rate < categoryMinCommission
       ) {
-        e.commission_rate = ONBOARDING_STRINGS.COMMISSION_MIN_ERROR;
+        e.commission_rate = `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
       } else if (
         formData.commission_rate > VALIDATION_RULES.commission_rate.max
       ) {
@@ -79,10 +124,10 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
       const tiers = formData.commission_tiers || [];
       for (let i = 0; i < tiers.length; i++) {
         if (
-          tiers[i].rate_percent < VALIDATION_RULES.commission_rate.min
+          tiers[i].rate_percent < categoryMinCommission
         ) {
           e[`tier_${i}`] =
-            `Tier ${i + 1} rate cannot be less than ${VALIDATION_RULES.commission_rate.min}%`;
+            `Tier ${i + 1} rate cannot be less than ${categoryMinCommission.toFixed(2)}%`;
         }
       }
     }
@@ -108,7 +153,8 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
       <div>
         <h2 className="text-xl font-bold text-foreground">Commission Setup</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Set up the transaction commission terms. Minimum commission rate is 2%.
+          Set up the transaction commission terms. Minimum commission for your category is{" "}
+          {categoryMinCommission.toFixed(2)}%.
         </p>
       </div>
 
@@ -133,7 +179,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
               Same % on all transactions
             </div>
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={() => handleModelChange("tiered")}
             className={`p-4 rounded-lg border text-left transition-all ${
@@ -146,7 +192,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
             <div className="text-xs text-muted-foreground mt-1">
               Different % for volume slabs
             </div>
-          </button>
+          </button> */}
         </div>
       </FieldWithInfo>
 
@@ -157,18 +203,42 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
           required
           error={errors.commission_rate}
         >
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              placeholder="5.00"
-              value={formData.commission_rate?.toString() || ""}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Category minimum:{" "}
+                <span className="font-medium text-foreground">
+                  {categoryMinCommission.toFixed(2)}%
+                </span>
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder={categoryMinCommission.toFixed(2)}
+                  value={formData.commission_rate?.toString() || ""}
+                  onChange={(e) => handleRateChange(e.target.value)}
+                  min={categoryMinCommission}
+                  max={VALIDATION_RULES.commission_rate.max}
+                  step={0.01}
+                  className="w-32"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={categoryMinCommission}
+              max={VALIDATION_RULES.commission_rate.max}
+              step={0.25}
+              value={formData.commission_rate ?? categoryMinCommission}
               onChange={(e) => handleRateChange(e.target.value)}
-              min={0}
-              max={99.99}
-              step={0.01}
-              className="w-32"
+              className="w-full accent-accent"
+              aria-label="Commission rate percentage"
             />
-            <span className="text-sm text-muted-foreground">%</span>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{categoryMinCommission.toFixed(2)}%</span>
+              <span>{VALIDATION_RULES.commission_rate.max.toFixed(2)}%</span>
+            </div>
           </div>
           {formData.commission_rate !== null && formData.commission_rate > 0 && (
             <div className="mt-2 p-3 bg-card border border-border rounded-md">
@@ -222,7 +292,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
                           onChange={(e) =>
                             updateTier(i, "rate_percent", e.target.value)
                           }
-                          min={2}
+                          min={categoryMinCommission}
                           max={15}
                           step={0.1}
                           className="w-20"
@@ -241,7 +311,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
             </table>
           </div>
           <p className="text-xs text-muted-foreground">
-            All tier rates must be at least {VALIDATION_RULES.commission_rate.min}%.
+            All tier rates must be at least {categoryMinCommission.toFixed(2)}%.
             Higher-volume tiers typically have lower rates.
           </p>
         </div>

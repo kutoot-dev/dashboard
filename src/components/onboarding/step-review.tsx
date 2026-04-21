@@ -7,7 +7,6 @@ import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useCreateApplication, useUpdateApplication } from "@/lib/hooks";
 import {
   APPLICATION_STATUS_LABELS,
-  ONBOARDING_FIELDS,
   ONBOARDING_STRINGS,
   SECTOR_OPTIONS,
   VOLUME_RANGES,
@@ -155,8 +154,9 @@ export function StepReview({ onBack }: StepReviewProps) {
   }
 
   const sectorLabel =
-    SECTOR_OPTIONS.find((s) => s.value === formData.sector_id)?.label ||
-    formData.sector_id;
+    formData.sector_name ||
+    SECTOR_OPTIONS.find((s) => s.value === String(formData.sector_id))?.label ||
+    (formData.sector_id ? String(formData.sector_id) : "");
   const volumeLabel =
     VOLUME_RANGES.find((v) => v.value === formData.expected_monthly_volume)?.label ||
     formData.expected_monthly_volume;
@@ -226,8 +226,22 @@ export function StepReview({ onBack }: StepReviewProps) {
         {formData.phone && <Row label="Phone" value={`+91 ${formData.phone}`} />}
         {formData.owner_name && <Row label="Owner Name" value={formData.owner_name} />}
         <Row label="Shop Name" value={formData.shop_name} />
+        {formData.branch_name && <Row label="Branch / Outlet" value={formData.branch_name} />}
         <Row label="Category" value={sectorLabel} />
+        <Row label="Locality" value={formData.locality} />
+        <Row label="City" value={formData.city} />
+        <Row label="State" value={formData.state} />
+        <Row label="PIN Code" value={formData.pin_code} />
         <Row label="Location" value={`${formData.locality}, ${formData.city}, ${formData.state} - ${formData.pin_code}`} />
+        <Row
+          label="Latitude / Longitude"
+          value={
+            formData.gps_lat != null && formData.gps_long != null
+              ? `${formData.gps_lat}, ${formData.gps_long}`
+              : "Not captured"
+          }
+          valueClass={formData.gps_lat != null && formData.gps_long != null ? "" : "text-error"}
+        />
         <Row
           label="Storefront Photo"
           value={formData.storefront_photo_url ? "✓ Uploaded" : isFeVisitOnly ? "— Skipped" : "✗ Missing"}
@@ -243,6 +257,12 @@ export function StepReview({ onBack }: StepReviewProps) {
             <Row label="Model" value={formData.commission_model === "flat" ? "Flat Rate" : "Tiered"} />
             {formData.commission_model === "flat" && (
               <Row label="Rate" value={`${formData.commission_rate}%`} />
+            )}
+            {formData.minimum_commission_percentage != null && (
+              <Row
+                label="Minimum Allowed"
+                value={`${formData.minimum_commission_percentage}%`}
+              />
             )}
             {formData.commission_model === "tiered" && formData.commission_tiers && (
               <div className="col-span-2">
@@ -260,20 +280,24 @@ export function StepReview({ onBack }: StepReviewProps) {
           {/* KYC Section */}
           <Section title="KYC" onEdit={() => goToStep("kyc")}>
             <Row label="GST" value={formData.gst_number || "Not provided"} />
+            {/* <Row
+              label="GST Business Address"
+              value={formData.gst_business_address || "Not provided"}
+            />
             <Row
               label="GST Status"
               value={APPLICATION_STATUS_LABELS[formData.gst_status] || formData.gst_status}
-            />
+            /> */}
             <Row
               label="GST Document"
               value={formData.gst_doc_photo_url ? "✓ Photo uploaded" : "— Not captured"}
               valueClass={formData.gst_doc_photo_url ? "text-success" : "text-muted-foreground"}
             />
             <Row label="PAN" value={formData.pan_number || "Not provided"} />
-            <Row
+            {/* <Row
               label="PAN Status"
               value={APPLICATION_STATUS_LABELS[formData.pan_status] || formData.pan_status}
-            />
+            /> */}
             <Row
               label="PAN Document"
               value={formData.pan_doc_photo_url ? "✓ Photo uploaded" : "— Not captured"}
@@ -283,7 +307,7 @@ export function StepReview({ onBack }: StepReviewProps) {
               label="Aadhaar"
               value={
                 formData.aadhaar_number
-                  ? `XXXX-XXXX-${formData.aadhaar_number.slice(-4)}`
+                  ? formData.aadhaar_number
                   : "Not provided"
               }
             />
@@ -297,9 +321,20 @@ export function StepReview({ onBack }: StepReviewProps) {
           {/* Bank Section */}
           <Section title="Bank Details" onEdit={() => goToStep("bank")}>
             <Row label="Account Name" value={formData.bank_account_name} />
-            <Row label="Account Number" value={`XXXX${formData.bank_account_number.slice(-4)}`} />
+            <Row label="Account Number" value={formData.bank_account_number} />
             <Row label="IFSC" value={formData.bank_ifsc} />
             {formData.bank_name && <Row label="Bank" value={formData.bank_name} />}
+            {formData.bank_branch_name && (
+              <Row label="Branch" value={formData.bank_branch_name} />
+            )}
+            <Row
+              label="Bank Status"
+              value={APPLICATION_STATUS_LABELS[formData.bank_status] || formData.bank_status}
+            />
+            {/* <Row
+              label="Penny Drop"
+              value={APPLICATION_STATUS_LABELS[formData.penny_drop_status] || formData.penny_drop_status}
+            /> */}
           </Section>
 
           {/* QR & Activation — shown only for field executive (merchant skips this step) */}
@@ -318,6 +353,17 @@ export function StepReview({ onBack }: StepReviewProps) {
               <Row label="Expected Volume" value={volumeLabel} />
             </Section>
           )}
+
+          <Section title="Identity" onEdit={() => goToStep("identity")}>
+            <Row
+              label="Channel"
+              value={formData.channel === "merchant" ? "Merchant" : "Field Executive"}
+            />
+            {formData.exec_name && <Row label="Executive Name" value={formData.exec_name} />}
+            {formData.exec_employee_code && (
+              <Row label="Employee Code" value={formData.exec_employee_code} />
+            )}
+          </Section>
         </>
       )}
 
@@ -336,7 +382,14 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <span className="text-accent underline">Terms & Conditions</span>{" "}
+              <a
+                href="https://kutoot.com/termsandcondition"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                Terms & Conditions
+              </a>{" "}
               and agree to the commission structure above.
             </span>
           </label>
@@ -355,7 +408,15 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <span className="text-accent underline">Privacy Policy</span> and
+              <a
+                href="https://kutoot.com/privacypolicy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                Privacy Policy
+              </a>{" "}
+              and
               consent to data processing as described.
             </span>
           </label>

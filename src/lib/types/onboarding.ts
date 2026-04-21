@@ -238,6 +238,7 @@ export interface OnboardingApplication {
 
   // Step 3: Commission
   commission_rate: number | null;
+  minimum_commission_percentage?: number | string | null;
   commission_model: CommissionModel | null;
   commission_tiers: CommissionTier[] | null;
   commission_agreed: boolean;

@@ -44,6 +44,7 @@ interface OnboardingFormData {
 
   // Step 3
   commission_rate: number | null;
+  minimum_commission_percentage: number | string | null;
   commission_model: CommissionModel | null;
   commission_tiers: CommissionTier[] | null;
   commission_agreed: boolean;
@@ -148,6 +149,7 @@ const initialFormData: OnboardingFormData = {
   gps_accuracy: null,
 
   commission_rate: null,
+  minimum_commission_percentage: null,
   commission_model: null,
   commission_tiers: null,
   commission_agreed: false,
