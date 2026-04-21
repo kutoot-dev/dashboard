@@ -9,7 +9,14 @@ import { PhotoCapture } from "./photo-capture";
 import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useCheckPhone, useCities, useMerchantCategories, useStates } from "@/lib/hooks";
+import {
+  useCheckPhone,
+  useCities,
+  useMerchantCategories,
+  useSendEmailOtp,
+  useStates,
+  useVerifyEmailOtp,
+} from "@/lib/hooks";
 import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus } from "@/lib/types";
 
@@ -22,9 +29,14 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const { formData, updateFormData, phoneCheckResult, setPhoneCheckResult } =
     useOnboardingStore();
   const checkPhone = useCheckPhone();
+  const sendEmailOtp = useSendEmailOtp();
+  const verifyEmailOtp = useVerifyEmailOtp();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [gpsStatus, setGpsStatus] = useState<string>("");
   const [selectedStateId, setSelectedStateId] = useState<string>("");
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailOtpMessage, setEmailOtpMessage] = useState("");
 
   // FE visiting a non-interested (or any non-onboarding) merchant → relaxed rules
   const isFeVisitOnly =
@@ -129,6 +141,15 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (formData.gps_lat == null || formData.gps_long == null) {
       e.gps = "Select map location to capture latitude and longitude.";
     }
+    const email = formData.owner_email.trim();
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        e.owner_email = "Enter a valid email address.";
+      } else if (!formData.owner_email_verified) {
+        e.owner_email = "Please verify email via OTP.";
+      }
+    }
     // Storefront photo: required only for interested / merchant flows
     if (!isFeVisitOnly && !formData.storefront_photo_url) {
       e.storefront_photo = "Shop storefront photo is mandatory.";
@@ -202,6 +223,50 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }, [updateFormData]);
+
+  const handleSendEmailOtp = async () => {
+    const email = formData.owner_email.trim().toLowerCase();
+    if (!email) {
+      setErrors((prev) => ({ ...prev, owner_email: "Email is required to send OTP." }));
+      return;
+    }
+    try {
+      const res = await sendEmailOtp.mutateAsync(email);
+      if (res.data.sent) {
+        setEmailOtpSent(true);
+        setEmailOtpMessage("OTP sent to email.");
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.owner_email;
+          return next;
+        });
+      }
+    } catch {
+      setEmailOtpMessage("Failed to send OTP. Please try again.");
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    const email = formData.owner_email.trim().toLowerCase();
+    if (emailOtp.length !== 6) {
+      setEmailOtpMessage("Enter 6-digit OTP.");
+      return;
+    }
+    try {
+      const res = await verifyEmailOtp.mutateAsync({ email, otp: emailOtp });
+      if (res.data.verified) {
+        updateFormData({ owner_email_verified: true, owner_email: email });
+        setEmailOtpMessage("Email verified.");
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.owner_email;
+          return next;
+        });
+      }
+    } catch {
+      setEmailOtpMessage("Invalid or expired OTP.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -297,6 +362,66 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">
+          Email <span className="text-xs text-muted-foreground">(single email)</span>
+        </label>
+        <Input
+          placeholder="merchant@example.com"
+          value={formData.owner_email ?? ""}
+          onChange={(e) => {
+            updateFormData({
+              owner_email: e.target.value,
+              owner_email_verified: false,
+            });
+            setEmailOtp("");
+            setEmailOtpSent(false);
+            setEmailOtpMessage("");
+          }}
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleSendEmailOtp}
+            loading={sendEmailOtp.isPending}
+            disabled={!formData.owner_email}
+          >
+            Send Email OTP
+          </Button>
+          {formData.owner_email_verified && (
+            <span className="text-xs text-success self-center">Verified</span>
+          )}
+        </div>
+        {emailOtpSent && !formData.owner_email_verified && (
+          <div className="mt-2 flex gap-2">
+            <Input
+              placeholder="Enter 6-digit OTP"
+              value={emailOtp}
+              onChange={(e) =>
+                setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              maxLength={6}
+              inputMode="numeric"
+            />
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleVerifyEmailOtp}
+              loading={verifyEmailOtp.isPending}
+              disabled={emailOtp.length !== 6}
+            >
+              Verify
+            </Button>
+          </div>
+        )}
+        {(errors.owner_email || emailOtpMessage) && (
+          <p className="mt-1 text-xs text-error">{errors.owner_email ?? emailOtpMessage}</p>
+        )}
+      </div>
+
       {/* Shop Name */}
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.shop_name} required error={errors.shop_name}>
         <Input
@@ -331,6 +456,35 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Year of Establishment</label>
+          <Input
+            type="number"
+            min="1900"
+            max={String(new Date().getFullYear())}
+            placeholder="2018"
+            value={formData.year_of_establishment ?? ""}
+            onChange={(e) => updateFormData({ year_of_establishment: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Business Ownership Type</label>
+          <Select
+            options={[
+              { value: "proprietorship", label: "Proprietorship" },
+              { value: "partnership", label: "Partnership" },
+              { value: "llp", label: "LLP" },
+              { value: "private_limited", label: "Private Limited" },
+              { value: "public_limited", label: "Public Limited" },
+            ]}
+            value={formData.business_ownership_type ?? ""}
+            onChange={(value) => updateFormData({ business_ownership_type: value })}
+            placeholder="Select ownership type..."
+          />
+        </div>
+      </div>
+
       {/* Locality */}
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.locality} required error={errors.locality}>
         <Input
@@ -339,6 +493,25 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           onChange={(e) => updateFormData({ locality: e.target.value })}
         />
       </FieldWithInfo>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Door No</label>
+          <Input
+            placeholder="12/3"
+            value={formData.door_no ?? ""}
+            onChange={(e) => updateFormData({ door_no: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Shop No</label>
+          <Input
+            placeholder="S-14"
+            value={formData.shop_no ?? ""}
+            onChange={(e) => updateFormData({ shop_no: e.target.value })}
+          />
+        </div>
+      </div>
 
       {/* PIN / State / City */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -21,6 +21,8 @@ export {
   useVerifyExecutive,
   useSendOtp,
   useVerifyOtp,
+  useSendEmailOtp,
+  useVerifyEmailOtp,
   useVerifyGst,
   useVerifyPan,
   useVerifyBank,

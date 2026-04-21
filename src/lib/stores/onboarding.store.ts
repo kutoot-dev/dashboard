@@ -28,7 +28,13 @@ interface OnboardingFormData {
   // Step 2
   phone: string;
   owner_name: string;
+  owner_email: string;
+  owner_email_verified: boolean;
   shop_name: string;
+  door_no: string;
+  shop_no: string;
+  year_of_establishment: string;
+  business_ownership_type: string;
   sector_id: string;
   sector_name: string;
   locality: string;
@@ -69,6 +75,7 @@ interface OnboardingFormData {
   bank_ifsc: string;
   bank_name: string | null;
   bank_branch_name: string | null;
+  preferred_settlement_method: string;
   bank_status: string;
   penny_drop_status: string;
 
@@ -134,7 +141,13 @@ const initialFormData: OnboardingFormData = {
 
   phone: "",
   owner_name: "",
+  owner_email: "",
+  owner_email_verified: false,
   shop_name: "",
+  door_no: "",
+  shop_no: "",
+  year_of_establishment: "",
+  business_ownership_type: "",
   sector_id: "",
   sector_name: "",
   locality: "",
@@ -172,6 +185,7 @@ const initialFormData: OnboardingFormData = {
   bank_ifsc: "",
   bank_name: null,
   bank_branch_name: null,
+  preferred_settlement_method: "",
   bank_status: "not_started",
   penny_drop_status: "not_started",
 

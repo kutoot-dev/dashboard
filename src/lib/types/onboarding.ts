@@ -262,6 +262,7 @@ export interface OnboardingApplication {
   bank_ifsc: string | null;
   bank_name: string | null;
   bank_branch_name: string | null;
+  preferred_settlement_method?: string | null;
   bank_status: KycVerificationStatus;
   penny_drop_status: "not_started" | "success" | "failed" | "pending";
 

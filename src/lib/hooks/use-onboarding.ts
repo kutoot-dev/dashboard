@@ -87,6 +87,19 @@ export function useVerifyOtp() {
   });
 }
 
+export function useSendEmailOtp() {
+  return useMutation({
+    mutationFn: (email: string) => onboardingService.sendEmailOtp(email),
+  });
+}
+
+export function useVerifyEmailOtp() {
+  return useMutation({
+    mutationFn: ({ email, otp }: { email: string; otp: string }) =>
+      onboardingService.verifyEmailOtp(email, otp),
+  });
+}
+
 export function useVerifyGst() {
   return useMutation({
     mutationFn: ({

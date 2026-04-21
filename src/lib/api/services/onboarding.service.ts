@@ -125,6 +125,22 @@ export async function verifyOtp(phone: string, otp: string) {
   return res.data;
 }
 
+export async function sendEmailOtp(email: string) {
+  const res = await apiClient.post<ApiResponse<OtpSendResult>>(
+    "/onboarding/send-email-otp",
+    { email },
+  );
+  return res.data;
+}
+
+export async function verifyEmailOtp(email: string, otp: string) {
+  const res = await apiClient.post<ApiResponse<OtpVerifyResult>>(
+    "/onboarding/verify-email-otp",
+    { email, otp },
+  );
+  return res.data;
+}
+
 // ── KYC Verification (non-blocking) ───────────────────────────────
 
 export async function verifyGst(gstNumber: string, ownerName?: string) {
