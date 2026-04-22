@@ -477,6 +477,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
               { value: "llp", label: "LLP" },
               { value: "private_limited", label: "Private Limited" },
               { value: "public_limited", label: "Public Limited" },
+              { value: "unregistered", label: "Unregistered / Other" },
             ]}
             value={formData.business_ownership_type ?? ""}
             onChange={(value) => updateFormData({ business_ownership_type: value })}

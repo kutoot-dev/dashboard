@@ -89,8 +89,8 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
     onNext();
   };
 
-  /* ── today's date in YYYY-MM-DD (min for date input) ───────────── */
-  const today = new Date().toISOString().split("T")[0];
+  /* ── current datetime in YYYY-MM-DDTHH:mm (min for datetime-local) ─ */
+  const nowLocal = new Date().toISOString().slice(0, 16);
 
   return (
     <div className="space-y-6">
@@ -249,34 +249,20 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">
-                    Date <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    min={today}
-                    value={slot.date}
-                    onChange={(e) =>
-                      updateSlot(slot.id, { date: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">
-                    Time <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={slot.time}
-                    onChange={(e) =>
-                      updateSlot(slot.id, { time: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">
+                  When <span className="text-error">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  min={nowLocal}
+                  value={slot.date && slot.time ? `${slot.date}T${slot.time}` : ""}
+                  onChange={(e) => {
+                    const [date, time] = e.target.value.split("T");
+                    updateSlot(slot.id, { date: date ?? "", time: time ?? "" });
+                  }}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
               </div>
 
               <div className="space-y-1">
