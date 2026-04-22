@@ -45,6 +45,7 @@ export interface LeaderboardFilters {
   state?: string;
   start_date?: string;
   end_date?: string;
+  sort_by?: string;
 }
 
 /** Leaderboard entry as returned by the API */
@@ -60,12 +61,24 @@ export interface LeaderboardEntry {
   city_tier: string;
   composite_score: number;
   score_change: number;
+  commission_percentage: number;
+  discount_ratio: number;
+  discount_efficiency: number;
+  active_discounts: {
+    title: string;
+    discount_type: string;
+    discount_value: number;
+    min_order: number;
+    max_discount: number;
+  }[];
   sub_scores: {
     shop_activity: number;
     business_efficiency: number;
     location_advantage: number;
     growth_trend: number;
     community_score: number;
+    discount_efficiency: number;
+    discount_multiplier: number;
   };
   payout_status: "paid" | "non_monetary" | "none";
   payout_amount: number;

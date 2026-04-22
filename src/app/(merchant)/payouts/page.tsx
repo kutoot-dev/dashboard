@@ -33,8 +33,8 @@ export default function PayoutsPage() {
       period_label: p.period_label,
       score: p.score ?? 0,
       rank: p.rank ?? 0,
-      amount: p.allocated_amount,
-      status: (p.status === "paid" ? "paid" : p.allocated_amount > 0 ? "non_monetary" : "none") as "paid" | "non_monetary" | "none",
+      amount: p.allocated_amount ?? 0,
+      status: (p.status === "paid" ? "paid" : (p.allocated_amount ?? 0) > 0 ? "non_monetary" : "none") as "paid" | "non_monetary" | "none",
     }));
   }, [payouts]);
 

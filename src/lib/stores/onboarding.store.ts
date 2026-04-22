@@ -13,7 +13,6 @@ import type {
   CommissionTier,
   VisitOutcome,
   FollowUpSchedule,
-  NewHORequest,
 } from "@/lib/types";
 import { WIZARD_STEPS } from "@/lib/types";
 
@@ -29,7 +28,13 @@ interface OnboardingFormData {
   // Step 2
   phone: string;
   owner_name: string;
+  owner_email: string;
+  owner_email_verified: boolean;
   shop_name: string;
+  door_no: string;
+  shop_no: string;
+  year_of_establishment: string;
+  business_ownership_type: string;
   sector_id: string;
   sector_name: string;
   locality: string;
@@ -37,10 +42,6 @@ interface OnboardingFormData {
   state: string;
   pin_code: string;
   branch_name: string;
-  has_ho: boolean | null;
-  ho_id: string;
-  ho_selection_mode: "none" | "existing" | "other";
-  new_ho_request: NewHORequest;
   storefront_photo_url: string | null;
   storefront_photo_status: "pending" | "uploaded" | "failed";
   gps_lat: number | null;
@@ -49,6 +50,7 @@ interface OnboardingFormData {
 
   // Step 3
   commission_rate: number | null;
+  minimum_commission_percentage: number | string | null;
   commission_model: CommissionModel | null;
   commission_tiers: CommissionTier[] | null;
   commission_agreed: boolean;
@@ -73,6 +75,7 @@ interface OnboardingFormData {
   bank_ifsc: string;
   bank_name: string | null;
   bank_branch_name: string | null;
+  preferred_settlement_method: string;
   bank_status: string;
   penny_drop_status: string;
 
@@ -138,7 +141,13 @@ const initialFormData: OnboardingFormData = {
 
   phone: "",
   owner_name: "",
+  owner_email: "",
+  owner_email_verified: false,
   shop_name: "",
+  door_no: "",
+  shop_no: "",
+  year_of_establishment: "",
+  business_ownership_type: "",
   sector_id: "",
   sector_name: "",
   locality: "",
@@ -146,15 +155,6 @@ const initialFormData: OnboardingFormData = {
   state: "",
   pin_code: "",
   branch_name: "",
-  has_ho: null,
-  ho_id: "",
-  ho_selection_mode: "none",
-  new_ho_request: {
-    name: "",
-    contact_person: "",
-    phone: "",
-    email: "",
-  },
   storefront_photo_url: null,
   storefront_photo_status: "pending",
   gps_lat: null,
@@ -162,6 +162,7 @@ const initialFormData: OnboardingFormData = {
   gps_accuracy: null,
 
   commission_rate: null,
+  minimum_commission_percentage: null,
   commission_model: null,
   commission_tiers: null,
   commission_agreed: false,
@@ -184,6 +185,7 @@ const initialFormData: OnboardingFormData = {
   bank_ifsc: "",
   bank_name: null,
   bank_branch_name: null,
+  preferred_settlement_method: "",
   bank_status: "not_started",
   penny_drop_status: "not_started",
 

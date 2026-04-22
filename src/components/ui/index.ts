@@ -16,5 +16,5 @@ export { EmptyState } from "./empty-state";
 export { InfoTooltip } from "./info-tooltip";
 export { ChartTypeSwitcher } from "./chart-type-switcher";
 export { RewardPoolCard } from "./reward-pool-card";
-export { ParameterMeter } from "./parameter-meter";
+export { ScorePie } from "./score-pie";
 export { ImprovementCard } from "./improvement-card";

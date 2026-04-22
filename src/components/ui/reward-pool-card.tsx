@@ -12,46 +12,35 @@ interface RewardPoolCardProps {
 }
 
 export function RewardPoolCard({ totalPool, merchantShare, className }: RewardPoolCardProps) {
-  const { formatted } = useCountdown(23); // 11 PM = 23:00
+  const { formatted } = useCountdown(23);
 
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-border bg-card p-4 space-y-3",
-        className
-      )}
-    >
+    <div className={cn("rounded-lg border border-border bg-card p-2.5 space-y-1", className)}>
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Today&apos;s Reward Pool
-        </span>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+          Reward Pool
+        </p>
         <InfoTooltip text="The daily reward pool is distributed among top-performing merchants every day at 11:00 PM. Your share depends on your rank and score." />
-        <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-gain uppercase tracking-wider">
-          <span className="relative flex h-2 w-2">
+        <span className="ml-auto flex items-center gap-1 font-mono text-[9px] font-semibold text-gain">
+          <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-gain" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
           </span>
           LIVE
         </span>
       </div>
 
-      <div className="text-2xl font-bold text-gain font-mono">
-        {formatINR(totalPool)}
-      </div>
+      <div className="font-mono text-xl font-bold text-gain">{formatINR(totalPool)}</div>
 
-      <div className="text-xs text-muted-foreground">
-        Payout in{" "}
-        <span className="font-mono text-foreground">{formatted}</span>
+      <div className="font-mono text-[9px] text-muted-foreground">
+        {merchantShare != null ? (
+          <>
+            Share <span className="text-foreground">{formatINR(merchantShare)}</span> · {formatted}
+          </>
+        ) : (
+          <>Payout in {formatted}</>
+        )}
       </div>
-
-      {merchantShare != null && (
-        <div className="text-xs text-muted-foreground pt-1 border-t border-border">
-          Your est. share:{" "}
-          <span className="font-semibold text-foreground">
-            {formatINR(merchantShare)}
-          </span>
-        </div>
-      )}
     </div>
   );
 }

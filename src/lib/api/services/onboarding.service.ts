@@ -9,6 +9,8 @@ import type {
   ApiResponse,
   OnboardingApplication,
   ApplicationSummary,
+  FollowUpSchedule,
+  MerchantStage,
   PhoneCheckResult,
   ExecutiveVerifyResult,
   OtpSendResult,
@@ -19,25 +21,6 @@ import type {
   PaginatedData,
 } from "@/lib/types";
 import apiClient from "../client";
-
-// ── Head Offices (for dropdown) ────────────────────────────────────
-
-export interface OnboardingHeadOffice {
-  ho_id: string;
-  name: string;
-  contact_person: string;
-  email: string;
-  phone: string;
-  total_branches: number;
-  status: string;
-}
-
-export async function getHeadOffices() {
-  const res = await apiClient.get<ApiResponse<OnboardingHeadOffice[]>>(
-    "/onboarding/head-offices",
-  );
-  return res.data;
-}
 
 // ── Application CRUD ───────────────────────────────────────────────
 
@@ -71,14 +54,36 @@ export async function updateApplication(
 
 export async function listApplications(filters?: {
   status?: string;
+  stage?: MerchantStage;
   exec_id?: string;
   phone?: string;
-  ho_id?: string;
 }) {
   const params = filters || {};
   const res = await apiClient.get<
     ApiResponse<PaginatedData<ApplicationSummary>>
   >("/onboarding", { params });
+  return res.data;
+}
+
+/**
+ * Explicitly move a merchant to a new stage (for example, logging a visit
+ * outcome or rescheduling a follow-up). The backend's update endpoint
+ * accepts `stage` + `follow_up_schedules` directly, so we reuse it here
+ * instead of adding a separate route.
+ */
+export async function setStage(
+  id: string,
+  stage: MerchantStage,
+  extras?: {
+    follow_up_schedules?: FollowUpSchedule[];
+    visit_notes?: string;
+    admin_notes?: string;
+  },
+) {
+  const res = await apiClient.patch<ApiResponse<OnboardingApplication>>(
+    `/onboarding/${encodeURIComponent(id)}`,
+    { stage, ...(extras ?? {}) },
+  );
   return res.data;
 }
 
@@ -116,6 +121,22 @@ export async function verifyOtp(phone: string, otp: string) {
   const res = await apiClient.post<ApiResponse<OtpVerifyResult>>(
     "/onboarding/verify-otp",
     { phone, otp },
+  );
+  return res.data;
+}
+
+export async function sendEmailOtp(email: string) {
+  const res = await apiClient.post<ApiResponse<OtpSendResult>>(
+    "/onboarding/send-email-otp",
+    { email },
+  );
+  return res.data;
+}
+
+export async function verifyEmailOtp(email: string, otp: string) {
+  const res = await apiClient.post<ApiResponse<OtpVerifyResult>>(
+    "/onboarding/verify-email-otp",
+    { email, otp },
   );
   return res.data;
 }

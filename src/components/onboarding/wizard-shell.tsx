@@ -24,12 +24,15 @@ export function WizardShell({
   onStepClick,
   children,
 }: WizardShellProps) {
+  const currentStepMeta = stepConfig.find((s) => s.id === currentStep);
+  const currentStepIndex = stepConfig.findIndex((s) => s.id === currentStep);
+
   return (
     <div className="w-full max-w-3xl mx-auto">
       {/* Step progress bar */}
       <nav className="mb-8" aria-label="Wizard progress">
         {/* Mobile: compact */}
-        <div className="flex sm:hidden items-center justify-between mb-4 px-1">
+        <div className="flex sm:hidden items-center justify-between mb-3 px-1">
           {stepConfig.map((step, idx) => {
             const isActive = step.id === currentStep;
             const isComplete = completedSteps.includes(step.id);
@@ -59,6 +62,20 @@ export function WizardShell({
             );
           })}
         </div>
+        {currentStepMeta && (
+          <p
+            className="sm:hidden -mt-1 mb-4 text-center text-xs font-semibold leading-snug text-primary px-2"
+            aria-current="step"
+          >
+            {currentStepIndex >= 0 && (
+              <span className="text-muted-foreground font-normal">
+                Step {currentStepIndex + 1} of {stepConfig.length}
+                {" · "}
+              </span>
+            )}
+            {currentStepMeta.label}
+          </p>
+        )}
 
         {/* Desktop: full labels */}
         <div className="hidden sm:flex items-start">
@@ -111,8 +128,8 @@ export function WizardShell({
         </div>
       </nav>
 
-      {/* Step content */}
-      <div className="bg-card rounded-xl border border-border p-6 sm:p-8 shadow-sm">
+      {/* Step content — transparent glass over layout gradient */}
+      <div className="glass-card-transparent rounded-2xl p-5 sm:p-8">
         {children}
       </div>
     </div>

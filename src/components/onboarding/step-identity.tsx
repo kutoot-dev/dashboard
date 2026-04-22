@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +21,32 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const verifyExec = useVerifyExecutive();
   const sendOtp = useSendOtp();
   const verifyOtp = useVerifyOtp();
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const startCountdown = (seconds: number) => {
+    setSecondsLeft(seconds);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const channel = formData.channel;
 
@@ -63,11 +85,28 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       if (res.data.sent) {
         setOtpSent(true);
         updateFormData({ merchant_otp_phone: otpPhone });
+        startCountdown(res.data.expires_in_seconds || 300);
       } else {
         setError(res.data.message);
       }
     } catch {
       setError("Failed to send OTP. Try again.");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (secondsLeft > 0) return;
+    setOtp("");
+    setError("");
+    try {
+      const res = await sendOtp.mutateAsync(otpPhone);
+      if (res.data.sent) {
+        startCountdown(res.data.expires_in_seconds || 300);
+      } else {
+        setError(res.data.message);
+      }
+    } catch {
+      setError("Failed to resend OTP. Try again.");
     }
   };
 
@@ -257,7 +296,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
                 error={error}
                 disabled={verifyOtp.isPending}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="primary"
                   size="md"
@@ -270,18 +309,28 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
                 <Button
                   variant="ghost"
                   size="md"
+                  onClick={handleResendOtp}
+                  loading={sendOtp.isPending}
+                  disabled={secondsLeft > 0}
+                >
+                  {secondsLeft > 0
+                    ? `Resend in ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`
+                    : "Resend OTP"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="md"
                   onClick={() => {
                     setOtpSent(false);
                     setOtp("");
                     setError("");
+                    setSecondsLeft(0);
+                    if (intervalRef.current) clearInterval(intervalRef.current);
                   }}
                 >
                   Change Number
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Dev hint: Use OTP <span className="font-mono">123456</span>
-              </p>
             </div>
           )}
         </div>

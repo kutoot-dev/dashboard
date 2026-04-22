@@ -5,18 +5,107 @@
  * field executive management, and incentive lifecycle.
  */
 
-// ── Application Status ─────────────────────────────────────────────
+// ── Merchant Stage ─────────────────────────────────────────────────
+// Mirrors `App\Enums\MerchantStage` on the backend. Every merchant —
+// whether it's a fresh lead, a field-visit target, or an active store —
+// carries a single `stage` that drives UI, tabs, and status screens.
 
+export type MerchantStage =
+  // Prospecting
+  | "lead"
+  // Field visit outcomes
+  | "revisit"
+  | "owner_absent"
+  | "shop_closed"
+  | "competitor_user"
+  | "not_interested"
+  | "permanently_closed"
+  // Onboarding
+  | "invited"
+  | "in_progress"
+  | "submitted"
+  | "under_review"
+  | "rejected"
+  // Post-onboarding
+  | "approved"
+  | "active"
+  | "suspended"
+  | "churned";
+
+export type MerchantStagePhase =
+  | "prospecting"
+  | "visit"
+  | "onboarding"
+  | "post_onboarding";
+
+export const STAGE_LABELS: Record<MerchantStage, string> = {
+  lead: "Lead",
+  revisit: "Revisit",
+  owner_absent: "Owner Absent",
+  shop_closed: "Shop Closed",
+  competitor_user: "Competitor User",
+  not_interested: "Not Interested",
+  permanently_closed: "Permanently Closed",
+  invited: "Invited",
+  in_progress: "In Progress",
+  submitted: "Submitted",
+  under_review: "Under Review",
+  rejected: "Rejected",
+  approved: "Approved",
+  active: "Active",
+  suspended: "Suspended",
+  churned: "Churned",
+};
+
+export const STAGE_PHASES: Record<MerchantStage, MerchantStagePhase> = {
+  lead: "prospecting",
+  revisit: "visit",
+  owner_absent: "visit",
+  shop_closed: "visit",
+  competitor_user: "visit",
+  not_interested: "visit",
+  permanently_closed: "visit",
+  invited: "onboarding",
+  in_progress: "onboarding",
+  submitted: "onboarding",
+  under_review: "onboarding",
+  rejected: "onboarding",
+  approved: "post_onboarding",
+  active: "post_onboarding",
+  suspended: "post_onboarding",
+  churned: "post_onboarding",
+};
+
+/**
+ * Stages that carry a `follow_up_schedules` calendar (the merchant needs
+ * to be revisited by a field executive).
+ */
+export const SCHEDULE_STAGES: ReadonlySet<MerchantStage> = new Set([
+  "revisit",
+  "owner_absent",
+  "shop_closed",
+  "competitor_user",
+]);
+
+export const TERMINAL_STAGES: ReadonlySet<MerchantStage> = new Set([
+  "not_interested",
+  "permanently_closed",
+  "rejected",
+  "churned",
+]);
+
+/**
+ * Deprecated legacy status values from the old merchant_applications flow.
+ * Kept for one release so consumers that still read `status` don't break.
+ * @deprecated Use `MerchantStage` instead.
+ */
 export type ApplicationStatus =
   | "draft"
-  | "pending_photo"
   | "pending_review"
-  | "pending_kyc_review"
-  | "pending_bank_verify"
-  | "pending_activation"
   | "active"
   | "rejected"
-  | "suspended";
+  | "suspended"
+  | "visit_record";
 
 export type ApplicationChannel = "merchant" | "field_executive";
 
@@ -59,13 +148,6 @@ export type IncentiveType =
   | "thirty_day_retention";
 
 export type IncentiveStatus = "pending" | "approved" | "paid" | "hold";
-
-export interface NewHORequest {
-  name: string;
-  contact_person: string;
-  phone: string;
-  email: string;
-}
 
 // ── Wizard Step Tracking ───────────────────────────────────────────
 
@@ -120,10 +202,16 @@ export interface CommissionTier {
 
 export interface OnboardingApplication {
   application_id: string;
-  status: ApplicationStatus;
+  /** Canonical lifecycle stage (see MerchantStage). */
+  stage: MerchantStage;
+  stage_phase?: MerchantStagePhase;
+  /** @deprecated Use `stage`. Present for one release of backward compat. */
+  status?: ApplicationStatus;
   channel: ApplicationChannel;
   current_step: WizardStepId;
   completed_steps: WizardStepId[];
+  /** ISO timestamp of the next scheduled follow-up visit (null if none). */
+  next_follow_up_at?: string | null;
 
   // Step 1: Identity
   exec_id: string | null;
@@ -142,10 +230,6 @@ export interface OnboardingApplication {
   state: string;
   pin_code: string;
   branch_name?: string | null;
-  has_ho?: boolean | null;
-  ho_id?: string | null;
-  ho_selection_mode?: "none" | "existing" | "other" | null;
-  new_ho_request?: NewHORequest | null;
   storefront_photo_url: string | null;
   storefront_photo_status: "pending" | "uploaded" | "failed";
   gps_lat: number | null;
@@ -154,6 +238,7 @@ export interface OnboardingApplication {
 
   // Step 3: Commission
   commission_rate: number | null;
+  minimum_commission_percentage?: number | string | null;
   commission_model: CommissionModel | null;
   commission_tiers: CommissionTier[] | null;
   commission_agreed: boolean;
@@ -177,6 +262,7 @@ export interface OnboardingApplication {
   bank_ifsc: string | null;
   bank_name: string | null;
   bank_branch_name: string | null;
+  preferred_settlement_method?: string | null;
   bank_status: KycVerificationStatus;
   penny_drop_status: "not_started" | "success" | "failed" | "pending";
 
@@ -259,7 +345,9 @@ export interface PhoneCheckResult {
   exists: boolean;
   status: "active_merchant" | "existing_lead" | "already_submitted" | "existing_fe_visit" | "new";
   application_id: string | null;
-  application_status: ApplicationStatus | null;
+  /** @deprecated Use `stage` — this echoes the backend stage string. */
+  application_status: MerchantStage | ApplicationStatus | null;
+  stage?: MerchantStage | null;
   visiting_exec_name: string | null;   // name of FE who already visited, if any
   message: string;
 }
@@ -316,15 +404,18 @@ export interface ApplicationSummary {
   sector_name: string;
   city: string;
   state: string;
-  status: ApplicationStatus;
+  stage: MerchantStage;
+  stage_phase?: MerchantStagePhase;
+  /** @deprecated Use `stage`. */
+  status?: ApplicationStatus;
   current_step: WizardStepId;
   commission_rate: number | null;
   channel: ApplicationChannel;
   exec_name: string | null;
-  ho_id?: string | null;
   created_at: string;
   updated_at: string;
   submitted_at: string | null;
+  next_follow_up_at?: string | null;
 }
 
 export interface ApplicationStats {

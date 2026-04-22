@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useCreateApplication, useUpdateApplication } from "@/lib/hooks";
 import {
   APPLICATION_STATUS_LABELS,
-  ONBOARDING_FIELDS,
   ONBOARDING_STRINGS,
   SECTOR_OPTIONS,
   VOLUME_RANGES,
@@ -58,7 +58,13 @@ export function StepReview({ onBack }: StepReviewProps) {
       follow_up_schedules: formData.follow_up_schedules,
       phone: formData.phone || null,
       owner_name: formData.owner_name || null,
+      email: formData.owner_email || null,
+      email_verified: formData.owner_email ? !!formData.owner_email_verified : false,
       shop_name: formData.shop_name,
+      door_no: formData.door_no || null,
+      shop_no: formData.shop_no || null,
+      year_of_establishment: formData.year_of_establishment || null,
+      business_ownership_type: formData.business_ownership_type || null,
       sector_id: formData.sector_id,
       sector_name: formData.sector_name,
       locality: formData.locality,
@@ -68,25 +74,36 @@ export function StepReview({ onBack }: StepReviewProps) {
       storefront_photo_url: formData.storefront_photo_url,
       gps_lat: formData.gps_lat,
       gps_long: formData.gps_long,
+      google_maps_link:
+        formData.gps_lat != null && formData.gps_long != null
+          ? `https://maps.google.com/?q=${formData.gps_lat},${formData.gps_long}`
+          : undefined,
       ...(!isFeVisitOnly && {
         commission_rate: formData.commission_rate,
-        commission_model: formData.commission_model,
-        commission_tiers: formData.commission_tiers,
+        commission_model: "flat",
         gst_number: formData.gst_number || undefined,
+        gst_business_name: formData.gst_business_name || undefined,
+        gst_business_address: formData.gst_business_address || undefined,
+        gst_registration_status: formData.gst_status || undefined,
         gst_doc_photo_url: formData.gst_doc_photo_url || undefined,
         pan_number: formData.pan_number || undefined,
         pan_doc_photo_url: formData.pan_doc_photo_url || undefined,
+        aadhaar_number: formData.aadhaar_number || undefined,
         aadhaar_last4: formData.aadhaar_number ? formData.aadhaar_number.slice(-4) : undefined,
         aadhaar_doc_photo_url: formData.aadhaar_doc_photo_url || undefined,
         bank_account_name: formData.bank_account_name,
         bank_account_number: formData.bank_account_number,
         bank_ifsc: formData.bank_ifsc,
         bank_name: formData.bank_name,
-        qr_serial: formData.qr_serial || undefined,
-        qr_photo_url: formData.qr_photo_url,
+        preferred_settlement_method: formData.preferred_settlement_method || undefined,
         operating_hours: `${formData.operating_hours_start} - ${formData.operating_hours_end}`,
         expected_monthly_volume: formData.expected_monthly_volume,
       }),
+      // Send the canonical `stage` field; the backend retains `status` as a
+      // deprecated alias for one release.
+      stage: isFeVisitOnly
+        ? ((formData.visit_outcome ?? "revisit") as string)
+        : "submitted",
       status: (isFeVisitOnly ? "visit_record" : "pending_review") as ApplicationStatus,
       current_step: "review" as WizardStepId,
       website_url: formData.website_url, // honeypot
@@ -109,35 +126,49 @@ export function StepReview({ onBack }: StepReviewProps) {
   const goToStep = (step: WizardStepId) => setStep(step);
 
   if (submitted) {
-    return (
-      <div className="text-center py-12 space-y-4">
-        <div className="text-5xl">{isFeVisitOnly ? "📋" : "🎉"}</div>
-        <h2 className="text-2xl font-bold text-foreground">
-          {isFeVisitOnly ? "Visit Recorded" : ONBOARDING_STRINGS.SUBMIT_SUCCESS}
-        </h2>
-        {/* Submitted-by badge */}
-        <div className="flex justify-center">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-info/10 text-info border border-info/30">
-            {formData.channel === "merchant" ? "🧑‍💼 Submitted by Merchant" : "🚶 Submitted by Field Executive"}
-          </span>
-        </div>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          {isFeVisitOnly
-            ? `Visit outcome "${visitOutcomeLabel}" has been logged.${formData.visit_notes ? " Notes saved." : ""} This record will be visible in your visit history.`
-            : `Your application is now under review. You will receive an SMS on +91 ${formData.phone} once approved.`}
-        </p>
-        {applicationId && (
-          <p className="text-sm text-muted-foreground">
-            Application ID: <span className="font-mono">{applicationId}</span>
+    if (isFeVisitOnly) {
+      return (
+        <div className="text-center py-12 space-y-4">
+          <div className="text-5xl">📋</div>
+          <h2 className="text-2xl font-bold text-foreground">Visit Recorded</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            {`Visit outcome "${visitOutcomeLabel}" has been logged.${formData.visit_notes ? " Notes saved." : ""} This record will be visible in your visit history.`}
           </p>
-        )}
-      </div>
+          {applicationId && (
+            <p className="text-sm text-muted-foreground">
+              Application ID: <span className="font-mono">{applicationId}</span>
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (!applicationId) {
+      return (
+        <div className="text-center py-12 space-y-4">
+          <div className="text-5xl">🎉</div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {ONBOARDING_STRINGS.SUBMIT_SUCCESS}
+          </h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Your application is now under review.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <ApplicationStatusScreen
+        applicationId={applicationId}
+        phone={formData.phone}
+      />
     );
   }
 
   const sectorLabel =
-    SECTOR_OPTIONS.find((s) => s.value === formData.sector_id)?.label ||
-    formData.sector_id;
+    formData.sector_name ||
+    SECTOR_OPTIONS.find((s) => s.value === String(formData.sector_id))?.label ||
+    (formData.sector_id ? String(formData.sector_id) : "");
   const volumeLabel =
     VOLUME_RANGES.find((v) => v.value === formData.expected_monthly_volume)?.label ||
     formData.expected_monthly_volume;
@@ -206,9 +237,36 @@ export function StepReview({ onBack }: StepReviewProps) {
       <Section title="Basic Details" onEdit={() => goToStep("basic_details")}>
         {formData.phone && <Row label="Phone" value={`+91 ${formData.phone}`} />}
         {formData.owner_name && <Row label="Owner Name" value={formData.owner_name} />}
+        {formData.owner_email && <Row label="Email" value={formData.owner_email} />}
         <Row label="Shop Name" value={formData.shop_name} />
+        {formData.door_no && <Row label="Door No" value={formData.door_no} />}
+        {formData.shop_no && <Row label="Shop No" value={formData.shop_no} />}
+        {formData.branch_name && <Row label="Branch / Outlet" value={formData.branch_name} />}
+        {formData.year_of_establishment && <Row label="Year of Establishment" value={formData.year_of_establishment} />}
+        {formData.business_ownership_type && <Row label="Business Ownership Type" value={formData.business_ownership_type} />}
         <Row label="Category" value={sectorLabel} />
+        <Row label="Locality" value={formData.locality} />
+        <Row label="City" value={formData.city} />
+        <Row label="State" value={formData.state} />
+        <Row label="PIN Code" value={formData.pin_code} />
         <Row label="Location" value={`${formData.locality}, ${formData.city}, ${formData.state} - ${formData.pin_code}`} />
+        <Row
+          label="Latitude / Longitude"
+          value={
+            formData.gps_lat != null && formData.gps_long != null
+              ? `${formData.gps_lat}, ${formData.gps_long}`
+              : "Not captured"
+          }
+          valueClass={formData.gps_lat != null && formData.gps_long != null ? "" : "text-error"}
+        />
+        <Row
+          label="Google Maps Link"
+          value={
+            formData.gps_lat != null && formData.gps_long != null
+              ? `https://maps.google.com/?q=${formData.gps_lat},${formData.gps_long}`
+              : "Not available"
+          }
+        />
         <Row
           label="Storefront Photo"
           value={formData.storefront_photo_url ? "✓ Uploaded" : isFeVisitOnly ? "— Skipped" : "✗ Missing"}
@@ -221,40 +279,37 @@ export function StepReview({ onBack }: StepReviewProps) {
         <>
           {/* Commission Section */}
           <Section title="Commission" onEdit={() => goToStep("commission")}>
-            <Row label="Model" value={formData.commission_model === "flat" ? "Flat Rate" : "Tiered"} />
-            {formData.commission_model === "flat" && (
-              <Row label="Rate" value={`${formData.commission_rate}%`} />
-            )}
-            {formData.commission_model === "tiered" && formData.commission_tiers && (
-              <div className="col-span-2">
-                <p className="text-xs text-muted-foreground mb-1">Slabs:</p>
-                {formData.commission_tiers.map((t, i) => (
-                  <p key={i} className="text-sm text-foreground">
-                    ₹{t.min_amount?.toLocaleString("en-IN")} –{" "}
-                    {t.max_amount ? `₹${t.max_amount.toLocaleString("en-IN")}` : "∞"}: {t.rate_percent}%
-                  </p>
-                ))}
-              </div>
+            <Row label="Model" value="Flat Rate" />
+            <Row label="Rate" value={`${formData.commission_rate}%`} />
+            {formData.minimum_commission_percentage != null && (
+              <Row
+                label="Minimum Allowed"
+                value={`${formData.minimum_commission_percentage}%`}
+              />
             )}
           </Section>
 
           {/* KYC Section */}
           <Section title="KYC" onEdit={() => goToStep("kyc")}>
             <Row label="GST" value={formData.gst_number || "Not provided"} />
+            {/* <Row
+              label="GST Business Address"
+              value={formData.gst_business_address || "Not provided"}
+            />
             <Row
               label="GST Status"
               value={APPLICATION_STATUS_LABELS[formData.gst_status] || formData.gst_status}
-            />
+            /> */}
             <Row
               label="GST Document"
               value={formData.gst_doc_photo_url ? "✓ Photo uploaded" : "— Not captured"}
               valueClass={formData.gst_doc_photo_url ? "text-success" : "text-muted-foreground"}
             />
             <Row label="PAN" value={formData.pan_number || "Not provided"} />
-            <Row
+            {/* <Row
               label="PAN Status"
               value={APPLICATION_STATUS_LABELS[formData.pan_status] || formData.pan_status}
-            />
+            /> */}
             <Row
               label="PAN Document"
               value={formData.pan_doc_photo_url ? "✓ Photo uploaded" : "— Not captured"}
@@ -264,7 +319,7 @@ export function StepReview({ onBack }: StepReviewProps) {
               label="Aadhaar"
               value={
                 formData.aadhaar_number
-                  ? `XXXX-XXXX-${formData.aadhaar_number.slice(-4)}`
+                  ? formData.aadhaar_number
                   : "Not provided"
               }
             />
@@ -278,27 +333,40 @@ export function StepReview({ onBack }: StepReviewProps) {
           {/* Bank Section */}
           <Section title="Bank Details" onEdit={() => goToStep("bank")}>
             <Row label="Account Name" value={formData.bank_account_name} />
-            <Row label="Account Number" value={`XXXX${formData.bank_account_number.slice(-4)}`} />
+            <Row label="Account Number" value={formData.bank_account_number} />
             <Row label="IFSC" value={formData.bank_ifsc} />
             {formData.bank_name && <Row label="Bank" value={formData.bank_name} />}
+            {formData.bank_branch_name && (
+              <Row label="Branch" value={formData.bank_branch_name} />
+            )}
+            <Row
+              label="Bank Status"
+              value={APPLICATION_STATUS_LABELS[formData.bank_status] || formData.bank_status}
+            />
+            {/* <Row
+              label="Penny Drop"
+              value={APPLICATION_STATUS_LABELS[formData.penny_drop_status] || formData.penny_drop_status}
+            /> */}
           </Section>
 
-          {/* QR & Activation — shown only for field executive (merchant skips this step) */}
-          {formData.channel === "field_executive" && formData.qr_serial && (
-            <Section title="QR & Activation" onEdit={() => goToStep("qr_activation")}>
-              <Row label="QR Serial" value={formData.qr_serial} />
-              <Row
-                label="QR Photo"
-                value={formData.qr_photo_url ? "✓ Uploaded" : "✗ Missing"}
-                valueClass={formData.qr_photo_url ? "text-success" : "text-error"}
-              />
-              <Row
-                label="Operating Hours"
-                value={`${formData.operating_hours_start} - ${formData.operating_hours_end}`}
-              />
-              <Row label="Expected Volume" value={volumeLabel} />
-            </Section>
-          )}
+          <Section title="Operations" onEdit={() => goToStep("bank")}>
+            <Row
+              label="Operating Hours"
+              value={`${formData.operating_hours_start} - ${formData.operating_hours_end}`}
+            />
+            <Row label="Expected Volume" value={volumeLabel} />
+          </Section>
+
+          <Section title="Identity" onEdit={() => goToStep("identity")}>
+            <Row
+              label="Channel"
+              value={formData.channel === "merchant" ? "Merchant" : "Field Executive"}
+            />
+            {formData.exec_name && <Row label="Executive Name" value={formData.exec_name} />}
+            {formData.exec_employee_code && (
+              <Row label="Employee Code" value={formData.exec_employee_code} />
+            )}
+          </Section>
         </>
       )}
 
@@ -317,7 +385,14 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <span className="text-accent underline">Terms & Conditions</span>{" "}
+              <a
+                href="https://kutoot.com/termsandcondition"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                Terms & Conditions
+              </a>{" "}
               and agree to the commission structure above.
             </span>
           </label>
@@ -336,7 +411,15 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <span className="text-accent underline">Privacy Policy</span> and
+              <a
+                href="https://kutoot.com/privacypolicy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                Privacy Policy
+              </a>{" "}
+              and
               consent to data processing as described.
             </span>
           </label>

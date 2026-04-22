@@ -8,6 +8,7 @@ import type {
   ApiResponse,
   Branch,
   BranchScore,
+  ScoreBreakdown,
   ScoreCandlestick,
   VolumeBar,
 } from "@/lib/types";
@@ -94,14 +95,7 @@ export interface BranchScoreHistoryItem {
   rank: number;
   payout: number;
   pool: number;
-  breakdown: {
-    trading_performance: number;
-    margin_efficiency: number;
-    location_opportunity: number;
-    transaction_quality: number;
-    momentum: number;
-    ecosystem_contribution: number;
-  };
+  breakdown: ScoreBreakdown;
 }
 
 /**

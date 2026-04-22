@@ -40,7 +40,7 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
         const d = res.data;
         updateFormData({
           gst_status: d.valid ? "verified" : "failed",
-          gst_business_name: d.business_name || null,
+          gst_business_name: null,
           gst_business_address: d.business_address || null,
         });
         setErrors((e) => {
@@ -74,7 +74,7 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
           const d = res.data;
           updateFormData({
             pan_status: d.valid ? "verified" : "failed",
-            pan_holder_name: d.holder_name || null,
+            pan_holder_name: null,
           });
           setErrors((e) => {
             const copy = { ...e };
@@ -176,11 +176,6 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
           />
           {statusBadge(formData.gst_status)}
         </div>
-        {formData.gst_business_name && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Business: {formData.gst_business_name}
-          </p>
-        )}
         {formData.gst_business_address && (
           <p className="text-xs text-muted-foreground">
             Address: {formData.gst_business_address}
@@ -215,17 +210,6 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
           />
           {statusBadge(formData.pan_status)}
         </div>
-        {formData.pan_holder_name && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Holder: {formData.pan_holder_name}
-            {formData.pan_holder_name.toLowerCase() !==
-              formData.owner_name.toLowerCase() && (
-              <span className="text-warning ml-2">
-                ⚠ Name does not match owner name
-              </span>
-            )}
-          </p>
-        )}
       </FieldWithInfo>
 
       {/* PAN Document Photo */}

@@ -17,7 +17,8 @@ export function useTicker() {
   return useQuery({
     queryKey: ["ticker"],
     queryFn: () => getTicker(),
-    refetchInterval: 30_000,
+    refetchInterval: (query) => (query.state.error ? false : 30_000),
+    retry: false,
     select: (res) => res.data,
   });
 }

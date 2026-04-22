@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/components/providers/theme-provider";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { StepIdentity } from "@/components/onboarding/step-identity";
 import { StepVisitOutcome } from "@/components/onboarding/step-visit-outcome";
@@ -11,10 +12,16 @@ import { StepKyc } from "@/components/onboarding/step-kyc";
 import { StepBank } from "@/components/onboarding/step-bank";
 import { StepQrActivation } from "@/components/onboarding/step-qr-activation";
 import { StepReview } from "@/components/onboarding/step-review";
+import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useUpdateApplication, useCreateApplication } from "@/lib/hooks";
+import { useApplication, useUpdateApplication, useCreateApplication } from "@/lib/hooks";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
-import type { WizardStepId, ApplicationStatus, OnboardingApplication, WizardStepConfig } from "@/lib/types";
+import type {
+  WizardStepId,
+  MerchantStage,
+  OnboardingApplication,
+  WizardStepConfig,
+} from "@/lib/types";
 
 // ── Compute active steps based on channel + visit outcome ─────────
 
@@ -28,7 +35,7 @@ function getActiveSteps(
   }
   if (channel === "field_executive") {
     if (visitOutcome === "interested") {
-      // Full field-executive onboarding flow (with QR)
+      // Full field-executive onboarding flow (no QR step)
       return [
         "identity",
         "visit_outcome",
@@ -36,7 +43,6 @@ function getActiveSteps(
         "commission",
         "kyc",
         "bank",
-        "qr_activation",
         "review",
       ];
     }
@@ -51,8 +57,24 @@ function getActiveSteps(
   return ["identity"];
 }
 
+/**
+ * Stages in which the wizard is still editable. Anything outside this set
+ * bounces to the read-only `ApplicationStatusScreen`.
+ */
+const EDITABLE_STAGES: ReadonlySet<string> = new Set([
+  "lead",
+  "invited",
+  "in_progress",
+]);
+
 export default function OnboardPage() {
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const {
     currentStep,
     completedSteps,
@@ -70,6 +92,33 @@ export default function OnboardPage() {
       router.replace("/onboard/start");
     }
   }, [applicationId, router]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
+  // When resuming, if the application has already left an editable stage
+  // we surface the read-only status screen. Editable stages are:
+  //   lead, invited, in_progress.
+  // Anything else (visit outcomes, submitted, approved, rejected, …) locks
+  // the merchant out of the wizard.
+  const resumedApp = useApplication(applicationId);
+  const lockedStage = useMemo(() => {
+    const data = resumedApp.data as OnboardingApplication | undefined;
+    const stage = data?.stage ?? (data?.status as string | undefined) ?? null;
+    if (!stage) return null;
+    if (EDITABLE_STAGES.has(stage)) return null;
+    return stage as MerchantStage;
+  }, [resumedApp.data]);
 
   // Compute which steps are active for this session
   const activeStepIds = useMemo(
@@ -107,7 +156,9 @@ export default function OnboardPage() {
       const payload = {
         current_step: fromStep,
         ...formData,
-        status: "draft" as ApplicationStatus,
+        // Send the new stage field; backend still accepts the legacy
+        // `status: "draft"` alias for one release.
+        stage: "in_progress" as MerchantStage,
       } as Record<string, unknown>;
 
       if (applicationId) {
@@ -160,8 +211,37 @@ export default function OnboardPage() {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
+
+  const themeToggle = (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-muted-foreground transition-colors hover:bg-card-hover hover:text-foreground"
+      aria-label="Toggle dark and light mode"
+      title="Toggle dark and light mode"
+    >
+      {!mounted ? "Theme" : resolvedTheme === "dark" ? "Light Mode" : "Dark Mode"}
+    </button>
+  );
+
+  if (applicationId && lockedStage) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-end">{themeToggle}</div>
+        <ApplicationStatusScreen
+          applicationId={applicationId}
+          phone={formData.phone ?? null}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">{themeToggle}</div>
       <WizardShell
         currentStep={currentStep}
         completedSteps={completedSteps}

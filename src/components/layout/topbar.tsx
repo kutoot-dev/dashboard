@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/theme-provider";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTicker } from "@/lib/hooks";
 import { useKMI } from "@/lib/hooks/use-kmi";
+import { useRollingScore } from "@/lib/hooks/use-rolling-score";
 import { MarketIndicator, computeTrend } from "@/components/ui/market-indicator";
 import { usePreferencesStore } from "@/lib/stores/preferences.store";
 import { cn } from "@/lib/utils/cn";
@@ -14,6 +15,9 @@ export function Topbar() {
   const { user, logout } = useAuth();
   const { data: tickerItems } = useTicker();
   const kmi = useKMI();
+  const { data: rolling } = useRollingScore(30);
+
+  const displayTicker = tickerItems ?? [];
   const { soundEnabled, toggleSound } = usePreferencesStore();
   const [mounted, setMounted] = useState(false);
 
@@ -26,37 +30,65 @@ export function Topbar() {
   };
 
   return (
-    <header className="flex h-12 items-center border-b border-border bg-card">
+    <header className="glass-topbar flex h-12 items-center">
       {/* KMI Badge */}
       <div className="flex shrink-0 items-center gap-2 border-r border-border px-3">
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-primary">
           KBI
         </span>
         <span className="font-mono text-sm font-bold text-secondary">
-          {kmi.value.toFixed(1)}
+          {(kmi?.value ?? 0).toFixed(1)}
         </span>
         <span
           className={cn(
             "font-mono text-xs font-semibold",
-            kmi.isPositive ? "neon-gain" : "neon-loss",
+            kmi?.isPositive ? "neon-gain" : "neon-loss",
           )}
         >
-          {kmi.isPositive ? "▲" : "▼"}
-          {kmi.changePercent.toFixed(1)}%
+          {kmi?.isPositive ? "▲" : "▼"}
+          {(kmi?.changePercent ?? 0).toFixed(1)}%
         </span>
-        <MarketIndicator trend={computeTrend(kmi.changePercent)} />
+        <MarketIndicator trend={computeTrend(kmi?.changePercent ?? 0)} />
       </div>
+
+      {/* MY merchant pill — 30-day rolling score/rank for the authed branch */}
+      {rolling && (
+        <div
+          className="hidden shrink-0 items-center gap-2 border-r border-border px-3 sm:flex"
+          title="Your rolling 30-day score and rank. Recalculates every minute."
+        >
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-accent">
+            MY
+          </span>
+          <span className="font-mono text-sm font-bold text-foreground">
+            #{rolling.rank || "—"}
+          </span>
+          <span className="font-mono text-sm text-foreground">
+            {rolling.score.toFixed(1)}
+          </span>
+          <span
+            className={cn(
+              "font-mono text-xs font-semibold",
+              rolling.score_delta_30d >= 0 ? "neon-gain" : "neon-loss",
+            )}
+          >
+            {rolling.score_delta_30d >= 0 ? "▲" : "▼"}
+            {Math.abs(rolling.score_delta_30d).toFixed(1)}
+          </span>
+        </div>
+      )}
 
       {/* Ticker tape */}
       <div className="flex-1 overflow-hidden">
-        {tickerItems && tickerItems.length > 0 && (
+        {displayTicker.length > 0 && (
           <div className="flex overflow-hidden">
             <div className="animate-ticker flex shrink-0 items-center gap-6 px-4">
-              {[...tickerItems, ...tickerItems].map((item, i) => (
+              {[...displayTicker, ...displayTicker].map((item, i) => (
                 <span
                   key={`${item.branch_id}-${i}`}
                   className="flex shrink-0 items-center gap-1.5 font-mono text-xs"
                 >
+                  <span className="font-semibold text-foreground/80">#{item.rank}</span>
                   <span className="text-muted-foreground">{item.business_name}</span>
                   <span className="font-tabular text-foreground">
                     {item.score.toFixed(1)}

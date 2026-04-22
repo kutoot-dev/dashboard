@@ -2,11 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCheckPhone } from "@/lib/hooks";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
+import { cn } from "@/lib/utils/cn";
+
+const cardClass =
+  "glass-card-transparent rounded-2xl p-5 sm:p-6 space-y-4 transition-shadow hover:shadow-lg";
 
 export default function OnboardStartPage() {
   const router = useRouter();
@@ -56,21 +59,24 @@ export default function OnboardStartPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Start Onboarding</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Start Onboarding
+        </h1>
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
           Choose whether you want to create a new application or resume an existing one.
         </p>
+        <div className="mt-4 h-px w-16 bg-gradient-to-r from-transparent via-primary to-transparent" />
       </div>
 
-      <Card className="p-6 space-y-4">
+      <div className={cn(cardClass)}>
         <h3 className="font-semibold text-foreground">New Application</h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           Mobile number is unique across applications. We will first verify your number.
         </p>
-        <div className="flex gap-2">
-          <div className="flex items-center px-3 bg-card border border-border rounded-md text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+          <div className="flex shrink-0 items-center justify-center rounded-lg border border-border/80 bg-background/40 px-3 py-2.5 text-sm text-muted-foreground backdrop-blur-sm sm:py-2">
             +91
           </div>
           <Input
@@ -79,22 +85,23 @@ export default function OnboardStartPage() {
             onChange={(e) => setMobile(e.target.value)}
             maxLength={10}
             inputMode="numeric"
+            className="min-h-11 flex-1"
           />
         </div>
 
         {error && <p className="text-xs text-error">{error}</p>}
 
         {existsMessage && (
-          <div className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2">
+          <div className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2.5">
             <p className="text-xs text-foreground">{existsMessage}</p>
             {existingAppId && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Application ID: <span className="font-mono">{existingAppId}</span>
               </p>
             )}
             <button
               type="button"
-              className="mt-2 text-xs text-primary underline"
+              className="mt-2 text-xs font-medium text-primary underline underline-offset-2"
               onClick={goResume}
             >
               Resume existing application
@@ -104,22 +111,23 @@ export default function OnboardStartPage() {
 
         <Button
           variant="primary"
+          className="mt-1 min-h-11 w-full sm:w-auto"
           onClick={startNew}
           loading={checkPhone.isPending}
         >
           Continue with New Application
         </Button>
-      </Card>
+      </div>
 
-      <Card className="p-6 space-y-4">
+      <div className={cn(cardClass)}>
         <h3 className="font-semibold text-foreground">Resume Existing Application</h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           If you have already started or submitted an application, continue from where you left off.
         </p>
-        <Button variant="ghost" onClick={goResume}>
+        <Button variant="ghost" className="min-h-11 w-full sm:w-auto" onClick={goResume}>
           Resume Application
         </Button>
-      </Card>
+      </div>
     </div>
   );
 }

@@ -22,7 +22,6 @@ export function useApplicationList(filters?: {
   status?: string;
   exec_id?: string;
   phone?: string;
-  ho_id?: string;
 }) {
   return useQuery({
     queryKey: ["onboarding", "list", filters],
@@ -85,6 +84,19 @@ export function useVerifyOtp() {
   return useMutation({
     mutationFn: ({ phone, otp }: { phone: string; otp: string }) =>
       onboardingService.verifyOtp(phone, otp),
+  });
+}
+
+export function useSendEmailOtp() {
+  return useMutation({
+    mutationFn: (email: string) => onboardingService.sendEmailOtp(email),
+  });
+}
+
+export function useVerifyEmailOtp() {
+  return useMutation({
+    mutationFn: ({ email, otp }: { email: string; otp: string }) =>
+      onboardingService.verifyEmailOtp(email, otp),
   });
 }
 

@@ -2,7 +2,7 @@
 
 import { createChart, AreaSeries, type IChartApi } from "lightweight-charts";
 import { useRef, useEffect } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/theme-provider";
 import { CHART_THEME_DARK, CHART_THEME_LIGHT } from "@/lib/constants/theme";
 
 interface SparklineChartProps {
@@ -19,7 +19,7 @@ export function SparklineChart({ data, width = 100, height = 32, color }: Sparkl
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || data.length === 0) return;
+    if (!container || !Array.isArray(data) || data.length === 0) return;
 
     const colors = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
     const trend = data[data.length - 1] > data[0];

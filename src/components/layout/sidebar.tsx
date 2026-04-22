@@ -4,20 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { KutootIcon, KutootLogo } from "@/components/branding";
-import { BRANCH_NAV, HO_NAV, ADMIN_NAV } from "@/lib/constants/navigation";
+import { BRANCH_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils/cn";
 
-function getNavForRole(role?: string) {
-  if (role === "admin") return ADMIN_NAV;
-  if (role === "ho") return HO_NAV;
-  return BRANCH_NAV;
-}
-
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
   const [mounted, setMounted] = useState(false);
 
@@ -25,7 +19,7 @@ export function Sidebar() {
     setMounted(true);
   }, []);
 
-  const navItems = getNavForRole(user?.role);
+  const navItems = BRANCH_NAV;
 
   return (
     <aside
@@ -52,9 +46,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-2">
         {mounted && !isLoading && navItems.map((item) => {
           const isActive =
-            item.href === "/admin" || item.href === "/ho"
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+            pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}

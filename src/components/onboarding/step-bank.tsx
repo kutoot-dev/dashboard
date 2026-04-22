@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useVerifyBank } from "@/lib/hooks";
 import {
   ONBOARDING_FIELDS,
   VALIDATION_RULES,
-  ONBOARDING_STRINGS,
 } from "@/lib/constants/onboarding";
 
 interface StepBankProps {
@@ -19,12 +18,11 @@ interface StepBankProps {
 
 export function StepBank({ onNext, onBack }: StepBankProps) {
   const { formData, updateFormData } = useOnboardingStore();
-  const verifyBank = useVerifyBank();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // IFSC auto-verification on blur
   const handleIfscBlur = () => {
-    const ifsc = formData.bank_ifsc.toUpperCase();
+    const ifsc = (formData.bank_ifsc ?? "").toUpperCase();
     if (!ifsc || !VALIDATION_RULES.bank_ifsc.pattern.test(ifsc)) return;
 
     // Mock bank name lookup from IFSC
@@ -48,67 +46,23 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
     }
   };
 
-  // Trigger penny drop on both account + IFSC present
-  useEffect(() => {
-    const { bank_account_number, bank_ifsc, penny_drop_status } = formData;
-    if (
-      bank_account_number.length >= 9 &&
-      VALIDATION_RULES.bank_ifsc.pattern.test(bank_ifsc.toUpperCase()) &&
-      penny_drop_status === "not_started"
-    ) {
-      updateFormData({ penny_drop_status: "pending", bank_status: "pending" });
-      verifyBank.mutate(
-        {
-          accountNumber: bank_account_number,
-          ifsc: bank_ifsc.toUpperCase(),
-        },
-        {
-          onSuccess: (res) => {
-            const d = res.data;
-            updateFormData({
-              bank_status: d.valid ? "verified" : "failed",
-              penny_drop_status: d.penny_drop_status || "completed",
-              bank_name: d.bank_name || formData.bank_name,
-              bank_branch_name: d.branch_name || formData.bank_branch_name,
-            });
-          },
-          onError: () => {
-            // Non-blocking
-            updateFormData({ bank_status: "api_error", penny_drop_status: "api_error" });
-          },
-        },
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.bank_account_number, formData.bank_ifsc]);
-
-  const statusBadge = (status: string) => {
-    const map: Record<string, { label: string; cls: string }> = {
-      not_started: { label: "", cls: "" },
-      pending: { label: "Verifying...", cls: "text-info" },
-      verified: { label: "✓ Verified", cls: "text-success" },
-      completed: { label: "✓ Penny drop done", cls: "text-success" },
-      failed: { label: "✗ Failed", cls: "text-error" },
-      api_error: { label: "⚠ Will verify later", cls: "text-warning" },
-    };
-    const m = map[status] || map.not_started;
-    if (!m.label) return null;
-    return <span className={`text-xs font-medium ${m.cls}`}>{m.label}</span>;
-  };
-
   const validate = (): boolean => {
     const e: Record<string, string> = {};
+    const accountName = formData.bank_account_name ?? "";
+    const accountNumber = formData.bank_account_number ?? "";
+    const accountConfirm = formData.bank_account_confirm ?? "";
+    const ifsc = (formData.bank_ifsc ?? "").toUpperCase();
 
-    if (!formData.bank_account_name.trim()) {
+    if (!accountName.trim()) {
       e.bank_account_name = "Account holder name is required.";
     }
-    if (!VALIDATION_RULES.bank_account_number.pattern.test(formData.bank_account_number)) {
+    if (!VALIDATION_RULES.bank_account_number.pattern.test(accountNumber)) {
       e.bank_account_number = "Enter a valid account number (9-18 digits).";
     }
-    if (formData.bank_account_number !== formData.bank_account_confirm) {
+    if (accountNumber !== accountConfirm) {
       e.bank_account_confirm = "Account numbers do not match.";
     }
-    if (!VALIDATION_RULES.bank_ifsc.pattern.test(formData.bank_ifsc.toUpperCase())) {
+    if (!VALIDATION_RULES.bank_ifsc.pattern.test(ifsc)) {
       e.bank_ifsc = "Enter a valid 11-character IFSC code.";
     }
 
@@ -129,13 +83,6 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
           deposit will verify your account.
         </p>
       </div>
-
-      {/* Bank verification failure notice */}
-      {formData.bank_status === "api_error" && (
-        <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
-          <p className="text-sm text-warning">{ONBOARDING_STRINGS.API_FAIL_BANK}</p>
-        </div>
-      )}
 
       {/* Account Holder Name */}
       <FieldWithInfo
@@ -208,7 +155,6 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
             maxLength={11}
             className="uppercase"
           />
-          {statusBadge(formData.bank_status)}
         </div>
         {formData.bank_name && (
           <p className="mt-1 text-xs text-muted-foreground">
@@ -217,22 +163,21 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
         )}
       </FieldWithInfo>
 
-      {/* Penny drop status */}
-      {formData.penny_drop_status !== "not_started" && (
-        <div className="p-3 bg-card border border-border rounded-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-foreground">
-              Penny Drop Verification
-            </span>
-            {statusBadge(formData.penny_drop_status)}
-          </div>
-          {formData.penny_drop_status === "pending" && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Sending ₹1 to verify your account...
-            </p>
-          )}
-        </div>
-      )}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">Preferred Settlement Method</label>
+        <Select
+          options={[
+            { value: "instant", label: "Instant" },
+            { value: "+1 days", label: "+1 days" },
+            { value: "+2 days", label: "+2 days" },
+          ]}
+          value={formData.preferred_settlement_method ?? ""}
+          onChange={(value) =>
+            updateFormData({ preferred_settlement_method: value })
+          }
+          placeholder="Select method..."
+        />
+      </div>
 
       {/* Navigation */}
       <div className="flex justify-between pt-4">

@@ -6,17 +6,18 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
 import { PhotoCapture } from "./photo-capture";
+import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useCheckPhone } from "@/lib/hooks";
-import { useQuery } from "@tanstack/react-query";
 import {
-  ONBOARDING_FIELDS,
-  SECTOR_OPTIONS,
-  INDIAN_STATES,
-  VALIDATION_RULES,
-} from "@/lib/constants/onboarding";
-import { getHeadOffices } from "@/lib/api/services/onboarding.service";
+  useCheckPhone,
+  useCities,
+  useMerchantCategories,
+  useSendEmailOtp,
+  useStates,
+  useVerifyEmailOtp,
+} from "@/lib/hooks";
+import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus } from "@/lib/types";
 
 interface StepBasicDetailsProps {
@@ -28,7 +29,14 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const { formData, updateFormData, phoneCheckResult, setPhoneCheckResult } =
     useOnboardingStore();
   const checkPhone = useCheckPhone();
+  const sendEmailOtp = useSendEmailOtp();
+  const verifyEmailOtp = useVerifyEmailOtp();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [gpsStatus, setGpsStatus] = useState<string>("");
+  const [selectedStateId, setSelectedStateId] = useState<string>("");
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailOtpMessage, setEmailOtpMessage] = useState("");
 
   // FE visiting a non-interested (or any non-onboarding) merchant → relaxed rules
   const isFeVisitOnly =
@@ -130,30 +138,16 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!formData.state) {
       e.state = "State is required.";
     }
-    if (formData.has_ho === null) {
-      e.has_ho = "Please confirm whether this branch is linked to an HO.";
+    if (formData.gps_lat == null || formData.gps_long == null) {
+      e.gps = "Select map location to capture latitude and longitude.";
     }
-    if (formData.has_ho) {
-      if (formData.ho_selection_mode === "existing" && !formData.ho_id) {
-        e.ho_id = "Select the existing HO.";
-      }
-      if (formData.ho_selection_mode === "other") {
-        if (!formData.branch_name.trim()) {
-          e.branch_name = "Branch name is required.";
-        }
-        if (!formData.new_ho_request.name.trim()) {
-          e.new_ho_name = "Enter HO name.";
-        }
-        if (!formData.new_ho_request.contact_person.trim()) {
-          e.new_ho_contact = "Enter contact person name.";
-        }
-        if (!VALIDATION_RULES.phone.pattern.test(formData.new_ho_request.phone)) {
-          e.new_ho_phone = "Enter a valid 10-digit contact number.";
-        }
-        const email = formData.new_ho_request.email.trim();
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          e.new_ho_email = "Enter a valid HO email.";
-        }
+    const email = formData.owner_email.trim();
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        e.owner_email = "Enter a valid email address.";
+      } else if (!formData.owner_email_verified) {
+        e.owner_email = "Please verify email via OTP.";
       }
     }
     // Storefront photo: required only for interested / merchant flows
@@ -176,18 +170,103 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
 
   const isPhoneBlocked = !!phoneCheckResult?.exists;
 
-  const { data: headOfficesRes } = useQuery({
-    queryKey: ["onboardingHeadOffices"],
-    queryFn: async () => {
-      const res = await getHeadOffices();
-      return res.data ?? [];
-    },
-  });
+  const { states } = useStates();
+  const selectedState =
+    states.find((s) => String(s.id) === selectedStateId) ??
+    states.find((s) => s.name === formData.state) ??
+    null;
+  const {
+    cities,
+    isLoading: citiesLoading,
+    isError: citiesError,
+  } = useCities(selectedState?.id ?? null);
+  const {
+    categories: merchantCategories,
+    isLoading: categoriesLoading,
+    isError: categoriesError,
+  } = useMerchantCategories();
 
-  const hoOptions = (headOfficesRes ?? []).map((ho) => ({
-    value: ho.ho_id,
-    label: `${ho.name} (${ho.ho_id})`,
+  const sectorSelectOptions = merchantCategories.map((c) => ({
+    value: String(c.id),
+    label: c.name,
   }));
+  const cityOptions = cities;
+  const selectedStateValue =
+    selectedStateId ||
+    (states.find((s) => s.name === formData.state)?.id != null
+      ? String(states.find((s) => s.name === formData.state)?.id)
+      : "");
+
+  const pickCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGpsStatus("Geolocation not supported on this device.");
+      return;
+    }
+    setGpsStatus("Fetching current location...");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        updateFormData({
+          gps_lat: Number(pos.coords.latitude.toFixed(6)),
+          gps_long: Number(pos.coords.longitude.toFixed(6)),
+          gps_accuracy: Number(pos.coords.accuracy.toFixed(2)),
+        });
+        setGpsStatus("Location captured.");
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.gps;
+          return next;
+        });
+      },
+      () => {
+        setGpsStatus("Unable to capture location. Please enable location access.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }, [updateFormData]);
+
+  const handleSendEmailOtp = async () => {
+    const email = formData.owner_email.trim().toLowerCase();
+    if (!email) {
+      setErrors((prev) => ({ ...prev, owner_email: "Email is required to send OTP." }));
+      return;
+    }
+    try {
+      const res = await sendEmailOtp.mutateAsync(email);
+      if (res.data.sent) {
+        setEmailOtpSent(true);
+        setEmailOtpMessage("OTP sent to email.");
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.owner_email;
+          return next;
+        });
+      }
+    } catch {
+      setEmailOtpMessage("Failed to send OTP. Please try again.");
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    const email = formData.owner_email.trim().toLowerCase();
+    if (emailOtp.length !== 6) {
+      setEmailOtpMessage("Enter 6-digit OTP.");
+      return;
+    }
+    try {
+      const res = await verifyEmailOtp.mutateAsync({ email, otp: emailOtp });
+      if (res.data.verified) {
+        updateFormData({ owner_email_verified: true, owner_email: email });
+        setEmailOtpMessage("Email verified.");
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.owner_email;
+          return next;
+        });
+      }
+    } catch {
+      setEmailOtpMessage("Invalid or expired OTP.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -283,6 +362,66 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">
+          Email <span className="text-xs text-muted-foreground">(single email)</span>
+        </label>
+        <Input
+          placeholder="merchant@example.com"
+          value={formData.owner_email ?? ""}
+          onChange={(e) => {
+            updateFormData({
+              owner_email: e.target.value,
+              owner_email_verified: false,
+            });
+            setEmailOtp("");
+            setEmailOtpSent(false);
+            setEmailOtpMessage("");
+          }}
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleSendEmailOtp}
+            loading={sendEmailOtp.isPending}
+            disabled={!formData.owner_email}
+          >
+            Send Email OTP
+          </Button>
+          {formData.owner_email_verified && (
+            <span className="text-xs text-success self-center">Verified</span>
+          )}
+        </div>
+        {emailOtpSent && !formData.owner_email_verified && (
+          <div className="mt-2 flex gap-2">
+            <Input
+              placeholder="Enter 6-digit OTP"
+              value={emailOtp}
+              onChange={(e) =>
+                setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              maxLength={6}
+              inputMode="numeric"
+            />
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleVerifyEmailOtp}
+              loading={verifyEmailOtp.isPending}
+              disabled={emailOtp.length !== 6}
+            >
+              Verify
+            </Button>
+          </div>
+        )}
+        {(errors.owner_email || emailOtpMessage) && (
+          <p className="mt-1 text-xs text-error">{errors.owner_email ?? emailOtpMessage}</p>
+        )}
+      </div>
+
       {/* Shop Name */}
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.shop_name} required error={errors.shop_name}>
         <Input
@@ -293,18 +432,59 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
-      {/* Sector */}
+      {/* Sector / merchant category (from API) */}
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.sector} required error={errors.sector}>
+        {categoriesError && (
+          <p className="text-sm text-destructive mb-2">
+            Could not load business categories. Check your connection and refresh the page.
+          </p>
+        )}
         <Select
-          options={SECTOR_OPTIONS}
-          value={formData.sector_id}
+          options={sectorSelectOptions}
+          value={formData.sector_id != null ? String(formData.sector_id) : ""}
           onChange={(v) => {
-            const opt = SECTOR_OPTIONS.find((o) => o.value === v);
-            updateFormData({ sector_id: v, sector_name: opt?.label || "" });
+            const opt = merchantCategories.find((c) => String(c.id) === v);
+            updateFormData({
+              sector_id: v,
+              sector_name: opt?.name || "",
+              minimum_commission_percentage:
+                opt?.minimum_commission_percentage ?? null,
+            });
           }}
-          placeholder="Select category..."
+          placeholder={categoriesLoading ? "Loading categories…" : "Select category..."}
+          disabled={categoriesLoading || categoriesError || sectorSelectOptions.length === 0}
         />
       </FieldWithInfo>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Year of Establishment</label>
+          <Input
+            type="number"
+            min="1900"
+            max={String(new Date().getFullYear())}
+            placeholder="2018"
+            value={formData.year_of_establishment ?? ""}
+            onChange={(e) => updateFormData({ year_of_establishment: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Business Ownership Type</label>
+          <Select
+            options={[
+              { value: "proprietorship", label: "Proprietorship" },
+              { value: "partnership", label: "Partnership" },
+              { value: "llp", label: "LLP" },
+              { value: "private_limited", label: "Private Limited" },
+              { value: "public_limited", label: "Public Limited" },
+              { value: "unregistered", label: "Unregistered / Other" },
+            ]}
+            value={formData.business_ownership_type ?? ""}
+            onChange={(value) => updateFormData({ business_ownership_type: value })}
+            placeholder="Select ownership type..."
+          />
+        </div>
+      </div>
 
       {/* Locality */}
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.locality} required error={errors.locality}>
@@ -315,7 +495,26 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
-      {/* PIN / City / State */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Door No</label>
+          <Input
+            placeholder="12/3"
+            value={formData.door_no ?? ""}
+            onChange={(e) => updateFormData({ door_no: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Shop No</label>
+          <Input
+            placeholder="S-14"
+            value={formData.shop_no ?? ""}
+            onChange={(e) => updateFormData({ shop_no: e.target.value })}
+          />
+        </div>
+      </div>
+
+      {/* PIN / State / City */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.pin_code} required error={errors.pin_code}>
           <Input
@@ -330,169 +529,87 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             inputMode="numeric"
           />
         </FieldWithInfo>
-        <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} required error={errors.city}>
-          <Input
-            placeholder="Bengaluru"
-            value={formData.city}
-            onChange={(e) => updateFormData({ city: e.target.value })}
+        <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} required error={errors.state}>
+          <Select
+            options={states.map((s) => ({ value: String(s.id), label: s.name }))}
+            value={selectedStateValue}
+            onChange={(v) => {
+              const state = states.find((s) => String(s.id) === v);
+              setSelectedStateId(v);
+              updateFormData({ state: state?.name ?? "", city: "" });
+            }}
+            placeholder="Select state..."
           />
         </FieldWithInfo>
       </div>
 
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} required error={errors.state}>
+      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} required error={errors.city}>
+        {citiesError && (
+          <p className="text-xs text-destructive mb-2">
+            Could not load cities for selected state.
+          </p>
+        )}
         <Select
-          options={INDIAN_STATES.map((s) => ({ value: s, label: s }))}
-          value={formData.state}
-          onChange={(v) => updateFormData({ state: v })}
-          placeholder="Select state..."
+          options={cityOptions.map((city) => ({ value: city, label: city }))}
+          value={formData.city}
+          onChange={(v) => updateFormData({ city: v })}
+          placeholder={
+            !selectedState
+              ? "Select state first"
+              : citiesLoading
+                ? "Loading cities..."
+                : "Select city..."
+          }
+          disabled={!selectedState || citiesLoading || citiesError}
         />
       </FieldWithInfo>
 
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-foreground">Is this branch linked to an HO? *</label>
-        <Select
-          options={[
-            { value: "yes", label: "Yes" },
-            { value: "no", label: "No" },
-          ]}
-          value={formData.has_ho === null ? "" : formData.has_ho ? "yes" : "no"}
-          onChange={(value) => {
-            const hasHo = value === "yes";
+      <div className="space-y-2 rounded-lg border border-border p-3">
+        <p className="text-sm font-medium text-foreground">Map Location</p>
+        <p className="text-xs text-muted-foreground">
+          Select visually from map or capture your current location.
+        </p>
+        <MapLocationPicker
+          value={
+            formData.gps_lat != null && formData.gps_long != null
+              ? { lat: formData.gps_lat, long: formData.gps_long }
+              : null
+          }
+          onSelect={(coords) => {
             updateFormData({
-              has_ho: hasHo,
-              ho_selection_mode: hasHo ? "existing" : "none",
-              ho_id: hasHo ? formData.ho_id : "",
-              new_ho_request: hasHo
-                ? formData.new_ho_request
-                : { name: "", contact_person: "", phone: "", email: "" },
+              gps_lat: coords.lat,
+              gps_long: coords.long,
+            });
+            setGpsStatus("Location selected from map.");
+            setErrors((prev) => {
+              const next = { ...prev };
+              delete next.gps;
+              return next;
             });
           }}
-          placeholder="Select one..."
         />
-        {errors.has_ho && <p className="text-xs text-error">{errors.has_ho}</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input value={formData.gps_lat ?? ""} readOnly placeholder="Latitude" />
+          <Input value={formData.gps_long ?? ""} readOnly placeholder="Longitude" />
+        </div>
+        <Button type="button" variant="secondary" onClick={pickCurrentLocation}>
+          Current Location
+        </Button>
+        {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
+        {errors.gps && <p className="text-xs text-error">{errors.gps}</p>}
       </div>
 
-      {formData.has_ho && (
-        <div className="space-y-4 rounded-lg border border-border p-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Branch Name *</label>
-            <Input
-              placeholder="Koramangala Branch"
-              value={formData.branch_name}
-              onChange={(e) => updateFormData({ branch_name: e.target.value })}
-            />
-            {errors.branch_name && (
-              <p className="text-xs text-error">{errors.branch_name}</p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">HO Selection</label>
-            <Select
-              options={[
-                { value: "existing", label: "Select Existing HO" },
-                { value: "other", label: "Other (Create HO Request)" },
-              ]}
-              value={formData.ho_selection_mode}
-              onChange={(value) =>
-                updateFormData({
-                  ho_selection_mode: value as "existing" | "other",
-                  ho_id: value === "existing" ? formData.ho_id : "",
-                  new_ho_request:
-                    value === "other"
-                      ? formData.new_ho_request
-                      : { name: "", contact_person: "", phone: "", email: "" },
-                })
-              }
-            />
-          </div>
-
-          {formData.ho_selection_mode === "existing" && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Select Existing HO *</label>
-              <Select
-                options={hoOptions}
-                value={formData.ho_id}
-                onChange={(value) => updateFormData({ ho_id: value })}
-                placeholder="Select HO..."
-              />
-              {errors.ho_id && <p className="text-xs text-error">{errors.ho_id}</p>}
-            </div>
-          )}
-
-          {formData.ho_selection_mode === "other" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">HO Name *</label>
-                <Input
-                  placeholder="ABC Retail Holdings"
-                  value={formData.new_ho_request.name}
-                  onChange={(e) =>
-                    updateFormData({
-                      new_ho_request: {
-                        ...formData.new_ho_request,
-                        name: e.target.value,
-                      },
-                    })
-                  }
-                />
-                {errors.new_ho_name && <p className="text-xs text-error">{errors.new_ho_name}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Contact Person *</label>
-                <Input
-                  placeholder="Rohan Gupta"
-                  value={formData.new_ho_request.contact_person}
-                  onChange={(e) =>
-                    updateFormData({
-                      new_ho_request: {
-                        ...formData.new_ho_request,
-                        contact_person: e.target.value,
-                      },
-                    })
-                  }
-                />
-                {errors.new_ho_contact && <p className="text-xs text-error">{errors.new_ho_contact}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Contact Phone *</label>
-                <Input
-                  placeholder="9876543210"
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={formData.new_ho_request.phone}
-                  onChange={(e) =>
-                    updateFormData({
-                      new_ho_request: {
-                        ...formData.new_ho_request,
-                        phone: e.target.value.replace(/\D/g, "").slice(0, 10),
-                      },
-                    })
-                  }
-                />
-                {errors.new_ho_phone && <p className="text-xs text-error">{errors.new_ho_phone}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Contact Email *</label>
-                <Input
-                  placeholder="ops@abcho.com"
-                  type="email"
-                  value={formData.new_ho_request.email}
-                  onChange={(e) =>
-                    updateFormData({
-                      new_ho_request: {
-                        ...formData.new_ho_request,
-                        email: e.target.value,
-                      },
-                    })
-                  }
-                />
-                {errors.new_ho_email && <p className="text-xs text-error">{errors.new_ho_email}</p>}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Branch / outlet name (optional, helpful when the merchant runs multiple outlets) */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">
+          Branch / Outlet Name <span className="text-xs text-muted-foreground">(optional)</span>
+        </label>
+        <Input
+          placeholder="Koramangala Outlet"
+          value={formData.branch_name}
+          onChange={(e) => updateFormData({ branch_name: e.target.value })}
+        />
+      </div>
 
       {/* Storefront Photo — optional for FE visit-only, required otherwise */}
       <PhotoCapture
@@ -502,6 +619,13 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           updateFormData({
             storefront_photo_url: url,
             storefront_photo_status: "uploaded",
+          })
+        }
+        onLocationCaptured={(coords) =>
+          updateFormData({
+            gps_lat: coords.lat,
+            gps_long: coords.long,
+            gps_accuracy: coords.accuracy,
           })
         }
         required={!isFeVisitOnly}

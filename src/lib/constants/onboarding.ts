@@ -301,7 +301,7 @@ export const VALIDATION_RULES = {
   owner_name: { minLength: 2, maxLength: 100, pattern: /^[A-Za-z\s.]+$/ },
   shop_name: { minLength: 2, maxLength: 150 },
   pin_code: { minLength: 6, maxLength: 6, pattern: /^\d{6}$/ },
-  commission_rate: { min: 2.0, max: 15.0 },
+  commission_rate: { min: 0, max: 99.99 },
   gst_number: {
     length: 15,
     pattern: /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}\d{1}Z[A-Z0-9]{1}$/,
@@ -482,33 +482,76 @@ export const DEFAULT_COMMISSION_TIERS = [
   { min_amount: 500001, max_amount: null, rate_percent: 1.8 },
 ];
 
-// ── Application Status Labels ──────────────────────────────────────
+// ── Merchant Stage Labels & Colors ─────────────────────────────────
+// These map the backend `MerchantStage` enum to human-readable labels
+// and Tailwind colour classes. The legacy APPLICATION_STATUS_* exports
+// below stay as aliases for one release.
 
+export const STAGE_LABELS: Record<string, string> = {
+  lead: "Lead",
+  revisit: "Revisit Scheduled",
+  owner_absent: "Owner Absent",
+  shop_closed: "Shop Closed",
+  competitor_user: "Using Competitor",
+  not_interested: "Not Interested",
+  permanently_closed: "Permanently Closed",
+  invited: "Invited",
+  in_progress: "In Progress",
+  submitted: "Submitted",
+  under_review: "Under Review",
+  rejected: "Rejected",
+  approved: "Approved",
+  active: "Active",
+  suspended: "Suspended",
+  churned: "Churned",
+};
+
+export const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
+  lead: { bg: "bg-gray-500/10", text: "text-gray-400" },
+  revisit: { bg: "bg-warning/10", text: "text-warning" },
+  owner_absent: { bg: "bg-warning/10", text: "text-warning" },
+  shop_closed: { bg: "bg-warning/10", text: "text-warning" },
+  competitor_user: { bg: "bg-warning/10", text: "text-warning" },
+  not_interested: { bg: "bg-error/10", text: "text-error" },
+  permanently_closed: { bg: "bg-error/10", text: "text-error" },
+  invited: { bg: "bg-info/10", text: "text-info" },
+  in_progress: { bg: "bg-info/10", text: "text-info" },
+  submitted: { bg: "bg-info/10", text: "text-info" },
+  under_review: { bg: "bg-primary/10", text: "text-primary" },
+  rejected: { bg: "bg-error/10", text: "text-error" },
+  approved: { bg: "bg-success/10", text: "text-success" },
+  active: { bg: "bg-success/10", text: "text-success" },
+  suspended: { bg: "bg-warning/10", text: "text-warning" },
+  churned: { bg: "bg-error/10", text: "text-error" },
+};
+
+/**
+ * @deprecated Use {@link STAGE_LABELS}.
+ */
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  pending_photo: "Pending Photo",
+  draft: "In Progress",
   pending_review: "Under Review",
-  pending_kyc_review: "KYC Review",
-  pending_bank_verify: "Bank Verification",
-  pending_activation: "Pending Activation",
   active: "Active",
   rejected: "Rejected",
   suspended: "Suspended",
+  visit_record: "Visit Logged",
+  ...STAGE_LABELS,
 };
 
+/**
+ * @deprecated Use {@link STAGE_COLORS}.
+ */
 export const APPLICATION_STATUS_COLORS: Record<
   string,
   { bg: string; text: string }
 > = {
   draft: { bg: "bg-gray-500/10", text: "text-gray-400" },
-  pending_photo: { bg: "bg-warning/10", text: "text-warning" },
   pending_review: { bg: "bg-info/10", text: "text-info" },
-  pending_kyc_review: { bg: "bg-warning/10", text: "text-warning" },
-  pending_bank_verify: { bg: "bg-warning/10", text: "text-warning" },
-  pending_activation: { bg: "bg-info/10", text: "text-info" },
   active: { bg: "bg-success/10", text: "text-success" },
   rejected: { bg: "bg-error/10", text: "text-error" },
   suspended: { bg: "bg-error/10", text: "text-error" },
+  visit_record: { bg: "bg-warning/10", text: "text-warning" },
+  ...STAGE_COLORS,
 };
 
 // ── State List (India) ─────────────────────────────────────────────
@@ -552,8 +595,8 @@ export const ONBOARDING_STRINGS = {
   EXISTING_LEAD: "A lead already exists for this number.",
   PHONE_AVAILABLE: "This number is available for registration.",
 
-  COMMISSION_MIN_ERROR: "Commission rate cannot be less than 2%",
-  COMMISSION_MAX_ERROR: "Commission rate cannot exceed 15%",
+  COMMISSION_MIN_ERROR: "Commission rate cannot be negative.",
+  COMMISSION_MAX_ERROR: "Commission rate cannot exceed 99.99%.",
   COMMISSION_AGREEMENT: "I understand and agree to the commission terms above",
 
   PHOTO_REQUIRED: "Shop storefront photo is mandatory for all applications",

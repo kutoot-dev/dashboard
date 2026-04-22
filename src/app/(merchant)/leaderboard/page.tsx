@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useLiveLeaderboard } from "@/lib/hooks/use-live-data";
-import { useDateRange, DEFAULT_DATE_RANGE } from "@/lib/hooks/use-date-range";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RankBadge } from "@/components/ui/rank-badge";
 import { ChangeIndicator } from "@/components/ui/change-indicator";
 import { Select } from "@/components/ui/select";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -22,9 +20,10 @@ import type { LeaderboardFilters } from "@/lib/types";
 
 const CITY_TIERS = [
   { value: "", label: "All Tiers" },
-  { value: "tier_1", label: "Tier 1" },
-  { value: "tier_2", label: "Tier 2" },
-  { value: "tier_3", label: "Tier 3" },
+  { value: "metro", label: "Metro" },
+  { value: "tier1", label: "Tier 1" },
+  { value: "tier2", label: "Tier 2" },
+  { value: "tier3", label: "Tier 3" },
 ];
 
 const STATES = [
@@ -40,10 +39,20 @@ const STATES = [
 
 const PAGE_SIZE = 20;
 
+const LEADERBOARD_TABS = [
+  { value: "top_rankers", label: "🏆 Top Rankers", sortBy: "" },
+  { value: "most_transactions", label: "📊 Most Transactions", sortBy: "transactions" },
+  { value: "highest_commission", label: "💰 Highest Commission", sortBy: "commission" },
+  { value: "most_discounts", label: "🏷️ Most Discounts", sortBy: "discounts" },
+] as const;
+
 export default function LeaderboardPage() {
   const { user } = useAuth();
   const currentBranchId = user?.branch_id ?? "";
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
+  const [activeTab, setActiveTab] = useState("top_rankers");
+  const [selectedDate, setSelectedDate] = useState(today);
   const [filters, setFilters] = useState<LeaderboardFilters>({
     page: 1,
     limit: PAGE_SIZE,
@@ -51,16 +60,13 @@ export default function LeaderboardPage() {
     state: "",
   });
 
-  const { dateRange, setDateRange } = useDateRange(DEFAULT_DATE_RANGE);
-
   const { data: leaderboard, pagination, isLoading } = useLiveLeaderboard({
     ...filters,
-    start_date: dateRange.start,
-    end_date: dateRange.end,
+    start_date: selectedDate,
+    end_date: selectedDate,
   });
 
   const items = leaderboard ?? [];
-  const totalBranches = pagination?.total ?? items.length;
   const totalPages = pagination?.total_pages ?? 1;
   const currentPage = filters.page ?? 1;
 
@@ -72,8 +78,29 @@ export default function LeaderboardPage() {
     <div className="space-y-4">
       <PageHeader title="Rankings" subtitle="See how your shop compares with others" />
 
+      {/* Scrollable Tab Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+        {LEADERBOARD_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => {
+              setActiveTab(tab.value);
+              setFilters((f) => ({ ...f, sort_by: tab.sortBy, page: 1 }));
+            }}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 font-mono text-xs transition-all",
+              activeTab === tab.value
+                ? "border-accent/40 bg-accent/10 text-accent shadow-sm"
+                : "border-glass-border bg-glass-bg text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
-      <Card className="flex flex-wrap items-center gap-3 p-3">
+      <Card className="glass-card-sm flex flex-wrap items-center gap-3 p-3">
         <Select
           options={CITY_TIERS}
           value={filters.city_tier ?? ""}
@@ -84,15 +111,19 @@ export default function LeaderboardPage() {
           value={filters.state ?? ""}
           onChange={(v) => updateFilter("state", v)}
         />
-        <DateRangePicker
-          value={dateRange}
-          onChange={setDateRange}
-          className="w-60"
-        />
+        <div className="flex items-center gap-2 rounded-md border border-border bg-card/50 px-3 py-2">
+          <span className="font-mono text-xs text-muted-foreground">Date</span>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="rounded bg-transparent font-mono text-xs text-foreground outline-none"
+          />
+        </div>
       </Card>
 
       {/* Table */}
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0 glass-card-sm">
         {isLoading ? (
           <div className="space-y-0">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -105,7 +136,7 @@ export default function LeaderboardPage() {
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-16" />
                 <Skeleton className="h-4 w-12" />
-                <Skeleton className="h-4 w-[100px]" />
+                <Skeleton className="h-4 w-25" />
               </div>
             ))}
           </div>
@@ -143,14 +174,17 @@ export default function LeaderboardPage() {
                   <th className="px-3 py-2 text-right font-mono text-xs font-medium text-muted-foreground">
                     <span className="flex items-center justify-end gap-1">Trend <InfoTooltip text="Score trend over recent periods." /></span>
                   </th>
+                  <th className="px-3 py-2 text-right font-mono text-xs font-medium text-muted-foreground">
+                    Profile
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((entry) => {
+                {items.map((entry, idx) => {
                   const isMe = entry.branch_id === currentBranchId;
                   return (
                     <tr
-                      key={entry.branch_id}
+                      key={`${entry.branch_id}-${idx}`}
                       className={cn(
                         "border-b border-border transition-colors",
                         isMe
@@ -165,10 +199,6 @@ export default function LeaderboardPage() {
                             {entry.rank}
                           </span>
                           <ChangeIndicator value={entry.rank_movement} suffix="" />
-                          <RankBadge
-                            rank={entry.rank}
-                            totalBranches={totalBranches}
-                          />
                         </div>
                       </td>
 
@@ -222,8 +252,8 @@ export default function LeaderboardPage() {
 
                       {/* Sparkline */}
                       <td className="px-3 py-2 text-right">
-                        {entry.sparkline_data.length > 0 && (
-                          <div className="ml-auto w-[100px]">
+                        {entry.sparkline_data && entry.sparkline_data.length > 0 && (
+                          <div className="ml-auto w-25">
                             <SparklineChart
                               data={entry.sparkline_data}
                               width={100}
@@ -231,6 +261,15 @@ export default function LeaderboardPage() {
                             />
                           </div>
                         )}
+                      </td>
+
+                      <td className="px-3 py-2 text-right">
+                        <Link
+                          href={`/leaderboard/${entry.branch_id}`}
+                          className="rounded-md border border-accent/30 bg-accent/10 px-2 py-1 font-mono text-[10px] text-accent transition hover:bg-accent/20"
+                        >
+                          View
+                        </Link>
                       </td>
                     </tr>
                   );

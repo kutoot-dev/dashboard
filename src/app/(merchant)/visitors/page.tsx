@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
 import { PageHeader } from "@/components/layout/page-header";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable } from "@/components/ui/data-table";
+import { TransactionChart } from "@/components/charts/transaction-chart";
 import { formatINR } from "@/lib/utils/format";
 import { getVisitors, type Visitor } from "@/lib/api/services/merchant.service";
 
@@ -39,6 +40,24 @@ export default function VisitorsPage() {
   const rows: Visitor[] = data?.rows ?? [];
   const total = data?.total ?? 0;
   const pages = data?.pages ?? 1;
+
+  // Aggregate visitors by last_visited date for chart
+  const visitorChartData = useMemo(() => {
+    if (!rows.length) return [];
+    const byDate: Record<string, { count: number; amount: number }> = {};
+    rows.forEach((row) => {
+      const day = row.last_visited
+        ? new Date(row.last_visited).toISOString().slice(0, 10)
+        : null;
+      if (!day) return;
+      if (!byDate[day]) byDate[day] = { count: 0, amount: 0 };
+      byDate[day].count += 1;
+      byDate[day].amount += row.total_spend ?? 0;
+    });
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, v]) => ({ date, count: v.count, amount: v.amount }));
+  }, [rows]);
 
   const columns = [
     {
@@ -124,6 +143,19 @@ export default function VisitorsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Visitor Trend Chart */}
+      {rows.length > 0 && visitorChartData.length > 1 && (
+        <Card className="p-3">
+          <TransactionChart
+            data={visitorChartData}
+            dataKey="count"
+            color="var(--accent)"
+            height={180}
+            label="Daily Visitors"
+          />
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="space-y-2">
