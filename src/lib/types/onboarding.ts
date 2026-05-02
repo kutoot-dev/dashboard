@@ -409,8 +409,10 @@ export interface ApplicationSummary {
   /** @deprecated Use `stage`. */
   status?: ApplicationStatus;
   current_step: WizardStepId;
+  completed_steps?: WizardStepId[];
   commission_rate: number | null;
   channel: ApplicationChannel;
+  visit_outcome?: VisitOutcome | null;
   exec_name: string | null;
   created_at: string;
   updated_at: string;

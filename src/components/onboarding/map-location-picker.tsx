@@ -24,6 +24,24 @@ const TileLayer = dynamic(() => import("react-leaflet").then((m) => m.TileLayer)
 const Marker = dynamic(() => import("react-leaflet").then((m) => m.Marker), {
   ssr: false,
 });
+const MapClickHandler = dynamic(
+  () =>
+    import("react-leaflet").then((m) => {
+      function ClickHandler({ onSelect }: { onSelect: (coords: SelectedLocation) => void }) {
+        m.useMapEvents({
+          click(event) {
+            onSelect({
+              lat: Number(event.latlng.lat.toFixed(6)),
+              long: Number(event.latlng.lng.toFixed(6)),
+            });
+          },
+        });
+        return null;
+      }
+      return ClickHandler;
+    }),
+  { ssr: false },
+);
 
 export function MapLocationPicker({ value, onSelect }: MapLocationPickerProps) {
   const [open, setOpen] = useState(false);
@@ -44,15 +62,8 @@ export function MapLocationPicker({ value, onSelect }: MapLocationPickerProps) {
               center={center}
               zoom={value ? 15 : 5}
               className="h-full w-full"
-              eventHandlers={{
-                click: (event) => {
-                  onSelect({
-                    lat: Number(event.latlng.lat.toFixed(6)),
-                    long: Number(event.latlng.lng.toFixed(6)),
-                  });
-                },
-              }}
             >
+              <MapClickHandler onSelect={onSelect} />
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -49,7 +49,7 @@ const FALLBACK_STATES: GeoState[] = [
 ].map((state, index) => ({
   id: -(index + 1),
   ...state,
-}));
+})) as GeoState[];
 
 /**
  * Fetches the list of Indian states from the backend.
