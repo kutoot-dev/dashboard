@@ -7,7 +7,7 @@
  */
 import axios from "axios";
 
-const DEFAULT_BACKEND = "https://kutoot.test/api/dashboard";
+const DEFAULT_BACKEND = "https://dev.kutoot.com/api/dashboard";
 
 export const BACKEND_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
