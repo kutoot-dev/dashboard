@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { KutootLogo } from "@/components/branding";
 import { Card } from "@/components/ui/card";
@@ -158,6 +159,22 @@ export default function LoginPage() {
         <p className="mt-4 text-center font-mono text-[10px] text-muted-foreground">
           {COMMON.VERSION} &middot; <span className="text-primary font-semibold">{COMMON.POWERED_BY}</span>
         </p>
+        <div className="mt-4 text-center text-[11px] text-muted-foreground">
+          <p>By continuing, you agree to our legal documents:</p>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <Link href="/legal/merchant-terms" className="text-primary hover:underline">
+              Merchant Terms and Conditions
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link href="/legal/privacy-policy" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link href="/legal/data-governance-policy" className="text-primary hover:underline">
+              Data Governance, Processing and Protection Policy
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
