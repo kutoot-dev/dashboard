@@ -7,7 +7,7 @@
  */
 import type {
   ApiResponse,
-  PaginatedData,
+  LeaderboardData,
   LeaderboardEntry,
   LeaderboardFilters,
   TickerItem,
@@ -21,7 +21,7 @@ import apiClient from "../client";
  *   locations. Apply filters, paginate with OFFSET/LIMIT.
  */
 export async function getLeaderboard(filters: LeaderboardFilters = {}) {
-  const res = await apiClient.get<ApiResponse<PaginatedData<LeaderboardEntry>>>(
+  const res = await apiClient.get<ApiResponse<LeaderboardData>>(
     "/leaderboard",
     { params: filters },
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { KutootLogo } from "@/components/branding";
 
 export const metadata: Metadata = {
@@ -36,13 +37,19 @@ export default function OnboardLayout({
       <footer className="relative z-10 mt-auto border-t border-border/60 py-5">
         <div className="mx-auto max-w-3xl px-4 text-center text-xs text-muted-foreground sm:px-6">
           © {new Date().getFullYear()} Kutoot. All rights reserved. •{" "}
-          <span className="cursor-pointer text-accent transition-colors hover:text-accent/90">
+          <Link
+            href="/privacy-policy"
+            className="text-accent underline-offset-2 transition-colors hover:text-accent/90 hover:underline"
+          >
             Privacy Policy
-          </span>{" "}
+          </Link>{" "}
           •{" "}
-          <span className="cursor-pointer text-accent transition-colors hover:text-accent/90">
-            Terms of Service
-          </span>
+          <Link
+            href="/merchant-terms"
+            className="text-accent underline-offset-2 transition-colors hover:text-accent/90 hover:underline"
+          >
+            Merchant Terms
+          </Link>
         </div>
       </footer>
     </div>

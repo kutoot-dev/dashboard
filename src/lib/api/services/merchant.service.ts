@@ -16,8 +16,10 @@ export interface Deal {
   code: string | null;
   starts_at: string | null;
   expires_at: string | null;
+  archived_at?: string | null;
   is_active: boolean;
   status: string; // pending|approved|rejected|expired
+  lifecycle_status?: "active" | "paused" | "archived";
   created_at: string;
   branch_name?: string;
 }
@@ -118,8 +120,29 @@ export async function updateDeal(branchId: string, dealId: number, payload: Part
 }
 
 export async function deleteDeal(branchId: string, dealId: number) {
-  const res = await apiClient.delete<ApiResponse<null>>(
+  const res = await apiClient.delete<ApiResponse<Deal>>(
     `/merchant/${branchId}/deals/${dealId}`,
+  );
+  return res.data;
+}
+
+export async function pauseDeal(branchId: string, dealId: number) {
+  const res = await apiClient.post<ApiResponse<Deal>>(
+    `/merchant/${branchId}/deals/${dealId}/pause`,
+  );
+  return res.data;
+}
+
+export async function resumeDeal(branchId: string, dealId: number) {
+  const res = await apiClient.post<ApiResponse<Deal>>(
+    `/merchant/${branchId}/deals/${dealId}/resume`,
+  );
+  return res.data;
+}
+
+export async function archiveDeal(branchId: string, dealId: number) {
+  const res = await apiClient.post<ApiResponse<Deal>>(
+    `/merchant/${branchId}/deals/${dealId}/archive`,
   );
   return res.data;
 }
@@ -152,6 +175,64 @@ export async function getTransactions(
     { params },
   );
   return res.data;
+}
+
+export async function exportTransactionsCsv(
+  branchId: string,
+  params?: { from?: string; to?: string; status?: string; search?: string },
+) {
+  return apiClient.get(`/merchant/${branchId}/transactions/export`, {
+    params,
+    responseType: "blob",
+  });
+}
+
+export interface GstSummaryRow {
+  month: string;
+  transaction_count: number;
+  gross_bill_amount: number;
+  discount_amount: number;
+  taxable_amount: number;
+  gst_amount: number;
+  commission_amount: number;
+  settlement_amount: number;
+}
+
+export async function getGstSummary(
+  branchId: string,
+  params?: { from?: string; to?: string; status?: string; search?: string },
+) {
+  const res = await apiClient.get<ApiResponse<{ rows: GstSummaryRow[] }>>(
+    `/merchant/${branchId}/transactions/gst-summary`,
+    { params },
+  );
+  return res.data;
+}
+
+export async function exportGstSummaryCsv(
+  branchId: string,
+  params?: { from?: string; to?: string; status?: string; search?: string },
+) {
+  return apiClient.get(`/merchant/${branchId}/transactions/gst-summary`, {
+    params: { ...params, format: "csv" },
+    responseType: "blob",
+  });
+}
+
+export async function downloadTransactionInvoice(branchId: string, transactionId: number) {
+  return apiClient.get(`/merchant/${branchId}/transactions/${transactionId}/invoice`, {
+    responseType: "blob",
+  });
+}
+
+export async function downloadInvoicesZip(
+  branchId: string,
+  params?: { from?: string; to?: string; status?: string; search?: string; max?: number },
+) {
+  return apiClient.get(`/merchant/${branchId}/transactions/invoices.zip`, {
+    params,
+    responseType: "blob",
+  });
 }
 
 // ── Visitors ─────────────────────────────────────────────────────────────────

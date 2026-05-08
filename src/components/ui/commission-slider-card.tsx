@@ -124,7 +124,7 @@ export function CommissionSliderCard({ className, ceiling = 25 }: CommissionSlid
         <h3 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Boost Commission
         </h3>
-        <InfoTooltip text="Increase the commission you share with Kutoot. Higher contributions lift your composite score and ranking. Can't go below your category minimum." />
+        <InfoTooltip text="Increase the commission you share with Kutoot Business. Higher contributions lift your composite score and ranking. Can't go below your category minimum." />
       </div>
 
       <div className="flex items-baseline justify-between">

@@ -3,16 +3,44 @@
  *
  * Talks DIRECTLY to the kutoot Laravel backend (no Next.js proxy layer).
  * Configure NEXT_PUBLIC_BACKEND_URL to the dashboard API root, e.g.
- *   https://kutoot.test/api/dashboard
+ *   https://kutoot.test/api/v1/dashboard
  */
 import axios from "axios";
 
-const DEFAULT_BACKEND = "https://dev.kutoot.com/api/dashboard";
+const DEFAULT_BACKEND = "https://dev.kutoot.com/api/v1/dashboard";
+
+function normalizeBackendBaseUrl(value: string): string {
+  const raw = (value || "").trim();
+  const noTrailingSlashes = raw.replace(/\/+$/, "");
+
+  if (!noTrailingSlashes) {
+    return DEFAULT_BACKEND;
+  }
+
+  // Legacy values used /api/dashboard before the v1 route group existed.
+  if (/\/api\/dashboard$/i.test(noTrailingSlashes)) {
+    return noTrailingSlashes.replace(/\/api\/dashboard$/i, "/api/v1/dashboard");
+  }
+
+  // Accept /api/v1 and append dashboard scope expected by merchant-panel services.
+  if (/\/api\/v1$/i.test(noTrailingSlashes)) {
+    return `${noTrailingSlashes}/dashboard`;
+  }
+
+  // Accept bare /api and map to versioned dashboard scope.
+  if (/\/api$/i.test(noTrailingSlashes)) {
+    return `${noTrailingSlashes}/v1/dashboard`;
+  }
+
+  return noTrailingSlashes;
+}
 
 export const BACKEND_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  DEFAULT_BACKEND;
+  normalizeBackendBaseUrl(
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      DEFAULT_BACKEND,
+  );
 
 export const AUTH_TOKEN_STORAGE_KEY = "kutoot_token";
 export const AUTH_USER_COOKIE = "kutoot_auth";

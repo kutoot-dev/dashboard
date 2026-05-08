@@ -129,7 +129,7 @@ function QrPreviewCard({
           {serial}
         </p>
         <p className="font-mono text-[9px] text-accent/70 uppercase tracking-widest mt-0.5">
-          Powered by Kutoot
+          Powered by Kutoot Business
         </p>
       </div>
     </div>

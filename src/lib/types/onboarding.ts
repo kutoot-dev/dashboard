@@ -273,6 +273,9 @@ export interface OnboardingApplication {
   operating_hours_start: string | null;
   operating_hours_end: string | null;
   expected_monthly_volume: string | null;
+  referral_code?: string | null;
+  merchant_referral_code?: string | null;
+  referred_by_location_id?: number | null;
 
   // Step 7: Review
   terms_accepted: boolean;

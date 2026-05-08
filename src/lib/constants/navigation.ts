@@ -30,9 +30,19 @@ export const BRANCH_NAV: NavItem[] = [
     icon: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z",
   },
   {
+    label: "Store",
+    href: "/store",
+    icon: "M3 21h18M5 21V7l8-4 8 4v14M9 21v-6h6v6",
+  },
+  {
     label: "Transactions",
     href: "/transactions",
     icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+  },
+  {
+    label: "Visitors",
+    href: "/visitors",
+    icon: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m2-2a4 4 0 100-8 4 4 0 000 8zm6 0a4 4 0 100-8 4 4 0 000 8z",
   },
   {
     label: "Discover",

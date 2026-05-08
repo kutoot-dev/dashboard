@@ -1,0 +1,362 @@
+"use client";
+
+import type { AxiosResponse } from "axios";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  downloadInvoicesZip,
+  downloadTransactionInvoice,
+  exportGstSummaryCsv,
+  exportTransactionsCsv,
+  getGstSummary,
+  getTransactions,
+} from "@/lib/api/services/merchant.service";
+import { ApiError } from "@/lib/api/client";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useToastStore } from "@/lib/stores/toast.store";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { formatINR, formatINRDecimal } from "@/lib/utils/format";
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "All statuses" },
+  { value: "paid", label: "Paid" },
+  { value: "completed", label: "Completed" },
+  { value: "pending", label: "Pending" },
+  { value: "failed", label: "Failed" },
+];
+
+function parseFileName(response: AxiosResponse<Blob>, fallback: string): string {
+  const disposition = response.headers?.["content-disposition"] as string | undefined;
+  if (!disposition) return fallback;
+
+  const utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) return decodeURIComponent(utfMatch[1]);
+
+  const plainMatch = disposition.match(/filename="?([^\";]+)"?/i);
+  if (plainMatch?.[1]) return plainMatch[1];
+
+  return fallback;
+}
+
+function triggerDownload(response: AxiosResponse<Blob>, fallbackName: string): string {
+  const blob = response.data;
+  const fileName = parseFileName(response, fallbackName);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+
+  return fileName;
+}
+
+export default function TransactionsPage() {
+  const { user } = useAuth();
+  const branchId = user?.branch_id ?? "";
+  const pushToast = useToastStore((s) => s.push);
+
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [range, setRange] = useState({ start: "", end: "" });
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<number | null>(null);
+
+  const filters = useMemo(() => {
+    const next: {
+      page: number;
+      limit: number;
+      search?: string;
+      status?: string;
+      from?: string;
+      to?: string;
+    } = {
+      page,
+      limit: 20,
+    };
+
+    if (search.trim()) next.search = search.trim();
+    if (status !== "all") next.status = status;
+    if (range.start) next.from = range.start;
+    if (range.end) next.to = range.end;
+    return next;
+  }, [page, range.end, range.start, search, status]);
+
+  const transactionsQuery = useQuery({
+    queryKey: ["transactions", branchId, filters],
+    queryFn: () => getTransactions(branchId, filters),
+    enabled: Boolean(branchId),
+    retry: false,
+  });
+
+  const gstSummaryQuery = useQuery({
+    queryKey: ["gst-summary", branchId, { ...filters, page: undefined, limit: undefined }],
+    queryFn: () =>
+      getGstSummary(branchId, {
+        from: filters.from,
+        to: filters.to,
+        status: filters.status,
+        search: filters.search,
+      }),
+    enabled: Boolean(branchId),
+    retry: false,
+  });
+
+  const exportTransactionsMutation = useMutation({
+    onMutate: () => {
+      pushToast({ title: "Preparing transactions CSV", description: "Your filtered export is being generated.", variant: "info" });
+    },
+    mutationFn: () =>
+      exportTransactionsCsv(branchId, {
+        from: filters.from,
+        to: filters.to,
+        status: filters.status,
+        search: filters.search,
+      }),
+    onSuccess: (response) => {
+      const fileName = triggerDownload(response, `transactions-${Date.now()}.csv`);
+      pushToast({ title: "Transactions CSV downloaded", description: fileName, variant: "success" });
+    },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "CSV export failed";
+      pushToast({ title: "Export failed", description: message, variant: "error" });
+    },
+  });
+
+  const exportGstMutation = useMutation({
+    onMutate: () => {
+      pushToast({ title: "Preparing GST summary", description: "Calculating monthly GST buckets for export.", variant: "info" });
+    },
+    mutationFn: () =>
+      exportGstSummaryCsv(branchId, {
+        from: filters.from,
+        to: filters.to,
+        status: filters.status,
+        search: filters.search,
+      }),
+    onSuccess: (response) => {
+      const fileName = triggerDownload(response, `gst-summary-${Date.now()}.csv`);
+      pushToast({ title: "GST summary downloaded", description: fileName, variant: "success" });
+    },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "GST export failed";
+      pushToast({ title: "Export failed", description: message, variant: "error" });
+    },
+  });
+
+  const exportZipMutation = useMutation({
+    onMutate: () => {
+      pushToast({ title: "Preparing invoice ZIP", description: "Generating PDF invoices and building archive.", variant: "info" });
+    },
+    mutationFn: () =>
+      downloadInvoicesZip(branchId, {
+        from: filters.from,
+        to: filters.to,
+        status: filters.status,
+        search: filters.search,
+      }),
+    onSuccess: (response) => {
+      const fileName = triggerDownload(response, `invoices-${Date.now()}.zip`);
+      pushToast({ title: "Invoice ZIP downloaded", description: fileName, variant: "success" });
+    },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "ZIP export failed";
+      pushToast({ title: "Export failed", description: message, variant: "error" });
+    },
+  });
+
+  async function handleInvoiceDownload(transactionId: number) {
+    setDownloadingInvoiceId(transactionId);
+    pushToast({ title: `Preparing invoice #${transactionId}`, variant: "info" });
+    try {
+      const response = await downloadTransactionInvoice(branchId, transactionId);
+      const fileName = triggerDownload(response, `invoice-${transactionId}.pdf`);
+      pushToast({ title: "Invoice downloaded", description: fileName, variant: "success" });
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Invoice download failed";
+      pushToast({ title: "Download failed", description: message, variant: "error" });
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  }
+
+  const rows = transactionsQuery.data?.success ? transactionsQuery.data.data.rows : [];
+  const total = transactionsQuery.data?.success ? transactionsQuery.data.data.total : 0;
+  const pages = transactionsQuery.data?.success ? transactionsQuery.data.data.pages : 1;
+  const gstRows = gstSummaryQuery.data?.success ? gstSummaryQuery.data.data.rows : [];
+
+  const totals = useMemo(() => {
+    return gstRows.reduce(
+      (acc, row) => {
+        acc.taxable += row.taxable_amount;
+        acc.gst += row.gst_amount;
+        acc.settlement += row.settlement_amount;
+        return acc;
+      },
+      { taxable: 0, gst: 0, settlement: 0 },
+    );
+  }, [gstRows]);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Transactions" subtitle="Filter transactions, download reports, and generate invoices." />
+
+      <Card className="space-y-3">
+        <div className="grid gap-3 md:grid-cols-4">
+          <Input
+            label="Search customer"
+            placeholder="Name or phone"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Status</label>
+            <Select
+              options={STATUS_OPTIONS}
+              value={status}
+              onChange={(value) => {
+                setStatus(value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Date range</label>
+            <DateRangePicker
+              value={range}
+              onChange={(value) => {
+                setRange(value);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            loading={exportTransactionsMutation.isPending}
+            onClick={() => exportTransactionsMutation.mutate()}
+          >
+            Export Transactions CSV
+          </Button>
+          <Button
+            variant="secondary"
+            loading={exportGstMutation.isPending}
+            onClick={() => exportGstMutation.mutate()}
+          >
+            Export GST CSV
+          </Button>
+          <Button
+            variant="outline"
+            loading={exportZipMutation.isPending}
+            onClick={() => exportZipMutation.mutate()}
+          >
+            Download Invoices ZIP
+          </Button>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Taxable amount</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.taxable)}</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GST total</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.gst)}</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Settlement</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.settlement)}</p>
+        </Card>
+      </div>
+
+      <Card>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Transaction list ({total})</p>
+          <p className="text-xs text-muted-foreground">Page {page} of {Math.max(1, pages)}</p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[940px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="px-2 py-2">Date</th>
+                <th className="px-2 py-2">Customer</th>
+                <th className="px-2 py-2">Bill</th>
+                <th className="px-2 py-2">Discount</th>
+                <th className="px-2 py-2">Total paid</th>
+                <th className="px-2 py-2">Status</th>
+                <th className="px-2 py-2">Invoice</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="border-b border-border/60 align-top">
+                  <td className="px-2 py-3 text-xs text-muted-foreground">
+                    {new Date(row.created_at).toLocaleString("en-IN")}
+                  </td>
+                  <td className="px-2 py-3">
+                    <p className="font-medium text-foreground">{row.customer_name || "Walk-in customer"}</p>
+                    <p className="text-xs text-muted-foreground">{row.customer_phone || "--"}</p>
+                  </td>
+                  <td className="px-2 py-3 font-mono">{formatINR(row.bill_amount)}</td>
+                  <td className="px-2 py-3 font-mono">{formatINR(row.discount)}</td>
+                  <td className="px-2 py-3 font-mono">{formatINR(row.total_paid)}</td>
+                  <td className="px-2 py-3">
+                    <span className="rounded-full border border-border/70 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="px-2 py-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      loading={downloadingInvoiceId === row.id}
+                      onClick={() => handleInvoiceDownload(row.id)}
+                    >
+                      PDF
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+
+              {!transactionsQuery.isLoading && rows.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-2 py-8 text-center text-sm text-muted-foreground">
+                    No transactions found for this filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            Previous
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={page >= pages}
+            onClick={() => setPage((p) => Math.min(pages, p + 1))}
+          >
+            Next
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}

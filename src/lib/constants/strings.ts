@@ -8,11 +8,11 @@
 // ── Common / Shared ───────────────────────────────────────────────────
 
 export const COMMON = {
-  APP_NAME: "Kutoot",
+  APP_NAME: "Kutoot Business",
   TAGLINE: "Branch Performance Terminal",
-  POWERED_BY: "Powered by Kutoot",
+  POWERED_BY: "Powered by Kutoot Business",
   VERSION: "v1.0.0",
-  INDEX_NAME: "Kutoot Branch Index (KBI)",
+  INDEX_NAME: "Kutoot Business Branch Index (KBI)",
   INDEX_SHORT: "KBI",
 
   // Roles

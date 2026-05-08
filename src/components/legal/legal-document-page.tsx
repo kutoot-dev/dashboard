@@ -1,9 +1,17 @@
 import Link from "next/link";
 
-type LegalSection = {
+export type LegalSubsection = {
+  title: string;
+  paragraphs?: string[];
+  bullets?: string[];
+};
+
+export type LegalSection = {
   heading: string;
   paragraphs?: string[];
   bullets?: string[];
+  subsections?: LegalSubsection[];
+  trailingParagraphs?: string[];
 };
 
 type LegalDocumentPageProps = {
@@ -37,21 +45,43 @@ export function LegalDocumentPage({
         </div>
 
         <div className="space-y-6 rounded-xl border border-border bg-card p-5 md:p-8">
-          {sections.map((section) => (
-            <section key={section.heading} className="space-y-3">
+          {sections.map((section, sectionIndex) => (
+            <section key={`${sectionIndex}-${section.heading}`} className="space-y-3">
               <h2 className="text-base font-semibold md:text-lg">{section.heading}</h2>
-              {section.paragraphs?.map((paragraph) => (
-                <p key={paragraph} className="text-sm leading-6 text-muted-foreground">
+              {section.paragraphs?.map((paragraph, i) => (
+                <p key={i} className="text-sm leading-6 text-muted-foreground">
                   {paragraph}
                 </p>
               ))}
               {section.bullets?.length ? (
                 <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
-                  {section.bullets.map((bullet) => (
-                    <li key={bullet}>{bullet}</li>
+                  {section.bullets.map((bullet, i) => (
+                    <li key={i}>{bullet}</li>
                   ))}
                 </ul>
               ) : null}
+              {section.subsections?.map((sub, i) => (
+                <div key={i} className="space-y-2 pt-1">
+                  <h3 className="text-sm font-semibold text-foreground">{sub.title}</h3>
+                  {sub.paragraphs?.map((p, j) => (
+                    <p key={j} className="text-sm leading-6 text-muted-foreground">
+                      {p}
+                    </p>
+                  ))}
+                  {sub.bullets?.length ? (
+                    <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+                      {sub.bullets.map((bullet, k) => (
+                        <li key={k}>{bullet}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ))}
+              {section.trailingParagraphs?.map((p, i) => (
+                <p key={i} className="text-sm leading-6 text-muted-foreground">
+                  {p}
+                </p>
+              ))}
             </section>
           ))}
         </div>

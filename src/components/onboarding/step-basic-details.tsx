@@ -138,6 +138,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!formData.state) {
       e.state = "State is required.";
     }
+    if (formData.referral_code && !/^(ML-\d+|\d+)$/i.test(formData.referral_code.trim())) {
+      e.referral_code = "Referral code must be in format ML-000123 (or numeric location id).";
+    }
     if (formData.gps_lat == null || formData.gps_long == null) {
       e.gps = "Select map location to capture latitude and longitude.";
     }
@@ -361,6 +364,24 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           maxLength={100}
         />
       </FieldWithInfo>
+
+      {formData.channel === "field_executive" && formData.visit_outcome === "interested" && (
+        <FieldWithInfo
+          fieldInfo={ONBOARDING_FIELDS.referral_code}
+          error={errors.referral_code}
+        >
+          <Input
+            placeholder={ONBOARDING_FIELDS.referral_code.placeholder}
+            value={formData.referral_code}
+            onChange={(e) =>
+              updateFormData({
+                referral_code: e.target.value.toUpperCase().trim(),
+              })
+            }
+            maxLength={16}
+          />
+        </FieldWithInfo>
+      )}
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">

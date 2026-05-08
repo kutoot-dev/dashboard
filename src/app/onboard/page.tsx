@@ -35,7 +35,7 @@ function getActiveSteps(
   }
   if (channel === "field_executive") {
     if (visitOutcome === "interested") {
-      // Full field-executive onboarding flow (no QR step)
+      // Full field-executive onboarding flow (includes QR activation)
       return [
         "identity",
         "visit_outcome",
@@ -43,6 +43,7 @@ function getActiveSteps(
         "commission",
         "kyc",
         "bank",
+        "qr_activation",
         "review",
       ];
     }

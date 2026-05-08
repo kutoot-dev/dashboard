@@ -16,7 +16,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -44,11 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      const res = await loginService(email, password);
+    async (username: string, password: string) => {
+      const res = await loginService(username, password);
       if (res.success) {
         queryClient.clear();
-        setUser(res.data);
+        if (res.data) {
+          setUser(res.data);
+        }
         router.push("/dashboard");
       } else {
         throw new Error(res.error?.message ?? "Login failed");

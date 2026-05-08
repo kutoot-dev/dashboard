@@ -25,7 +25,7 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     tooltip: {
       title: "Your 10-digit Mobile Number",
       description:
-        "Enter your primary business mobile number. This will be your unique identifier on Kutoot and used for OTP verification.",
+        "Enter your primary business mobile number. This will be your unique identifier on Kutoot Business and used for OTP verification.",
       example: "9876543210",
       whyNeeded:
         "Required for authentication, transaction alerts, and communication. One number per merchant.",
@@ -244,6 +244,18 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
         "Links this physical QR to your merchant account. Customers scan this QR to pay you.",
     },
   },
+  referral_code: {
+    label: "Merchant Referral Code (Optional)",
+    placeholder: "ML-000123",
+    tooltip: {
+      title: "Code of the Referring Merchant Branch",
+      description:
+        "If this onboarding came through an existing merchant referral, enter the branch referral code shared by that merchant.",
+      example: "ML-000123",
+      whyNeeded:
+        "Links this application to the referral network so referral credits and ranking benefits can be calculated correctly.",
+    },
+  },
   qr_photo: {
     label: "QR Placement Photo",
     placeholder: "",
@@ -430,7 +442,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
   {
     value: "already_registered",
     label: "Already Registered",
-    description: "Already an active Kutoot merchant",
+    description: "Already an active Kutoot Business merchant",
     icon: "✔️",
     isOnboarding: false,
     supportsSchedule: false,
@@ -579,7 +591,7 @@ export const INCENTIVE_AMOUNTS = {
 
 export const ONBOARDING_STRINGS = {
   PAGE_TITLE: "Merchant Onboarding",
-  PAGE_SUBTITLE: "Join Kutoot and start accepting digital payments",
+  PAGE_SUBTITLE: "Join Kutoot Business and start accepting digital payments",
   RESUME_TITLE: "Resume Application",
   RESUME_SUBTITLE: "Continue where you left off",
 
@@ -591,7 +603,7 @@ export const ONBOARDING_STRINGS = {
 
   ALREADY_SUBMITTED:
     "An application has already been submitted for this mobile number.",
-  ALREADY_ACTIVE: "This merchant is already active on Kutoot.",
+  ALREADY_ACTIVE: "This merchant is already active on Kutoot Business.",
   EXISTING_LEAD: "A lead already exists for this number.",
   PHONE_AVAILABLE: "This number is available for registration.",
 

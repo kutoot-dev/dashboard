@@ -29,6 +29,8 @@ export function StepReview({ onBack }: StepReviewProps) {
     formData.channel === "field_executive" &&
     formData.visit_outcome !== "interested" &&
     formData.visit_outcome !== null;
+  const hasQrStep =
+    formData.channel === "field_executive" && formData.visit_outcome === "interested";
 
   const visitOutcomeLabel =
     VISIT_OUTCOME_OPTIONS.find((o) => o.value === formData.visit_outcome)?.label ||
@@ -53,6 +55,7 @@ export function StepReview({ onBack }: StepReviewProps) {
       submitted_by: formData.channel,
       exec_id: formData.exec_id,
       exec_employee_code: formData.exec_employee_code,
+      referral_code: formData.referral_code || undefined,
       visit_outcome: formData.visit_outcome,
       visit_notes: formData.visit_notes || null,
       follow_up_schedules: formData.follow_up_schedules,
@@ -96,6 +99,11 @@ export function StepReview({ onBack }: StepReviewProps) {
         bank_ifsc: formData.bank_ifsc,
         bank_name: formData.bank_name,
         preferred_settlement_method: formData.preferred_settlement_method || undefined,
+        qr_serial: formData.qr_serial || undefined,
+        qr_assigned: formData.qr_assigned,
+        qr_photo_url: formData.qr_photo_url || undefined,
+        operating_hours_start: formData.operating_hours_start,
+        operating_hours_end: formData.operating_hours_end,
         operating_hours: `${formData.operating_hours_start} - ${formData.operating_hours_end}`,
         expected_monthly_volume: formData.expected_monthly_volume,
       }),
@@ -349,12 +357,30 @@ export function StepReview({ onBack }: StepReviewProps) {
             /> */}
           </Section>
 
-          <Section title="Operations" onEdit={() => goToStep("bank")}>
+          <Section title="Operations" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "bank")}>
             <Row
               label="Operating Hours"
               value={`${formData.operating_hours_start} - ${formData.operating_hours_end}`}
             />
             <Row label="Expected Volume" value={volumeLabel} />
+          </Section>
+
+          <Section title="Referral & QR" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "basic_details")}>
+            <Row
+              label="Referral Code"
+              value={formData.referral_code || "— Not provided"}
+              valueClass={formData.referral_code ? "" : "text-muted-foreground"}
+            />
+            <Row
+              label="QR Serial"
+              value={formData.qr_serial || (hasQrStep ? "✗ Missing" : "— Not required")}
+              valueClass={formData.qr_serial ? "text-success" : hasQrStep ? "text-error" : "text-muted-foreground"}
+            />
+            <Row
+              label="QR Placement Photo"
+              value={formData.qr_photo_url ? "✓ Captured" : hasQrStep ? "✗ Missing" : "— Not required"}
+              valueClass={formData.qr_photo_url ? "text-success" : hasQrStep ? "text-error" : "text-muted-foreground"}
+            />
           </Section>
 
           <Section title="Identity" onEdit={() => goToStep("identity")}>
@@ -385,12 +411,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <a
-                href="https://kutoot.com/termsandcondition"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent underline"
-              >
+              <a href="/merchant-terms" className="text-accent underline">
                 Terms & Conditions
               </a>{" "}
               and agree to the commission structure above.
@@ -411,12 +432,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <a
-                href="https://kutoot.com/privacypolicy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent underline"
-              >
+              <a href="/privacy-policy" className="text-accent underline">
                 Privacy Policy
               </a>{" "}
               and

@@ -8,12 +8,82 @@
 import type { ApiResponse, AuthUser } from "@/lib/types";
 import apiClient, { AUTH_TOKEN_STORAGE_KEY, AUTH_USER_COOKIE } from "../client";
 
-interface LoginResponseEnvelope extends ApiResponse<AuthUser> {
-  /** Sanctum plain-text token returned at the top level by Laravel. */
+interface MerchantSellerPayload {
+  sellerId?: string | number;
+  shopId?: string | number;
+  shopName?: string;
+  ownerName?: string;
+  email?: string;
+  status?: string;
+}
+
+interface MerchantLoginPayload {
   token?: string;
+  requires_terms_acceptance?: boolean;
+  seller?: MerchantSellerPayload;
+}
+
+interface MerchantLoginResponse {
+  success: boolean;
+  message?: string;
+  data?: MerchantLoginPayload;
+}
+
+interface MerchantMeResponse {
+  success: boolean;
+  message?: string;
+  data?: MerchantSellerPayload & {
+    requires_terms_acceptance?: boolean;
+  };
 }
 
 const COOKIE_MAX_AGE_DAYS = 7;
+
+function buildMeta(): ApiResponse<null>["meta"] {
+  return {
+    timestamp: new Date().toISOString(),
+    period_id: null,
+    request_id: "",
+  };
+}
+
+function toAuthEnvelope(user: AuthUser | null, message?: string): ApiResponse<AuthUser | null> {
+  if (user) {
+    return {
+      success: true,
+      data: user,
+      meta: buildMeta(),
+      error: null,
+    };
+  }
+
+  return {
+    success: false,
+    data: null,
+    meta: buildMeta(),
+    error: {
+      code: "AUTH_ERROR",
+      message: message ?? "Authentication failed",
+    },
+  };
+}
+
+function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
+  if (!payload?.shopId) {
+    return null;
+  }
+
+  const branchId = String(payload.shopId);
+  const id = payload.sellerId ? String(payload.sellerId) : branchId;
+
+  return {
+    id,
+    name: payload.shopName ?? payload.ownerName ?? "Merchant",
+    email: payload.email ?? "",
+    role: "merchant",
+    branch_id: branchId,
+  };
+}
 
 function setAuthCookie(user: AuthUser): void {
   if (typeof document === "undefined") return;
@@ -29,27 +99,28 @@ function clearAuthCookie(): void {
 }
 
 /**
- * Log in with email and password.
+ * Log in with merchant username and password.
  * Stores the bearer token in localStorage so subsequent requests carry it.
  */
-export async function login(email: string, password: string) {
-  const res = await apiClient.post<LoginResponseEnvelope>("/auth/login", {
-    email,
+export async function login(username: string, password: string): Promise<ApiResponse<AuthUser | null>> {
+  const res = await apiClient.post<MerchantLoginResponse>("/auth/login", {
+    username,
     password,
   });
 
   const envelope = res.data;
-  const token = envelope.token;
+  const token = envelope.data?.token;
+  const user = normaliseAuthUser(envelope.data?.seller);
 
   if (token && typeof window !== "undefined") {
     window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
   }
 
-  if (envelope.success && envelope.data) {
-    setAuthCookie(envelope.data);
+  if (envelope.success && user) {
+    setAuthCookie(user);
   }
 
-  return envelope;
+  return toAuthEnvelope(user, envelope.message);
 }
 
 /**
@@ -79,10 +150,13 @@ export async function logout() {
 /**
  * Get the currently authenticated user.
  */
-export async function getMe() {
-  const res = await apiClient.get<ApiResponse<AuthUser>>("/auth/me");
-  if (res.data.success && res.data.data) {
-    setAuthCookie(res.data.data);
+export async function getMe(): Promise<ApiResponse<AuthUser | null>> {
+  const res = await apiClient.get<MerchantMeResponse>("/auth/me");
+  const user = normaliseAuthUser(res.data.data);
+
+  if (res.data.success && user) {
+    setAuthCookie(user);
   }
-  return res.data;
+
+  return toAuthEnvelope(user, res.data.message);
 }

@@ -41,6 +41,7 @@ interface OnboardingFormData {
   city: string;
   state: string;
   pin_code: string;
+  referral_code: string;
   branch_name: string;
   storefront_photo_url: string | null;
   storefront_photo_status: "pending" | "uploaded" | "failed";
@@ -154,6 +155,7 @@ const initialFormData: OnboardingFormData = {
   city: "",
   state: "",
   pin_code: "",
+  referral_code: "",
   branch_name: "",
   storefront_photo_url: null,
   storefront_photo_status: "pending",

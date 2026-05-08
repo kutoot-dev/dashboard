@@ -317,7 +317,7 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {selectedConfig.isOnboarding
-                ? "Complete the remaining steps to register this merchant on Kutoot."
+                ? "Complete the remaining steps to register this merchant on Kutoot Business."
                 : "Basic shop details (phone & owner name optional) will be captured and the visit will be logged for follow-up tracking."}
             </p>
           </div>

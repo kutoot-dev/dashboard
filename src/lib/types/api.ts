@@ -45,7 +45,17 @@ export interface LeaderboardFilters {
   state?: string;
   start_date?: string;
   end_date?: string;
+  min_successful_transactions?: number;
   sort_by?: string;
+}
+
+export interface LeaderboardEligibility {
+  minimum_successful_transactions: number;
+  counted_statuses: string[];
+}
+
+export interface LeaderboardData extends PaginatedData<LeaderboardEntry> {
+  eligibility?: LeaderboardEligibility;
 }
 
 /** Leaderboard entry as returned by the API */
@@ -54,6 +64,9 @@ export interface LeaderboardEntry {
   rank_movement: number;
   branch_id: string;
   business_name: string;
+  period_date?: string;
+  successful_transactions?: number;
+  meets_minimum_transactions?: boolean;
   city_name: string;
   state: string;
   sector_name: string;
