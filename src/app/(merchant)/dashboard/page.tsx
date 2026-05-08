@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Card } from "@/components/ui/card";
 import { ScorePie } from "@/components/ui/score-pie";
@@ -9,7 +10,7 @@ import { ScoreTrendCard } from "@/components/ui/score-trend-card";
 import { CommissionSliderCard } from "@/components/ui/commission-slider-card";
 import { RecentRedemptionsSlideshow } from "@/components/ui/recent-redemptions-slideshow";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { createDeal, getMerchantDashboard, type CreateDealPayload } from "@/lib/api/services/merchant.service";
+import { getMerchantDashboard } from "@/lib/api/services/merchant.service";
 import { getBranchScore } from "@/lib/api/services/branches.service";
 import {
   SUB_SCORE_DESCRIPTIONS,
@@ -17,15 +18,12 @@ import {
   SUB_SCORE_ORDER,
   SUB_SCORE_WEIGHTS,
 } from "@/lib/constants/scoring";
-import { ApiError } from "@/lib/api/client";
-import { useToastStore } from "@/lib/stores/toast.store";
 import { formatINR } from "@/lib/utils/format";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "";
-  const qc = useQueryClient();
-  const pushToast = useToastStore((s) => s.push);
 
   const { data, isLoading } = useQuery({
     queryKey: ["merchant-dashboard"],
@@ -80,7 +78,6 @@ export default function DashboardPage() {
       discountPercent: number;
       duration: string;
       audience: string;
-      payload: CreateDealPayload;
     }>;
   } | null>(null);
   const fixRecommendations = useMemo<Record<string, string>>(
@@ -99,18 +96,6 @@ export default function DashboardPage() {
   const netAmount = totalAmount - discounts;
   const walkins = Number(dashboard?.today?.transactions ?? 0);
   const branchNumber = Number(branchId);
-  const createDealMutation = useMutation({
-    mutationFn: (payload: CreateDealPayload) => createDeal(branchId, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["deals", branchId] });
-      qc.invalidateQueries({ queryKey: ["merchant-dashboard"] });
-      qc.invalidateQueries({ queryKey: ["merchant-branch-score", branchId] });
-    },
-    onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "Unable to create deal";
-      pushToast({ title: "Create failed", description: message, variant: "error" });
-    },
-  });
 
   const statsCards = [
     { label: "Total Amount", value: formatINR(totalAmount), helper: "Gross sales today" },
@@ -136,61 +121,7 @@ export default function DashboardPage() {
       key === "platform_capture_score";
 
     if (shouldSuggestDeal) {
-      setActiveRecommendation({
-        key,
-        label,
-        recommendation:
-          "Create a simple deal now. Start with a small, safe discount and increase only if redemptions are low.",
-        example:
-          "Example: If your average bill is Rs.500, a 15% deal gives Rs.75 off. Customer pays Rs.425, and you can attract more repeat buyers.",
-        dealPresets: [
-          {
-            label: "Starter Push",
-            discountPercent: 10,
-            duration: "3 days",
-            audience: "All customers",
-            payload: {
-              discount_type: "percentage",
-              discount_value: 10,
-              min_order_value: null,
-              max_discount_amount: null,
-              code: null,
-              starts_at: null,
-              expires_at: null,
-            },
-          },
-          {
-            label: "Growth Boost",
-            discountPercent: 15,
-            duration: "7 days",
-            audience: "New + inactive customers",
-            payload: {
-              discount_type: "percentage",
-              discount_value: 15,
-              min_order_value: null,
-              max_discount_amount: null,
-              code: null,
-              starts_at: null,
-              expires_at: null,
-            },
-          },
-          {
-            label: "Revive Regulars",
-            discountPercent: 20,
-            duration: "2 days",
-            audience: "Customers not seen in 14 days",
-            payload: {
-              discount_type: "percentage",
-              discount_value: 20,
-              min_order_value: null,
-              max_discount_amount: 200,
-              code: null,
-              starts_at: null,
-              expires_at: null,
-            },
-          },
-        ],
-      });
+      router.push(`/deals?recommended=1&source=scoring&metric=${encodeURIComponent(key)}`);
       return;
     }
 
@@ -403,51 +334,6 @@ export default function DashboardPage() {
                     Close
                   </button>
                 </div>
-                {activeRecommendation.dealPresets && (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-100">
-                      Recommended Deal Presets
-                    </p>
-                    <div className="grid gap-2 md:grid-cols-3">
-                      {activeRecommendation.dealPresets.map((preset) => (
-                        <button
-                          type="button"
-                          key={`${activeRecommendation.key}-${preset.label}`}
-                          onClick={() => {
-                            if (createDealMutation.isPending) return;
-                            createDealMutation.mutate(preset.payload, {
-                              onSuccess: () => {
-                                pushToast({
-                                  title: "Preset deal created",
-                                  description: `${preset.label} is now live.`,
-                                  variant: "success",
-                                });
-                                setActiveRecommendation(null);
-                              },
-                            });
-                          }}
-                          disabled={createDealMutation.isPending}
-                          className="rounded-md border border-amber-300/25 bg-amber-500/10 px-2.5 py-2 text-left text-xs transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          <p className="font-semibold text-amber-100">{preset.label}</p>
-                          <p className="mt-1 text-slate-200">{preset.discountPercent}% OFF</p>
-                          <p className="text-slate-300">Duration: {preset.duration}</p>
-                          <p className="text-slate-400">Audience: {preset.audience}</p>
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const dealButton = document.getElementById("quick-action-add-deal");
-                        dealButton?.click();
-                      }}
-                      className="inline-flex items-center rounded-md border border-amber-300/30 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-400/20"
-                    >
-                      Open Add Deal
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           )}
