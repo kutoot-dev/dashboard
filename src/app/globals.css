@@ -1,28 +1,22 @@
 @import "tailwindcss";
 
 /* =============================================================================
- * Kutoot Trading Terminal Theme — Glassmorphism Edition
- * 
- * Brand Colors:
- * - Primary (Crimson): #AE1E3F
- * - Secondary (Orange): #EA6B1E
- * - Accent (Gold): #EBC500
- * - Dark (Brown): #3B322B
- * 
- * Design: Glassmorphism trading dashboard with tab-based navigation
+ * Merchant Panel Theme — Forest Green Edition
+ *
+ * Design: Glassmorphism dashboard with dual-mode support
  * ============================================================================= */
 
 /* --- Light mode --- */
 :root {
-  --background: #f0f4f8;
-  --foreground: #0f172a;
-  --card: rgba(255, 255, 255, 0.72);
+  --background: #f3f8f4;
+  --foreground: #0f2b1d;
+  --card: rgba(255, 255, 255, 0.78);
   --card-solid: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #0f2b1d;
   --card-hover: rgba(255, 255, 255, 0.85);
-  --border: rgba(226, 232, 240, 0.6);
-  --muted: rgba(241, 245, 249, 0.8);
-  --muted-foreground: #64748b;
+  --border: rgba(195, 218, 200, 0.65);
+  --muted: rgba(234, 244, 236, 0.85);
+  --muted-foreground: #4f6b5a;
 
   /* Glass */
   --glass-bg: rgba(255, 255, 255, 0.55);
@@ -30,18 +24,18 @@
   --glass-blur: 16px;
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 
-  /* Kutoot Brand Colors */
-  --primary: #AE1E3F;
-  --secondary: #EA6B1E;
-  --accent: #EBC500;
-  --dark: #3B322B;
+  /* Forest Green Brand Colors */
+  --primary: #14532d;
+  --secondary: #166534;
+  --accent: #15803d;
+  --dark: #0b2215;
 
   /* Semantic Colors */
   --success: #16a34a;
   --error: #dc2626;
   --warning: #d97706;
-  --info: #0ea5e9;
-  --gain: #16a34a;
+  --info: #115e59;
+  --gain: #166534;
   --loss: #dc2626;
 
   /* Tier Badges */
@@ -55,43 +49,43 @@
   --bronze: var(--tier-rising);
 
   /* Chart Colors */
-  --chart-bg: rgba(255, 255, 255, 0.6);
-  --chart-grid: #e2e8f0;
-  --chart-text: #64748b;
-  --chart-crosshair: #94a3b8;
+  --chart-bg: rgba(255, 255, 255, 0.7);
+  --chart-grid: #d6e6d8;
+  --chart-text: #4f6b5a;
+  --chart-crosshair: #7d9a85;
 }
 
 /* --- Dark mode (default) — Glassmorphism Trading Floor --- */
 .dark {
-  --background: #050810;
-  --foreground: #e2e8f0;
-  --card: rgba(12, 17, 32, 0.72);
-  --card-solid: #0c1120;
-  --card-foreground: #e2e8f0;
-  --card-hover: rgba(17, 27, 46, 0.8);
-  --border: rgba(22, 32, 53, 0.6);
-  --muted: rgba(22, 32, 53, 0.7);
-  --muted-foreground: #94a3b8;
+  --background: #040f09;
+  --foreground: #d6efdd;
+  --card: rgba(7, 25, 15, 0.82);
+  --card-solid: #081d12;
+  --card-foreground: #d8f3dc;
+  --card-hover: rgba(14, 38, 24, 0.88);
+  --border: rgba(30, 74, 47, 0.68);
+  --muted: rgba(14, 42, 26, 0.76);
+  --muted-foreground: #95bda3;
 
   /* Glass — Dark */
-  --glass-bg: rgba(12, 17, 32, 0.55);
+  --glass-bg: rgba(8, 28, 17, 0.64);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-blur: 20px;
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
-  /* Kutoot Brand Colors - Dark Mode Enhanced */
-  --primary: #E63D5C;
-  --secondary: #FF8C3D;
-  --accent: #FFD700;
-  --dark: #2B2420;
+  /* Forest Green Brand Colors - Dark Mode */
+  --primary: #166534;
+  --secondary: #15803d;
+  --accent: #22c55e;
+  --dark: #030b06;
 
   /* Semantic Colors — Neon */
   --success: #22c55e;
   --error: #ef4444;
   --warning: #f59e0b;
-  --info: #06b6d4;
-  --gain: #00ff88;
-  --loss: #ff3366;
+  --info: #0f766e;
+  --gain: #16a34a;
+  --loss: #ef4444;
 
   /* Gamified Tier Colors */
   --tier-legend: #e0b0ff;
@@ -104,10 +98,10 @@
   --bronze: var(--tier-rising);
 
   /* Chart Colors */
-  --chart-bg: rgba(5, 8, 16, 0.8);
-  --chart-grid: #162035;
-  --chart-text: #94a3b8;
-  --chart-crosshair: #475569;
+  --chart-bg: rgba(4, 15, 9, 0.9);
+  --chart-grid: #1f4d31;
+  --chart-text: #95bda3;
+  --chart-crosshair: #4f7d61;
 }
 
 @theme inline {
@@ -236,14 +230,14 @@ body {
   height: 6px;
 }
 .dark ::-webkit-scrollbar-track {
-  background: #050810;
+  background: #040f09;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #162035;
+  background: #1f4d31;
   border-radius: 3px;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #1e3050;
+  background: #166534;
 }
 
 /* Hide scrollbar utility */
@@ -301,7 +295,7 @@ body {
 /* ── Glass accent glow ─────────────────────────────────────────────── */
 
 .glass-glow-accent {
-  box-shadow: 0 0 20px rgba(235, 197, 0, 0.1), 0 0 60px rgba(235, 197, 0, 0.05);
+  box-shadow: 0 0 20px rgba(21, 128, 61, 0.2), 0 0 60px rgba(21, 128, 61, 0.08);
 }
 
 .glass-glow-gain {

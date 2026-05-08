@@ -18,7 +18,7 @@ import {
   SUB_SCORE_ORDER,
   SUB_SCORE_WEIGHTS,
 } from "@/lib/constants/scoring";
-import { formatINR } from "@/lib/utils/format";
+import { formatINR, formatScore } from "@/lib/utils/format";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -95,8 +95,6 @@ export default function DashboardPage() {
   const discounts = Number(dashboard?.today?.discount ?? 0);
   const netAmount = totalAmount - discounts;
   const walkins = Number(dashboard?.today?.transactions ?? 0);
-  const branchNumber = Number(branchId);
-
   const statsCards = [
     { label: "Total Amount", value: formatINR(totalAmount), helper: "Gross sales today" },
     { label: "Discounts", value: formatINR(discounts), helper: "Offers redeemed today" },
@@ -159,14 +157,19 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {statsCards.map((card) => (
-              <Card key={card.label} className="border border-cyan-400/20 bg-slate-900/45">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{card.label}</p>
-                <p className="mt-2 font-tabular text-xl font-semibold text-white">{card.value}</p>
-                <p className="mt-2 text-xs text-slate-400">{card.helper}</p>
-              </Card>
-            ))}
+          <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+            <div className="grid gap-4 md:grid-cols-2">
+              {statsCards.map((card) => (
+                <Card key={card.label} className="border border-cyan-400/20 bg-slate-900/45">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{card.label}</p>
+                  <p className="mt-2 font-tabular text-xl font-semibold text-white">{card.value}</p>
+                  <p className="mt-2 text-xs text-slate-400">{card.helper}</p>
+                </Card>
+              ))}
+            </div>
+            <div id="growth-boost-card">
+              <CommissionSliderCard className="border border-amber-400/25 bg-slate-900/55" />
+            </div>
           </div>
 
           <Card className="border border-cyan-400/15 bg-slate-900/45">
@@ -176,21 +179,12 @@ export default function DashboardPage() {
             </p>
           </Card>
 
-          <div id="growth-boost-card">
-            <CommissionSliderCard className="border border-amber-400/25 bg-slate-900/55" />
-          </div>
-
           <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-            {Number.isFinite(branchNumber) && branchNumber > 0 ? (
-              <ScoreTrendCard branchId={branchNumber} />
-            ) : (
-              <Card className="border border-cyan-400/20 bg-slate-900/55">
-                <h3 className="text-sm font-semibold text-cyan-100">Scoring Trend</h3>
-                <p className="mt-2 text-xs text-slate-400">
-                  Line graph will appear once a valid branch id is available for this account.
-                </p>
-              </Card>
-            )}
+            <ScoreTrendCard
+              scoreBreakdown={scoreBreakdown}
+              compositeScore={compositeScore}
+              todayTransactions={dashboard?.today?.transactions ?? 0}
+            />
             <RecentRedemptionsSlideshow className="border border-emerald-400/20 bg-slate-900/55" />
           </div>
 
@@ -201,8 +195,8 @@ export default function DashboardPage() {
                 Hover any donut slice or parameter row to inspect it. Use Fix on lower scores for quick guidance.
               </p>
             </div>
-            <div className="grid gap-4 xl:grid-cols-[2fr_3fr]">
-              <div className="space-y-3 rounded-lg border border-cyan-400/20 bg-slate-900/60 p-3">
+            <div className="grid gap-4 xl:grid-cols-[2fr_3fr] xl:items-stretch">
+              <div className="flex h-full flex-col space-y-3 rounded-lg border border-cyan-400/20 bg-slate-900/60 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100">
@@ -214,7 +208,7 @@ export default function DashboardPage() {
                       )}
                     </h4>
                     <p className="text-[11px] text-slate-400">
-                      Composite {compositeScore.toFixed(1)} {typeof compositeRank === "number" ? `· Rank #${compositeRank}` : ""}
+                      Composite {formatScore(compositeScore)} {typeof compositeRank === "number" ? `· Rank #${compositeRank}` : ""}
                     </p>
                   </div>
                 </div>
@@ -238,14 +232,14 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-              <div className="space-y-3">
+              <div className="flex h-full flex-col space-y-3 rounded-lg border border-fuchsia-400/20 bg-slate-900/60 p-3">
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-100">Scoring Parameters</h4>
                   <p className="text-xs text-slate-400">
                     Best-performing on top, low-performing at the bottom.
                   </p>
                 </div>
-                <div className="grid max-h-[330px] gap-2 overflow-auto pr-1 sm:grid-cols-2">
+                <div className="grid max-h-[330px] flex-1 gap-2 overflow-auto pr-1 sm:grid-cols-2">
                 {parameterCards.map((segment) => {
                   const isActive = activeSegmentKey === segment.key;
 

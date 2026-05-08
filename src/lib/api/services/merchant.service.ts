@@ -347,6 +347,39 @@ export async function getRollingScore(days = 30) {
   return res.data;
 }
 
+// ── Composite score history (5-min granularity, intraday) ───────────────────
+
+export interface CompositeScoreHistoryPoint {
+  recorded_at: string;
+  composite_score: number;
+  previous_score: number | null;
+  score_delta: number;
+  live_rank: number | null;
+  rank_delta: number;
+  gmv_bucket: number;
+  txn_count_bucket: number;
+}
+
+export interface CompositeScoreHistory {
+  hours: number;
+  bucket_minutes: number;
+  count: number;
+  latest_score: number;
+  first_score: number;
+  window_delta: number;
+  live_rank: number | null;
+  last_updated_at: string | null;
+  series: CompositeScoreHistoryPoint[];
+}
+
+export async function getCompositeScoreHistory(hours = 24) {
+  const res = await apiClient.get<ApiResponse<CompositeScoreHistory>>(
+    `/merchant/composite-score-history`,
+    { params: { hours } },
+  );
+  return res.data;
+}
+
 // ── Simulated transaction (demo merchants) ──────────────────────────────────
 
 export interface SimulatedTransaction {

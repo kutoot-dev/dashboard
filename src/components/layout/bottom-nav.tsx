@@ -21,7 +21,7 @@ export function BottomNav() {
   if (!mounted || isLoading) return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[#1f2a44] bg-[#0a1224] shadow-[0_-10px_30px_rgba(0,0,0,0.45)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card-solid/95 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] md:hidden">
       <div className="mx-auto max-w-screen-sm px-1">
         {/* Scrollable container — app-like horizontal nav for many items */}
         <div className="flex overflow-x-auto scrollbar-hide">
@@ -36,15 +36,15 @@ export function BottomNav() {
               className={cn(
                 "flex min-w-18 flex-1 flex-col items-center justify-center gap-1 px-2 py-2.5 transition-colors",
                 isActive
-                  ? "text-[#ffd85a]"
-                  : "text-slate-400"
+                  ? "text-primary"
+                  : "text-muted-foreground"
               )}
             >
               {/* Icon */}
               <div
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-lg transition-all",
-                  isActive ? "bg-[#1a2a4a] shadow-[0_0_0_1px_rgba(255,216,90,0.25)]" : "bg-transparent"
+                  isActive ? "bg-primary/15 shadow-[0_0_0_1px_rgba(22,101,52,0.3)]" : "bg-transparent"
                 )}
               >
                 <svg
@@ -61,14 +61,14 @@ export function BottomNav() {
               <span
                 className={cn(
                   "font-mono text-[10px] font-medium tracking-wide leading-tight text-center truncate w-full",
-                  isActive ? "text-[#ffd85a]" : "text-slate-400"
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 {item.label}
               </span>
               {/* Active indicator dot */}
               {isActive && (
-                <span className="h-0.5 w-5 rounded-full bg-[#ffd85a]" />
+                <span className="h-0.5 w-5 rounded-full bg-primary" />
               )}
             </Link>
           );

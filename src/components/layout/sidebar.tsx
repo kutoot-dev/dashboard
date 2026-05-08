@@ -17,14 +17,14 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-cyan-500/20 bg-slate-950/70 backdrop-blur-xl transition-[width] duration-200",
+        "flex h-full flex-col border-r border-border bg-card/80 backdrop-blur-xl transition-[width] duration-200",
         sidebarCollapsed ? "w-16" : "w-60"
       )}
     >
       {/* Brand */}
       <div
         className={cn(
-          "flex h-16 items-center border-b border-cyan-400/20",
+          "flex h-16 items-center border-b border-border",
           sidebarCollapsed ? "justify-center px-2" : "px-4"
         )}
       >
@@ -47,8 +47,8 @@ export function Sidebar() {
               className={cn(
                 "mx-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all",
                 isActive
-                  ? "border border-cyan-400/35 bg-cyan-400/10 text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,0.12)]"
-                  : "border border-transparent text-slate-400 hover:border-fuchsia-400/25 hover:bg-fuchsia-400/10 hover:text-slate-100"
+                  ? "border border-primary/35 bg-primary/10 text-foreground shadow-[0_0_20px_rgba(22,101,52,0.18)]"
+                  : "border border-transparent text-muted-foreground hover:border-primary/25 hover:bg-primary/10 hover:text-foreground"
               )}
               title={sidebarCollapsed ? item.label : undefined}
             >
@@ -72,7 +72,7 @@ export function Sidebar() {
       {/* Collapse toggle */}
       <button
         onClick={toggleSidebar}
-        className="flex h-11 items-center justify-center border-t border-cyan-400/20 text-slate-500 transition-colors hover:text-slate-200"
+        className="flex h-11 items-center justify-center border-t border-border text-muted-foreground transition-colors hover:text-foreground"
         aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         <svg

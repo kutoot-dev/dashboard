@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
@@ -10,111 +10,271 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
-import { fetchChartHistory, type Resolution } from "@/lib/api/services/chart-data.service";
+import { SUB_SCORE_LABELS, SUB_SCORE_ORDER, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
+import {
+  getCompositeScoreHistory,
+  type CompositeScoreHistoryPoint,
+} from "@/lib/api/services/merchant.service";
+import type { ScoreBreakdown } from "@/lib/types";
 
 interface ScoreTrendCardProps {
-  branchId: number;
+  scoreBreakdown: ScoreBreakdown;
+  /**
+   * The same composite score shown above the breakdown card. The chart's
+   * rightmost point is pinned to this value so the breakdown header and
+   * the line graph can never disagree.
+   */
+  compositeScore?: number;
+  todayTransactions?: number;
 }
 
-const RESOLUTION_OPTIONS: { value: Resolution; label: string }[] = [
-  { value: "1", label: "1 min" },
-  { value: "5", label: "5 min" },
-  { value: "15", label: "15 min" },
-  { value: "30", label: "30 min" },
-  { value: "60", label: "60 min" },
-];
+const IST_TIME_ZONE = "Asia/Kolkata";
+const MINUTES_PER_DAY = 24 * 60;
+const X_AXIS_TICKS = [0, 180, 360, 540, 720, 900, 1080, 1260, 1439];
 
-function getTodayRangeUnix(): { from: number; to: number } {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
+interface CompositePoint {
+  /** Minute of day in IST, 0..1439. Used as the x-axis value. */
+  minuteOfDay: number;
+  composite: number;
+}
+
+const istPartsFormatter = new Intl.DateTimeFormat("en-IN", {
+  timeZone: IST_TIME_ZONE,
+  hour12: false,
+  hour: "2-digit",
+  minute: "2-digit",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function getIstParts(date: Date) {
+  const parts = istPartsFormatter.formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
   return {
-    from: Math.floor(start.getTime() / 1000),
-    to: Math.floor(now.getTime() / 1000),
+    year: Number(get("year")),
+    month: Number(get("month")),
+    day: Number(get("day")),
+    hour: Number(get("hour")),
+    minute: Number(get("minute")),
   };
 }
 
-export function ScoreTrendCard({ branchId }: ScoreTrendCardProps) {
-  const [resolution, setResolution] = useState<Resolution>("1");
+function getIstMinuteOfDay(date = new Date()): number {
+  const { hour, minute } = getIstParts(date);
+  return hour * 60 + minute;
+}
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["branch-score-trend", branchId, "today", resolution],
-    queryFn: () => {
-      const range = getTodayRangeUnix();
-      return fetchChartHistory(branchId, resolution, range.from, range.to, undefined, "score");
-    },
-    enabled: Number.isFinite(branchId) && branchId > 0,
-    refetchInterval: 30_000,
-  });
+function getIstYmd(date = new Date()): string {
+  const { year, month, day } = getIstParts(date);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
 
-  const trendData = useMemo(
+function formatMinuteLabel(minuteOfDay: number): string {
+  const hour = Math.floor(minuteOfDay / 60);
+  const minute = minuteOfDay % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+/**
+ * ScoreTrendCard — plots today's composite-score line on a fixed 24-hour
+ * IST window (00:00 → 23:59). The line moves up and down with each
+ * 5-minute snapshot persisted in `composite_score_history`, and the
+ * rightmost point is pinned to the live composite score that the
+ * breakdown card displays — so the two values are always identical.
+ */
+export function ScoreTrendCard({ scoreBreakdown, compositeScore, todayTransactions = 0 }: ScoreTrendCardProps) {
+  const chartData = useMemo(
     () =>
-      (data ?? []).map((bar) => ({
-        time: new Date(bar.time * 1000).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        score: Number(bar.close.toFixed(4)),
-      })),
-    [data],
+      SUB_SCORE_ORDER.map((key) => {
+        const score = Number(scoreBreakdown[key] ?? 0);
+        const weight = Number(SUB_SCORE_WEIGHTS[key] ?? 0);
+        const contribution = score * weight;
+        return {
+          key,
+          label: SUB_SCORE_LABELS[key] ?? key,
+          score: Number(score.toFixed(2)),
+          weight,
+          weightPercent: Math.round(weight * 100),
+          contribution: Number(contribution.toFixed(2)),
+        };
+      }),
+    [scoreBreakdown],
   );
 
-  const delta =
-    trendData.length > 1
-      ? Number((trendData[trendData.length - 1].score - trendData[0].score).toFixed(4))
-      : 0;
+  const headerComposite =
+    typeof compositeScore === "number" && Number.isFinite(compositeScore) ? compositeScore : 0;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["merchant-composite-score-history", 24],
+    queryFn: () => getCompositeScoreHistory(24),
+    refetchInterval: 60_000,
+    retry: false,
+  });
+
+  const history = data?.success ? data.data : null;
+
+  // ── Build today's series, pinned to the dashboard composite ──────────────
+  const { series, currentMinute, dayHigh, dayLow, openComposite } = useMemo(() => {
+    const todayYmd = getIstYmd();
+    const minuteNow = getIstMinuteOfDay();
+
+    const todaysPoints: CompositePoint[] = (history?.series ?? [])
+      .filter((point: CompositeScoreHistoryPoint) => {
+        const date = new Date(point.recorded_at);
+        return getIstYmd(date) === todayYmd;
+      })
+      .map((point: CompositeScoreHistoryPoint) => ({
+        minuteOfDay: getIstMinuteOfDay(new Date(point.recorded_at)),
+        composite: Number(point.composite_score) || 0,
+      }))
+      .sort((a, b) => a.minuteOfDay - b.minuteOfDay);
+
+    // Always pin the latest point to the breakdown's composite at "now",
+    // so the chart tip and the breakdown header are guaranteed to match.
+    const livePoint: CompositePoint = {
+      minuteOfDay: minuteNow,
+      composite: headerComposite,
+    };
+
+    // Drop any historical bucket whose minute equals "now" so we don't
+    // overwrite the pinned live value with a slightly stale snapshot.
+    const merged = todaysPoints.filter((p) => p.minuteOfDay < minuteNow);
+    merged.push(livePoint);
+
+    const composites = merged.map((p) => p.composite);
+    const high = composites.length > 0 ? Math.max(...composites) : headerComposite;
+    const low = composites.length > 0 ? Math.min(...composites) : headerComposite;
+    const open = composites.length > 0 ? composites[0] : headerComposite;
+
+    return {
+      series: merged,
+      currentMinute: minuteNow,
+      dayHigh: high,
+      dayLow: low,
+      openComposite: open,
+    };
+  }, [history, headerComposite]);
+
+  const windowDelta = Number((headerComposite - openComposite).toFixed(2));
+  const isUp = windowDelta >= 0;
+  const lineStroke = isUp ? "#22d3ee" : "#f97316";
+
+  const yMin = Math.max(0, Math.floor(dayLow - 4));
+  const yMax = Math.min(100, Math.ceil(dayHigh + 4));
+
+  const topDriver = chartData.reduce((top, current) =>
+    current.contribution > top.contribution ? current : top,
+  );
 
   return (
     <Card className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Score Trend
+            Composite Score · Today (24h, IST)
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Intraday movement from today's real merchant-location score ticks.
+            Same composite as the breakdown card. The line traces every 5-minute change recorded today
+            from 00:00 to 23:59 IST.
           </p>
         </div>
-        <Badge variant={delta >= 0 ? "gain" : "loss"}>{delta.toFixed(4)}</Badge>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={resolution}
-          onChange={(value) => setResolution(value as Resolution)}
-          options={RESOLUTION_OPTIONS}
-          className="w-28"
-        />
+        <div className="flex items-center gap-2">
+          <Badge variant="neutral">Now {headerComposite.toFixed(2)}</Badge>
+          <Badge variant={isUp ? "gain" : "loss"}>
+            {isUp ? "+" : ""}
+            {windowDelta.toFixed(2)} today
+          </Badge>
+        </div>
       </div>
 
       <div style={{ width: "100%", height: 260, minWidth: 0, minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={trendData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
-            <XAxis dataKey="time" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={20} />
-            <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={48} domain={["auto", "auto"]} />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="score"
-              stroke={delta >= 0 ? "#10b981" : "#ef4444"}
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {isLoading && series.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+            Loading composite score history…
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
+              <XAxis
+                dataKey="minuteOfDay"
+                type="number"
+                domain={[0, MINUTES_PER_DAY - 1]}
+                ticks={X_AXIS_TICKS}
+                tickFormatter={(value) => formatMinuteLabel(Number(value))}
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                width={48}
+                domain={[yMin, yMax]}
+                allowDecimals={false}
+              />
+              <Tooltip
+                formatter={(value, name) => {
+                  if (name === "composite") {
+                    return [Number(value).toFixed(2), "Composite"];
+                  }
+                  return [String(value), String(name)];
+                }}
+                labelFormatter={(value) => `IST ${formatMinuteLabel(Number(value))}`}
+              />
+              <ReferenceLine y={openComposite} stroke="rgba(148,163,184,0.45)" strokeDasharray="4 4" />
+              <ReferenceLine x={currentMinute} stroke="rgba(34,211,238,0.55)" strokeDasharray="2 4" />
+              <Line
+                type="monotone"
+                dataKey="composite"
+                stroke={lineStroke}
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      {!isLoading && trendData.length === 0 && (
-        <p className="text-xs text-muted-foreground">
-          No score ticks found for today yet. Please check again shortly.
+      <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
+        <div className="rounded-md border border-cyan-400/20 bg-cyan-500/5 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-slate-400">Open (00:00)</p>
+          <p className="font-tabular text-sm font-semibold text-cyan-100">{openComposite.toFixed(2)}</p>
+        </div>
+        <div className="rounded-md border border-emerald-400/20 bg-emerald-500/5 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-slate-400">Day High</p>
+          <p className="font-tabular text-sm font-semibold text-emerald-100">{dayHigh.toFixed(2)}</p>
+        </div>
+        <div className="rounded-md border border-rose-400/20 bg-rose-500/5 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-slate-400">Day Low</p>
+          <p className="font-tabular text-sm font-semibold text-rose-100">{dayLow.toFixed(2)}</p>
+        </div>
+        <div className="rounded-md border border-fuchsia-400/20 bg-fuchsia-500/5 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-slate-400">Top Driver</p>
+          <p className="truncate text-sm font-semibold text-fuchsia-100" title={topDriver.label}>
+            {topDriver.label}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2 rounded-md border border-cyan-400/25 bg-cyan-500/5 p-3 text-xs text-slate-300">
+        <p>
+          Each plotted point is a 5-minute snapshot of your live composite score — the exact same value the
+          breakdown card shows. The line rises when the composite grows and falls when it drops.
         </p>
-      )}
+        <p>
+          Today’s top driver: <span className="font-semibold text-white">{topDriver.label}</span>{" "}
+          ({topDriver.contribution.toFixed(2)} pts). Today’s transaction count:{" "}
+          <span className="font-semibold text-white">{todayTransactions}</span>.
+        </p>
+      </div>
     </Card>
   );
 }

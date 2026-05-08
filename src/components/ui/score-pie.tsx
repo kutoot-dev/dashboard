@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from "recharts";
 import { cn } from "@/lib/utils/cn";
+import { formatScore } from "@/lib/utils/format";
 
 interface ScorePieDatum {
   /** Identifier for the sub-score (e.g. "gmv_score"). */
@@ -180,7 +181,7 @@ export function ScorePie({
             {active ? active.label : "Composite"}
           </span>
           <span className="font-mono text-3xl font-bold text-foreground leading-tight">
-            {active ? active.value.toFixed(0) : computedComposite.toFixed(1)}
+            {active ? active.value.toFixed(0) : formatScore(computedComposite)}
           </span>
           {!active && typeof rank === "number" && rank > 0 && (
             <span className="font-mono text-[10px] text-accent">
