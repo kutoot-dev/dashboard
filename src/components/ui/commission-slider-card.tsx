@@ -7,11 +7,12 @@ import { getMerchantMe, updateCommission } from "@/lib/api/services/merchant.ser
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
 import { cn } from "@/lib/utils/cn";
 
 interface CommissionSliderCardProps {
   className?: string;
-  /** Absolute cap for the slider (default 25%). */
+  /** Absolute cap for the slider (default 100%). */
   ceiling?: number;
 }
 
@@ -24,7 +25,7 @@ interface CommissionSliderCardProps {
  * a configurable ceiling. Commits happen on explicit "Apply" to avoid chatter
  * on the backend; the slider itself is debounced for the projected-score hint.
  */
-export function CommissionSliderCard({ className, ceiling = 25 }: CommissionSliderCardProps) {
+export function CommissionSliderCard({ className, ceiling = 100 }: CommissionSliderCardProps) {
   const qc = useQueryClient();
   const [me, setMe] = useState<Awaited<ReturnType<typeof getMerchantMe>>["data"] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,13 +56,12 @@ export function CommissionSliderCard({ className, ceiling = 25 }: CommissionSlid
   const min = Number(me?.category_min_commission ?? 0);
   const max = Math.max(min, ceiling);
   const current = Number(me?.commission_percentage ?? min);
-  const projectedDelta = useMemo(() => {
-    if (!me) return 0;
+  const commissionWeight = Number(SUB_SCORE_WEIGHTS.commission_score ?? 0.2);
+  const normalizedBoost = useMemo(() => {
     const spread = Math.max(0.01, max - min);
-    const norm = Math.max(0, Math.min(1, (value - min) / spread));
-    return norm * 18; // cosmetic projection (up to +18 composite pts at max)
-  }, [value, min, max, me]);
-
+    return Math.max(0, Math.min(1, (value - min) / spread));
+  }, [max, min, value]);
+  const weightedInfluence = normalizedBoost * commissionWeight * 100;
   const dirty = Math.abs(value - current) > 0.001;
 
   async function apply() {
@@ -122,9 +122,9 @@ export function CommissionSliderCard({ className, ceiling = 25 }: CommissionSlid
     <div ref={confettiRef} className={cn("glass-card p-4 space-y-3", className)}>
       <div className="flex items-center gap-2">
         <h3 className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Boost Commission
+          Growth Boost
         </h3>
-        <InfoTooltip text="Increase the commission you share with Kutoot Business. Higher contributions lift your composite score and ranking. Can't go below your category minimum." />
+        <InfoTooltip text="Set your commission between your category minimum and 100%. Score impact is calculated from real backend scoring after you apply changes." />
       </div>
 
       <div className="flex items-baseline justify-between">
@@ -139,12 +139,22 @@ export function CommissionSliderCard({ className, ceiling = 25 }: CommissionSlid
         </div>
         <div className="text-right">
           <p className="font-mono text-[10px] uppercase text-muted-foreground tracking-widest">
-            Projected
+            Real impact
           </p>
-          <p className={cn("font-mono text-lg font-bold", projectedDelta > 0 ? "text-gain" : "text-muted-foreground")}>
-            +{projectedDelta.toFixed(1)} pts
+          <p className="font-mono text-[11px] text-muted-foreground">
+            Updates after Apply
           </p>
         </div>
+      </div>
+
+      <div className="rounded-md border border-accent/30 bg-accent/5 px-3 py-2">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
+          Growth value
+        </p>
+        <p className="mt-1 text-xs text-foreground">
+          Commission drives <span className="font-mono font-semibold">{Math.round(commissionWeight * 100)}%</span> of total score.
+          Current boost level: <span className="font-mono font-semibold text-accent">{weightedInfluence.toFixed(1)} / {(commissionWeight * 100).toFixed(0)}</span> score-share potential.
+        </p>
       </div>
 
       <div className="space-y-2">

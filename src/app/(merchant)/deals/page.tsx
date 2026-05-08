@@ -17,7 +17,6 @@ import { ApiError } from "@/lib/api/client";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
@@ -28,6 +27,74 @@ const STATUS_OPTIONS = [
   { value: "archived", label: "Archived" },
   { value: "approved", label: "Approved" },
   { value: "pending", label: "Pending" },
+];
+
+const DEAL_PRESETS: Array<{
+  id: string;
+  label: string;
+  hint: string;
+  payload: CreateDealPayload;
+}> = [
+  {
+    id: "flat-10",
+    label: "10% OFF",
+    hint: "All bills",
+    payload: { discount_type: "percentage", discount_value: 10, min_order_value: null, max_discount_amount: null, code: null, starts_at: null, expires_at: null },
+  },
+  {
+    id: "flat-15",
+    label: "15% OFF",
+    hint: "All bills",
+    payload: { discount_type: "percentage", discount_value: 15, min_order_value: null, max_discount_amount: null, code: null, starts_at: null, expires_at: null },
+  },
+  {
+    id: "flat-20-cap-200",
+    label: "20% OFF",
+    hint: "Cap Rs 200",
+    payload: { discount_type: "percentage", discount_value: 20, min_order_value: null, max_discount_amount: 200, code: null, starts_at: null, expires_at: null },
+  },
+  {
+    id: "welcome-25",
+    label: "Welcome 25%",
+    hint: "Min Rs 299",
+    payload: { discount_type: "percentage", discount_value: 25, min_order_value: 299, max_discount_amount: 250, code: "WELCOME25", starts_at: null, expires_at: null },
+  },
+  {
+    id: "weekend-30",
+    label: "Weekend 30%",
+    hint: "Min Rs 499",
+    payload: { discount_type: "percentage", discount_value: 30, min_order_value: 499, max_discount_amount: 300, code: "WEEKEND30", starts_at: null, expires_at: null },
+  },
+  {
+    id: "save-50",
+    label: "Save Rs 50",
+    hint: "Min Rs 299",
+    payload: { discount_type: "fixed", discount_value: 50, min_order_value: 299, max_discount_amount: null, code: "SAVE50", starts_at: null, expires_at: null },
+  },
+  {
+    id: "save-100",
+    label: "Save Rs 100",
+    hint: "Min Rs 799",
+    payload: { discount_type: "fixed", discount_value: 100, min_order_value: 799, max_discount_amount: null, code: "SAVE100", starts_at: null, expires_at: null },
+  },
+  {
+    id: "happy-hour",
+    label: "Happy Hour",
+    hint: "18% OFF cap Rs 180",
+    payload: { discount_type: "percentage", discount_value: 18, min_order_value: 199, max_discount_amount: 180, code: "HAPPYHOUR", starts_at: null, expires_at: null },
+  },
+  {
+    id: "family-combo",
+    label: "Family Combo",
+    hint: "Rs 150 OFF over Rs 1200",
+    payload: { discount_type: "fixed", discount_value: 150, min_order_value: 1200, max_discount_amount: null, code: "FAMILY150", starts_at: null, expires_at: null },
+  },
+  {
+    id: "mega-35",
+    label: "Mega 35%",
+    hint: "Min Rs 999 cap Rs 400",
+    payload: { discount_type: "percentage", discount_value: 35, min_order_value: 999, max_discount_amount: 400, code: "MEGA35", starts_at: null, expires_at: null },
+  },
 ];
 
 function lifecycleBadgeVariant(status: Deal["lifecycle_status"]) {
@@ -41,6 +108,15 @@ function moneyOrDash(value: number | null | undefined) {
   return `Rs ${value.toFixed(2)}`;
 }
 
+function formatCompactMoney(value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "Rs 0";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export default function DealsPage() {
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "";
@@ -48,15 +124,6 @@ export default function DealsPage() {
   const pushToast = useToastStore((s) => s.push);
 
   const [status, setStatus] = useState("all");
-  const [form, setForm] = useState<CreateDealPayload>({
-    discount_type: "percentage",
-    discount_value: 10,
-    min_order_value: null,
-    max_discount_amount: null,
-    code: null,
-    starts_at: null,
-    expires_at: null,
-  });
 
   const params = useMemo(() => {
     const next: { limit: number; status?: string } = { limit: 100 };
@@ -75,8 +142,6 @@ export default function DealsPage() {
     mutationFn: (payload: CreateDealPayload) => createDeal(branchId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deals", branchId] });
-      pushToast({ title: "Deal created", variant: "success" });
-      setForm((prev) => ({ ...prev, code: null }));
     },
     onError: (error) => {
       const message = error instanceof ApiError ? error.message : "Unable to create deal";
@@ -100,67 +165,47 @@ export default function DealsPage() {
     },
   });
 
-  function submitCreateDeal(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!form.discount_value || form.discount_value <= 0) {
-      pushToast({ title: "Invalid discount", description: "Discount value must be greater than 0", variant: "warning" });
-      return;
-    }
-    createMutation.mutate(form);
+  function createFromPreset(preset: (typeof DEAL_PRESETS)[number]) {
+    if (createMutation.isPending) return;
+    createMutation.mutate(preset.payload, {
+      onSuccess: () => {
+        pushToast({
+          title: "Preset deal created",
+          description: `${preset.label} is now live.`,
+          variant: "success",
+        });
+      },
+    });
   }
 
   const rows = dealsQuery.data?.success ? dealsQuery.data.data.deals : [];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Deals" subtitle="Create and manage active, paused, and archived offers." />
+      <PageHeader title="Deals" subtitle="Create and manage active, paused, and archived offers.">
+        <div className="flex max-w-full flex-wrap justify-end gap-2">
+          {DEAL_PRESETS.map((preset) => (
+            <Button
+              key={preset.id}
+              size="sm"
+              variant="secondary"
+              loading={createMutation.isPending}
+              onClick={() => createFromPreset(preset)}
+              className="h-auto min-h-9 px-3 py-1.5 text-left"
+            >
+              <span className="flex flex-col leading-tight">
+                <span className="font-mono text-[11px]">{preset.label}</span>
+                <span className="text-[10px] text-muted-foreground">{preset.hint}</span>
+              </span>
+            </Button>
+          ))}
+        </div>
+      </PageHeader>
 
       <Card>
-        <form className="grid gap-3 md:grid-cols-3" onSubmit={submitCreateDeal}>
-          <Select
-            options={[
-              { value: "percentage", label: "Percentage" },
-              { value: "fixed", label: "Fixed Amount" },
-            ]}
-            value={form.discount_type}
-            onChange={(value) => setForm((prev) => ({ ...prev, discount_type: value as "percentage" | "fixed" }))}
-          />
-          <Input
-            label="Discount value"
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.discount_value}
-            onChange={(e) => setForm((prev) => ({ ...prev, discount_value: Number(e.target.value) || 0 }))}
-          />
-          <Input
-            label="Code (optional)"
-            value={form.code ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value || null }))}
-            placeholder="AUTO if empty"
-          />
-          <Input
-            label="Min order (optional)"
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.min_order_value ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, min_order_value: e.target.value ? Number(e.target.value) : null }))}
-          />
-          <Input
-            label="Max discount (optional)"
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.max_discount_amount ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, max_discount_amount: e.target.value ? Number(e.target.value) : null }))}
-          />
-          <div className="flex items-end">
-            <Button type="submit" loading={createMutation.isPending} className="w-full">
-              Create deal
-            </Button>
-          </div>
-        </form>
+        <p className="text-sm text-muted-foreground">
+          Use quick actions in the header to launch ready-made deal presets instantly.
+        </p>
       </Card>
 
       <Card>
@@ -171,88 +216,108 @@ export default function DealsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-2 py-2">Deal</th>
-                <th className="px-2 py-2">Discount</th>
-                <th className="px-2 py-2">Thresholds</th>
-                <th className="px-2 py-2">Status</th>
-                <th className="px-2 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((deal) => {
-                const lifecycle = deal.lifecycle_status ?? (deal.archived_at ? "archived" : deal.is_active ? "active" : "paused");
+        {dealsQuery.isLoading && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-56 animate-pulse rounded-xl border border-border/60 bg-muted/20" />
+            ))}
+          </div>
+        )}
 
-                return (
-                  <tr key={deal.id} className="border-b border-border/60 align-top">
-                    <td className="px-2 py-3">
-                      <p className="font-medium text-foreground">{deal.title || `Deal #${deal.id}`}</p>
+        {!dealsQuery.isLoading && rows.length > 0 && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {rows.map((deal) => {
+              const lifecycle = deal.lifecycle_status ?? (deal.archived_at ? "archived" : deal.is_active ? "active" : "paused");
+
+              return (
+                <div
+                  key={deal.id}
+                  className="group rounded-xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">{deal.title || `Deal #${deal.id}`}</p>
                       <p className="text-xs text-muted-foreground">Code: {deal.code || "AUTO"}</p>
-                      <p className="text-xs text-muted-foreground">Created: {new Date(deal.created_at).toLocaleDateString("en-IN")}</p>
-                    </td>
-                    <td className="px-2 py-3">
-                      <p className="font-mono text-foreground">
-                        {deal.discount_type === "percentage" ? `${deal.discount_value}%` : moneyOrDash(deal.discount_value)}
-                      </p>
-                    </td>
-                    <td className="px-2 py-3 text-xs text-muted-foreground">
-                      <p>Min: {moneyOrDash(deal.min_order_value)}</p>
-                      <p>Max: {moneyOrDash(deal.max_discount_amount)}</p>
-                    </td>
-                    <td className="px-2 py-3">
-                      <Badge variant={lifecycleBadgeVariant(lifecycle)}>{lifecycle.toUpperCase()}</Badge>
-                    </td>
-                    <td className="px-2 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {lifecycle === "active" && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => actionMutation.mutate({ action: "pause", dealId: deal.id })}
-                            loading={actionMutation.isPending}
-                          >
-                            Pause
-                          </Button>
-                        )}
-                        {lifecycle === "paused" && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => actionMutation.mutate({ action: "resume", dealId: deal.id })}
-                            loading={actionMutation.isPending}
-                          >
-                            Resume
-                          </Button>
-                        )}
-                        {lifecycle !== "archived" && (
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => actionMutation.mutate({ action: "archive", dealId: deal.id })}
-                            loading={actionMutation.isPending}
-                          >
-                            Archive
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                    </div>
+                    <Badge variant={lifecycleBadgeVariant(lifecycle)}>{lifecycle.toUpperCase()}</Badge>
+                  </div>
 
-              {!dealsQuery.isLoading && rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-2 py-8 text-center text-sm text-muted-foreground">
-                    No deals found for this filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  <div className="mb-3 rounded-lg border border-border/60 bg-muted/20 p-2">
+                    <p className="font-mono text-sm text-foreground">
+                      {deal.discount_type === "percentage" ? `${deal.discount_value}% OFF` : `${moneyOrDash(deal.discount_value)} OFF`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Min order {moneyOrDash(deal.min_order_value)} | Max discount {moneyOrDash(deal.max_discount_amount)}
+                    </p>
+                  </div>
+
+                  <div className="mb-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-border/60 bg-background/40 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total amount</p>
+                      <p className="text-sm font-semibold text-foreground">{formatCompactMoney(deal.total_amount)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/40 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Discount amount</p>
+                      <p className="text-sm font-semibold text-foreground">{formatCompactMoney(deal.discount_amount)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/40 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Net sales</p>
+                      <p className="text-sm font-semibold text-foreground">{formatCompactMoney(deal.net_sales)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/40 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Coupon visits</p>
+                      <p className="text-sm font-semibold text-foreground">{deal.visit_count ?? 0}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <p className="text-xs text-muted-foreground">
+                      Created {new Date(deal.created_at).toLocaleDateString("en-IN")}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {lifecycle === "active" && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => actionMutation.mutate({ action: "pause", dealId: deal.id })}
+                          loading={actionMutation.isPending}
+                        >
+                          Pause
+                        </Button>
+                      )}
+                      {lifecycle === "paused" && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => actionMutation.mutate({ action: "resume", dealId: deal.id })}
+                          loading={actionMutation.isPending}
+                        >
+                          Resume
+                        </Button>
+                      )}
+                      {lifecycle !== "archived" && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => actionMutation.mutate({ action: "archive", dealId: deal.id })}
+                          loading={actionMutation.isPending}
+                        >
+                          Archive
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!dealsQuery.isLoading && rows.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border/80 px-4 py-8 text-center text-sm text-muted-foreground">
+            No deals found for this filter.
+          </div>
+        )}
       </Card>
     </div>
   );

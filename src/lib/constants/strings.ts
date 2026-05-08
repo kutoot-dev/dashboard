@@ -26,7 +26,7 @@ export const COMMON = {
   SCORE: "Score",
   RANK: "Rank",
   PAYOUT: "Reward",
-  COMPOSITE_SCORE: "Composite Score",
+  COMPOSITE_SCORE: "Business Score",
 
   // Actions
   SAVE: "Save Changes",

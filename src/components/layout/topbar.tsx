@@ -1,173 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTheme } from "@/components/providers/theme-provider";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useTicker } from "@/lib/hooks";
-import { useKMI } from "@/lib/hooks/use-kmi";
-import { useRollingScore } from "@/lib/hooks/use-rolling-score";
-import { MarketIndicator, computeTrend } from "@/components/ui/market-indicator";
-import { usePreferencesStore } from "@/lib/stores/preferences.store";
-import { cn } from "@/lib/utils/cn";
+import { QuickActions } from "@/components/ui/quick-actions";
 
 export function Topbar() {
-  const { resolvedTheme, setTheme } = useTheme();
   const { user, logout } = useAuth();
-  const { data: tickerItems } = useTicker();
-  const kmi = useKMI();
-  const { data: rolling } = useRollingScore(30);
-
-  const displayTicker = tickerItems ?? [];
-  const { soundEnabled, toggleSound } = usePreferencesStore();
-  const [mounted, setMounted] = useState(false);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    setMounted(true);
+    const timer = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
-  const toggleTheme = () => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  };
+  const liveDate = now.toLocaleDateString("en-GB", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
   return (
-    <header className="glass-topbar flex h-12 items-center">
-      {/* KMI Badge */}
-      <div className="flex shrink-0 items-center gap-2 border-r border-border px-3">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-primary">
-          KBI
-        </span>
-        <span className="font-mono text-sm font-bold text-secondary">
-          {(kmi?.value ?? 0).toFixed(1)}
-        </span>
-        <span
-          className={cn(
-            "font-mono text-xs font-semibold",
-            kmi?.isPositive ? "neon-gain" : "neon-loss",
-          )}
-        >
-          {kmi?.isPositive ? "▲" : "▼"}
-          {(kmi?.changePercent ?? 0).toFixed(1)}%
-        </span>
-        <MarketIndicator trend={computeTrend(kmi?.changePercent ?? 0)} />
+    <header className="glass-topbar flex h-16 items-center justify-between border-b border-cyan-400/15 px-4 md:px-6">
+      <div className="min-w-0">
+        <QuickActions compact className="flex" />
       </div>
 
-      {/* MY merchant pill — 30-day rolling score/rank for the authed branch */}
-      {rolling && (
-        <div
-          className="hidden shrink-0 items-center gap-2 border-r border-border px-3 sm:flex"
-          title="Your rolling 30-day score and rank. Recalculates every minute."
-        >
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-accent">
-            MY
-          </span>
-          <span className="font-mono text-sm font-bold text-foreground">
-            #{rolling.rank || "—"}
-          </span>
-          <span className="font-mono text-sm text-foreground">
-            {rolling.score.toFixed(1)}
-          </span>
-          <span
-            className={cn(
-              "font-mono text-xs font-semibold",
-              rolling.score_delta_30d >= 0 ? "neon-gain" : "neon-loss",
-            )}
-          >
-            {rolling.score_delta_30d >= 0 ? "▲" : "▼"}
-            {Math.abs(rolling.score_delta_30d).toFixed(1)}
-          </span>
+      <div className="flex items-center gap-3">
+        <div className="hidden rounded-xl border border-cyan-400/20 bg-slate-950/50 px-3 py-2 text-right md:block">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Live Stamp</p>
+          <p className="font-tabular text-xs text-slate-100">
+            {liveDate}
+          </p>
         </div>
-      )}
-
-      {/* Ticker tape */}
-      <div className="flex-1 overflow-hidden">
-        {displayTicker.length > 0 && (
-          <div className="flex overflow-hidden">
-            <div className="animate-ticker flex shrink-0 items-center gap-6 px-4">
-              {[...displayTicker, ...displayTicker].map((item, i) => (
-                <span
-                  key={`${item.branch_id}-${i}`}
-                  className="flex shrink-0 items-center gap-1.5 font-mono text-xs"
-                >
-                  <span className="font-semibold text-foreground/80">#{item.rank}</span>
-                  <span className="text-muted-foreground">{item.business_name}</span>
-                  <span className="font-tabular text-foreground">
-                    {item.score.toFixed(1)}
-                  </span>
-                  <span
-                    className={cn(
-                      "font-tabular",
-                      item.change > 0 ? "text-gain" : item.change < 0 ? "text-loss" : "text-muted-foreground"
-                    )}
-                  >
-                    {item.change > 0 ? "+" : ""}
-                    {item.change.toFixed(1)}
-                  </span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-2 px-4">
-        {/* Sound toggle */}
-        {mounted && (
-          <button
-            onClick={toggleSound}
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-              soundEnabled
-                ? "text-accent hover:bg-card-hover"
-                : "text-muted-foreground hover:bg-card-hover hover:text-foreground",
-            )}
-            aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
-            title={soundEnabled ? "Sounds on" : "Sounds off"}
-          >
-            {soundEnabled ? (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-              </svg>
-            )}
-          </button>
-        )}
-
-        {/* Theme toggle - only render after hydration */}
-        {mounted && (
-          <button
-            onClick={toggleTheme}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-card-hover hover:text-foreground transition-colors"
-            aria-label="Toggle theme"
-          >
-            {resolvedTheme === "dark" ? (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            )}
-          </button>
-        )}
-
-        {/* User info */}
         {user && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/60 px-2 py-1.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-400/20 text-xs font-semibold text-cyan-200">
               {user.name.charAt(0).toUpperCase()}
             </div>
-            <span className="hidden text-xs text-muted-foreground md:inline">
-              {user.name}
-            </span>
+            <span className="hidden text-xs text-slate-300 md:inline">{user.name}</span>
             <button
               onClick={logout}
-              className="ml-1 text-xs text-muted-foreground hover:text-loss transition-colors"
+              className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-rose-500/20 hover:text-rose-300"
               aria-label="Logout"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

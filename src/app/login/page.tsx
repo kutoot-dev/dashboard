@@ -108,6 +108,22 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          By continuing, you agree to our{" "}
+          <Link href="/merchant-terms" className="text-accent hover:text-accent/85 underline underline-offset-2">
+            Terms and Conditions
+          </Link>
+          {", "}
+          <Link href="/privacy-policy" className="text-accent hover:text-accent/85 underline underline-offset-2">
+            Privacy Policy
+          </Link>
+          {" and "}
+          <Link href="/data-policy" className="text-accent hover:text-accent/85 underline underline-offset-2">
+            Data Policy
+          </Link>
+          .
+        </p>
+
         <div className="mt-5 border-t border-border pt-4 text-xs text-muted-foreground">
           <p>New merchant onboarding:</p>
           <Link href="/onboard/start" className="mt-1 inline-flex font-mono text-accent hover:text-accent/85">

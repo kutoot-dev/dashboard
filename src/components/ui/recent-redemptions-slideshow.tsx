@@ -2,13 +2,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  getRecentRedemptions,
+  getTransactions,
   type RecentRedemption,
 } from "@/lib/api/services/merchant.service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface RecentRedemptionsSlideshowProps {
   className?: string;
@@ -36,28 +37,50 @@ export function RecentRedemptionsSlideshow({
   className,
   limit = 5,
 }: RecentRedemptionsSlideshowProps) {
+  const { user } = useAuth();
+  const branchId = user?.branch_id ?? "";
+
   const { data, isLoading } = useQuery({
     queryKey: ["recent-redemptions"],
-    queryFn: () => getRecentRedemptions(limit),
+    queryFn: async () => {
+      const res = await getTransactions(branchId, { page: 1, limit });
+      if (!res.success) return { success: false as const, data: { rows: [] as RecentRedemption[] } };
+
+      const rows: RecentRedemption[] = res.data.rows.map((txn) => ({
+        id: txn.id,
+        customer_name: txn.customer_name,
+        customer_initial: (txn.customer_name?.trim()?.[0] ?? "?").toUpperCase(),
+        customer_phone: txn.customer_phone,
+        coupon_code: txn.coupon_code,
+        coupon_title: txn.coupon_title,
+        discount_applied: txn.discount,
+        bill_amount: txn.bill_amount,
+        total_paid: txn.total_paid,
+        created_at: txn.created_at,
+      }));
+
+      return { success: true as const, data: { rows } };
+    },
     refetchInterval: 30_000,
     retry: false,
+    enabled: Boolean(branchId),
   });
 
   const rows: RecentRedemption[] = data?.success ? data.data.rows : [];
 
   if (isLoading) {
     return (
-      <div className={cn("glass-card p-3", className)}>
-        <Skeleton variant="rect" className="h-40" />
+      <div className={cn("glass-card flex h-full flex-col p-3", className)}>
+        <Skeleton variant="rect" className="h-full min-h-40" />
       </div>
     );
   }
 
   return (
-    <div className={cn("glass-card p-3 space-y-2", className)}>
+    <div className={cn("glass-card flex h-full flex-col space-y-2 p-3", className)}>
       <div className="flex items-center justify-between">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Latest 5 redemptions
+          Latest {limit} transactions
         </p>
         <span className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-gain">
           <span className="relative flex h-1.5 w-1.5">
@@ -70,10 +93,10 @@ export function RecentRedemptionsSlideshow({
 
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No redemptions yet. They will light up here the moment a customer scans your QR.
+          No transactions yet. New payments will appear here automatically.
         </p>
       ) : (
-        <ul className="divide-y divide-glass-border">
+        <ul className="flex-1 divide-y divide-glass-border overflow-y-auto">
           {rows.map((r) => (
             <li key={r.id} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
               <div

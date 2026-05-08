@@ -20,6 +20,10 @@ export interface Deal {
   is_active: boolean;
   status: string; // pending|approved|rejected|expired
   lifecycle_status?: "active" | "paused" | "archived";
+  visit_count?: number;
+  total_amount?: number;
+  discount_amount?: number;
+  net_sales?: number;
   created_at: string;
   branch_name?: string;
 }
@@ -269,6 +273,7 @@ export interface MerchantDashboard {
     rank: number;
     gmv_today: number;
     active_deals: number;
+    score_breakdown?: Record<string, number>;
   };
 }
 

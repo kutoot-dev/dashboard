@@ -31,6 +31,10 @@ export interface ScorePieProps {
   rank?: number | null;
   /** Compact mode removes the legend (for small cards). */
   compact?: boolean;
+  /** Controlled active segment key for syncing with external UI. */
+  activeKey?: string | null;
+  /** Callback fired when active segment changes due to hover/focus. */
+  onActiveKeyChange?: (key: string | null) => void;
 }
 
 const PALETTE = [
@@ -59,8 +63,18 @@ export function ScorePie({
   composite,
   rank,
   compact = false,
+  activeKey: controlledActiveKey,
+  onActiveKeyChange,
 }: ScorePieProps) {
-  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [internalActiveKey, setInternalActiveKey] = useState<string | null>(null);
+  const activeKey = controlledActiveKey ?? internalActiveKey;
+
+  const setActiveKey = (key: string | null) => {
+    if (controlledActiveKey === undefined) {
+      setInternalActiveKey(key);
+    }
+    onActiveKeyChange?.(key);
+  };
 
   const slices = useMemo(
     () =>
@@ -151,7 +165,7 @@ export function ScorePie({
                       {row.value.toFixed(0)} / 100
                     </div>
                     <div className="font-mono text-[10px] text-accent">
-                      weight {Math.round(row.weight * 100)}% · contributes +{row.contribution.toFixed(1)}
+                      weight {Math.round(row.weight * 100)}% · contribution {row.contribution.toFixed(1)}
                     </div>
                   </div>
                 );
@@ -173,11 +187,7 @@ export function ScorePie({
               Rank #{rank}
             </span>
           )}
-          {active && (
-            <span className="font-mono text-[10px] text-accent">
-              +{active.contribution.toFixed(1)} pts
-            </span>
-          )}
+          {active && <span className="font-mono text-[10px] text-accent">{active.contribution.toFixed(1)}</span>}
         </div>
       </div>
 
