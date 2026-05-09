@@ -290,7 +290,8 @@ export default function DealsPage() {
       </div>
 
       {showRecommended && (
-        <Card id="recommended-presets" className="border border-primary/30 bg-primary/5">
+        <div id="recommended-presets">
+          <Card className="border border-primary/30 bg-primary/5">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-foreground">Recommended Preset Deals</p>
@@ -324,7 +325,8 @@ export default function DealsPage() {
               </button>
             ))}
           </div>
-        </Card>
+          </Card>
+        </div>
       )}
 
       <Card className="space-y-3">
