@@ -21,7 +21,7 @@ export function BottomNav() {
   if (!mounted || isLoading) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card-solid/95 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] md:hidden">
+    <nav className="glass-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t border-border/80 md:hidden">
       <div className="mx-auto max-w-screen-sm px-1">
         {/* Scrollable container — app-like horizontal nav for many items */}
         <div className="flex overflow-x-auto scrollbar-hide">
@@ -34,7 +34,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex min-w-18 flex-1 flex-col items-center justify-center gap-1 px-2 py-2.5 transition-colors",
+                "flex min-w-18 flex-1 flex-col items-center justify-center gap-1 px-2 py-2.5 transition-all",
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground"
@@ -44,7 +44,7 @@ export function BottomNav() {
               <div
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-lg transition-all",
-                  isActive ? "bg-primary/15 shadow-[0_0_0_1px_rgba(22,101,52,0.3)]" : "bg-transparent"
+                  isActive ? "bg-linear-to-r from-primary/20 via-secondary/20 to-accent/20 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]" : "bg-transparent"
                 )}
               >
                 <svg
@@ -68,7 +68,7 @@ export function BottomNav() {
               </span>
               {/* Active indicator dot */}
               {isActive && (
-                <span className="h-0.5 w-5 rounded-full bg-primary" />
+                <span className="h-0.5 w-5 rounded-full gradient-brand" />
               )}
             </Link>
           );

@@ -255,13 +255,13 @@ export default function DealsPage() {
       </PageHeader>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Card className="border border-emerald-300/20 bg-emerald-500/5">
-          <p className="text-[10px] uppercase tracking-wide text-emerald-200">Active</p>
+        <Card className="border border-gain/35 bg-gain/12">
+          <p className="text-[10px] uppercase tracking-wide text-gain">Active</p>
           <p className="mt-1 text-xl font-semibold text-foreground">{activeDeals}</p>
           <p className="mt-1 text-xs text-muted-foreground">Currently running</p>
         </Card>
-        <Card className="border border-amber-300/20 bg-amber-500/5">
-          <p className="text-[10px] uppercase tracking-wide text-amber-200">Paused</p>
+        <Card className="border border-warning/35 bg-warning/12">
+          <p className="text-[10px] uppercase tracking-wide text-warning">Paused</p>
           <p className="mt-1 text-xl font-semibold text-foreground">{pausedDeals}</p>
           <p className="mt-1 text-xs text-muted-foreground">Can be resumed</p>
         </Card>

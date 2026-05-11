@@ -17,11 +17,11 @@ export function VolumeChart({ data, height = 120 }: VolumeChartProps) {
     <div style={{ width: "100%", height, minWidth: 0, minHeight: 0 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
-          <XAxis dataKey="time" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={20} />
-          <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={36} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+          <XAxis dataKey="time" tick={{ fontSize: 10, fill: "var(--chart-text)" }} tickLine={false} axisLine={false} minTickGap={20} />
+          <YAxis tick={{ fontSize: 10, fill: "var(--chart-text)" }} tickLine={false} axisLine={false} width={36} />
           <Tooltip />
-          <Bar dataKey="value" fill="#14b8a6" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="value" fill="var(--secondary)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

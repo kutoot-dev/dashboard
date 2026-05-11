@@ -8,27 +8,27 @@
 import type { ChartThemeColors } from "@/lib/types/trading";
 
 export const CHART_THEME_DARK: ChartThemeColors = {
-  background: "#050810",
-  text: "#94a3b8",
-  grid: "#162035",
-  crosshair: "#475569",
-  gain: "#00ff88",
-  loss: "#ff3366",
-  accent: "#3b82f6",
-  volume_up: "rgba(0, 255, 136, 0.4)",
-  volume_down: "rgba(255, 51, 102, 0.4)",
+  background: "#101a34",
+  text: "#9fafda",
+  grid: "#2a3b6f",
+  crosshair: "#93a7ea",
+  gain: "#2dd4bf",
+  loss: "#fb7185",
+  accent: "#38bdf8",
+  volume_up: "rgba(45, 212, 191, 0.42)",
+  volume_down: "rgba(251, 113, 133, 0.42)",
 };
 
 export const CHART_THEME_LIGHT: ChartThemeColors = {
-  background: "#ffffff",
-  text: "#64748b",
-  grid: "#e2e8f0",
-  crosshair: "#94a3b8",
-  gain: "#16a34a",
-  loss: "#dc2626",
-  accent: "#3b82f6",
-  volume_up: "rgba(22, 163, 74, 0.5)",
-  volume_down: "rgba(220, 38, 38, 0.5)",
+  background: "#f8faff",
+  text: "#5f6d9a",
+  grid: "#d7def9",
+  crosshair: "#94a4d4",
+  gain: "#14b8a6",
+  loss: "#f43f5e",
+  accent: "#8b5cf6",
+  volume_up: "rgba(20, 184, 166, 0.44)",
+  volume_down: "rgba(244, 63, 94, 0.44)",
 };
 
 /** Rank tier thresholds (percentile boundaries) and gamified display config */

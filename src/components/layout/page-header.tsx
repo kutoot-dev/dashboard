@@ -10,11 +10,11 @@ export function PageHeader({ title, subtitle, children }: PageHeaderProps) {
   return (
     <div className="mb-6 flex items-start justify-between gap-4">
       <div>
-        <h1 className={cn("font-mono text-xl font-bold tracking-tight text-foreground")}>
+        <h1 className={cn("font-display text-2xl font-bold tracking-tight text-foreground")}>
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
         )}
       </div>
       {children && <div className="flex items-center gap-2">{children}</div>}

@@ -21,8 +21,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-accent/50",
+          "h-10 rounded-xl border border-border/80 bg-card/75 px-3 text-sm text-foreground shadow-[0_8px_20px_rgba(8,13,34,0.14)] transition-all",
+          "focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/45",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}

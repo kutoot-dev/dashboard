@@ -162,7 +162,7 @@ export function ScoreTrendCard({ scoreBreakdown, compositeScore, todayTransactio
 
   const windowDelta = Number((headerComposite - openComposite).toFixed(2));
   const isUp = windowDelta >= 0;
-  const lineStroke = isUp ? "#22d3ee" : "#f97316";
+  const lineStroke = isUp ? "var(--gain)" : "var(--loss)";
 
   const yMin = Math.max(0, Math.floor(dayLow - 4));
   const yMax = Math.min(100, Math.ceil(dayHigh + 4));
@@ -200,19 +200,19 @@ export function ScoreTrendCard({ scoreBreakdown, compositeScore, todayTransactio
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis
                 dataKey="minuteOfDay"
                 type="number"
                 domain={[0, MINUTES_PER_DAY - 1]}
                 ticks={X_AXIS_TICKS}
                 tickFormatter={(value) => formatMinuteLabel(Number(value))}
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: "var(--chart-text)" }}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: "var(--chart-text)" }}
                 tickLine={false}
                 axisLine={false}
                 width={48}
@@ -228,8 +228,8 @@ export function ScoreTrendCard({ scoreBreakdown, compositeScore, todayTransactio
                 }}
                 labelFormatter={(value) => `IST ${formatMinuteLabel(Number(value))}`}
               />
-              <ReferenceLine y={openComposite} stroke="rgba(148,163,184,0.45)" strokeDasharray="4 4" />
-              <ReferenceLine x={currentMinute} stroke="rgba(34,211,238,0.55)" strokeDasharray="2 4" />
+              <ReferenceLine y={openComposite} stroke="var(--chart-crosshair)" strokeDasharray="4 4" />
+              <ReferenceLine x={currentMinute} stroke="var(--accent)" strokeDasharray="2 4" />
               <Line
                 type="monotone"
                 dataKey="composite"
@@ -244,35 +244,35 @@ export function ScoreTrendCard({ scoreBreakdown, compositeScore, todayTransactio
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
-        <div className="rounded-md border border-cyan-400/20 bg-cyan-500/5 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400">Open (00:00)</p>
-          <p className="font-tabular text-sm font-semibold text-cyan-100">{openComposite.toFixed(2)}</p>
+        <div className="rounded-md border border-accent/35 bg-accent/10 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Open (00:00)</p>
+          <p className="font-tabular text-sm font-semibold text-accent">{openComposite.toFixed(2)}</p>
         </div>
-        <div className="rounded-md border border-emerald-400/20 bg-emerald-500/5 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400">Day High</p>
-          <p className="font-tabular text-sm font-semibold text-emerald-100">{dayHigh.toFixed(2)}</p>
+        <div className="rounded-md border border-gain/35 bg-gain/10 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Day High</p>
+          <p className="font-tabular text-sm font-semibold text-gain">{dayHigh.toFixed(2)}</p>
         </div>
-        <div className="rounded-md border border-rose-400/20 bg-rose-500/5 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400">Day Low</p>
-          <p className="font-tabular text-sm font-semibold text-rose-100">{dayLow.toFixed(2)}</p>
+        <div className="rounded-md border border-loss/35 bg-loss/10 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Day Low</p>
+          <p className="font-tabular text-sm font-semibold text-loss">{dayLow.toFixed(2)}</p>
         </div>
-        <div className="rounded-md border border-fuchsia-400/20 bg-fuchsia-500/5 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400">Top Driver</p>
-          <p className="truncate text-sm font-semibold text-fuchsia-100" title={topDriver.label}>
+        <div className="rounded-md border border-primary/35 bg-primary/10 px-2.5 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Top Driver</p>
+          <p className="truncate text-sm font-semibold text-primary" title={topDriver.label}>
             {topDriver.label}
           </p>
         </div>
       </div>
 
-      <div className="space-y-2 rounded-md border border-cyan-400/25 bg-cyan-500/5 p-3 text-xs text-slate-300">
+      <div className="space-y-2 rounded-md border border-accent/35 bg-muted/45 p-3 text-xs text-muted-foreground">
         <p>
           Each plotted point is a 5-minute snapshot of your live composite score — the exact same value the
           breakdown card shows. The line rises when the composite grows and falls when it drops.
         </p>
         <p>
-          Today’s top driver: <span className="font-semibold text-white">{topDriver.label}</span>{" "}
+          Today’s top driver: <span className="font-semibold text-foreground">{topDriver.label}</span>{" "}
           ({topDriver.contribution.toFixed(2)} pts). Today’s transaction count:{" "}
-          <span className="font-semibold text-white">{todayTransactions}</span>.
+          <span className="font-semibold text-foreground">{todayTransactions}</span>.
         </p>
       </div>
     </Card>

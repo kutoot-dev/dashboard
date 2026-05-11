@@ -219,12 +219,12 @@ export function TradingViewChart({
           low:   b.low,
           close: b.close,
         }));
-        const volumes: HistogramData[] = bars.map((b, i) => ({
+        const volumes: HistogramData[] = bars.map((b) => ({
           time:  b.time as Time,
           value: b.volume,
           color: b.close >= b.open
-            ? (resolvedTheme === "dark" ? "rgba(0,255,136,0.35)" : "rgba(22,163,74,0.45)")
-            : (resolvedTheme === "dark" ? "rgba(255,51,102,0.35)" : "rgba(220,38,38,0.45)"),
+            ? colors.volume_up
+            : colors.volume_down,
         }));
 
         candleSeriesRef.current.setData(candles);
@@ -263,8 +263,8 @@ export function TradingViewChart({
       time:  tick.time as Time,
       value: tick.volume,
       color: tick.close >= tick.open
-        ? (resolvedTheme === "dark" ? "rgba(0,255,136,0.35)" : "rgba(22,163,74,0.45)")
-        : (resolvedTheme === "dark" ? "rgba(255,51,102,0.35)" : "rgba(220,38,38,0.45)"),
+        ? colors.volume_up
+        : colors.volume_down,
     };
 
     candleSeriesRef.current.update(candle);
@@ -283,10 +283,10 @@ export function TradingViewChart({
   const colors  = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
 
   return (
-    <div className={cn("relative flex flex-col rounded-lg border border-border/40 overflow-hidden min-h-[260px]", className)}>
+    <div className={cn("relative flex min-h-65 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card/55 shadow-[0_14px_32px_rgba(8,13,34,0.24)]", className)}>
       {/* ── Top toolbar ────────────────────────────────────────────────────── */}
       {showToolbar && (
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 py-1.5 bg-background/80 border-b border-border/30">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border/60 bg-background/72 px-3 py-1.5 backdrop-blur-md">
           {/* OHLCV overlay */}
           {showOhlcOverlay && ohlc && (
             <div className="flex items-center gap-3 text-[10px] font-mono">
@@ -380,7 +380,7 @@ export function TradingViewChart({
       </div>
 
       {/* ── Bottom status bar ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-3 py-1 bg-background/60 border-t border-border/20 text-[9px] text-muted-foreground font-mono">
+      <div className="flex items-center justify-between border-t border-border/60 bg-background/62 px-3 py-1 text-[9px] font-mono text-muted-foreground">
         <span>LOC_{locationId} · {resolution} · {metric}</span>
         <span>{barsLoaded > 0 ? `${barsLoaded} bars` : "—"}</span>
       </div>

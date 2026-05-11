@@ -49,15 +49,15 @@ export function DataTable<T extends Record<string, unknown>>({
     align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-2xl border border-border/80 bg-card/70 shadow-[0_12px_28px_rgba(8,13,34,0.18)]">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border bg-muted/50">
+          <tr className="border-b border-border/70 bg-muted/55">
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={cn(
-                  "px-3 py-2 font-mono text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors",
+                  "cursor-pointer select-none px-3 py-2 font-mono text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground",
                   alignClass(col.align)
                 )}
                 onClick={() => handleSort(col.key)}
@@ -83,9 +83,9 @@ export function DataTable<T extends Record<string, unknown>>({
             <tr
               key={i}
               className={cn(
-                "border-b border-border transition-colors",
-                i % 2 === 1 && "bg-muted/20",
-                onRowClick && "cursor-pointer hover:bg-card-hover"
+                "border-b border-border/65 transition-colors",
+                i % 2 === 1 && "bg-muted/18",
+                onRowClick && "cursor-pointer hover:bg-card-hover/85"
               )}
               onClick={() => onRowClick?.(row)}
             >

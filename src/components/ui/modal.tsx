@@ -34,7 +34,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-dark/70 backdrop-blur-md"
             onClick={onClose}
           />
 
@@ -44,16 +44,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.15 }}
-            className="relative z-10 w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-xl"
+            className="glass-card relative z-10 w-full max-w-lg rounded-2xl border border-border/80 p-6"
           >
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-mono text-lg font-bold text-foreground">
+              <h2 className="font-display text-lg font-bold text-foreground">
                 {title}
               </h2>
               <button
                 onClick={onClose}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-card-hover hover:text-foreground transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card-hover hover:text-foreground"
                 aria-label="Close"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>

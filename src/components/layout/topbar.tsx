@@ -30,7 +30,7 @@ export function Topbar() {
   });
 
   return (
-    <header className="glass-topbar flex h-16 items-center justify-between border-b border-emerald-400/20 px-4 md:px-6">
+    <header className="glass-topbar flex h-16 items-center justify-between border-b border-border/80 px-4 md:px-6">
       <div className="min-w-0">
         <QuickActions compact className="flex" />
       </div>
@@ -39,25 +39,25 @@ export function Topbar() {
         <button
           type="button"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-primary/20"
+          className="rounded-xl border border-accent/35 bg-linear-to-r from-primary/24 via-secondary/20 to-accent/24 px-3 py-2 text-xs font-semibold text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110"
         >
           {mounted ? (resolvedTheme === "dark" ? "Light Mode" : "Dark Mode") : "Theme"}
         </button>
-        <div className="hidden rounded-xl border border-border bg-card/70 px-3 py-2 text-right md:block">
+        <div className="hidden rounded-xl border border-border/80 bg-card/70 px-3 py-2 text-right shadow-[0_10px_24px_rgba(8,13,34,0.22)] md:block">
           <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Live Stamp</p>
           <p className="font-tabular text-xs text-foreground">
             {liveDate}
           </p>
         </div>
         {user && (
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-card/70 px-2 py-1.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-foreground">
+          <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-card/75 px-2 py-1.5 shadow-[0_10px_24px_rgba(8,13,34,0.22)]">
+            <div className="gradient-brand flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-accent-foreground">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <span className="hidden text-xs text-foreground md:inline">{user.name}</span>
             <button
               onClick={logout}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-rose-500/20 hover:text-rose-300"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-loss/20 hover:text-loss"
               aria-label="Logout"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

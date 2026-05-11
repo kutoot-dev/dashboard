@@ -17,14 +17,14 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-border bg-card/80 backdrop-blur-xl transition-[width] duration-200",
+        "glass-sidebar flex h-full flex-col transition-[width] duration-300",
         sidebarCollapsed ? "w-16" : "w-60"
       )}
     >
       {/* Brand */}
       <div
         className={cn(
-          "flex h-16 items-center border-b border-border",
+          "flex h-16 items-center border-b border-border/70",
           sidebarCollapsed ? "justify-center px-2" : "px-4"
         )}
       >
@@ -45,15 +45,15 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "mx-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all",
+                "mx-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
                 isActive
-                  ? "border border-primary/35 bg-primary/10 text-foreground shadow-[0_0_20px_rgba(22,101,52,0.18)]"
-                  : "border border-transparent text-muted-foreground hover:border-primary/25 hover:bg-primary/10 hover:text-foreground"
+                  ? "border border-accent/35 bg-linear-to-r from-primary/22 via-secondary/18 to-accent/22 text-foreground shadow-[0_14px_26px_rgba(9,13,38,0.32)]"
+                  : "border border-transparent text-muted-foreground hover:border-accent/35 hover:bg-card-hover/70 hover:text-foreground"
               )}
               title={sidebarCollapsed ? item.label : undefined}
             >
               <svg
-                className="h-5 w-5 shrink-0"
+                className={cn("h-5 w-5 shrink-0", isActive && "drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]")}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -62,7 +62,7 @@ export function Sidebar() {
                 <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
               </svg>
               {!sidebarCollapsed && (
-                <span className="text-xs tracking-wide">{item.label}</span>
+                <span className="text-xs tracking-[0.08em]">{item.label}</span>
               )}
             </Link>
           );
@@ -72,7 +72,7 @@ export function Sidebar() {
       {/* Collapse toggle */}
       <button
         onClick={toggleSidebar}
-        className="flex h-11 items-center justify-center border-t border-border text-muted-foreground transition-colors hover:text-foreground"
+        className="flex h-11 items-center justify-center border-t border-border/70 text-muted-foreground transition-colors hover:bg-card-hover/70 hover:text-foreground"
         aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         <svg

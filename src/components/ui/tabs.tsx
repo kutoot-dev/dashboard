@@ -13,21 +13,21 @@ interface TabsProps {
 
 export function Tabs({ tabs, activeTab, onChange }: TabsProps) {
   return (
-    <div className="flex border-b border-border">
+    <div className="flex rounded-t-xl border-b border-border/80 bg-card/55 px-1 pt-1">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            "relative px-4 py-2 text-sm font-medium transition-colors",
+            "relative rounded-t-lg px-4 py-2 text-sm font-semibold transition-all",
             activeTab === tab.id
-              ? "text-accent"
+              ? "bg-card text-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
           {tab.label}
           {activeTab === tab.id && (
-            <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" />
+            <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full gradient-brand" />
           )}
         </button>
       ))}

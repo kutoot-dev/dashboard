@@ -30,13 +30,17 @@ export function LegalDocumentPage({
   sections,
 }: LegalDocumentPageProps) {
   return (
-    <main className="min-h-screen bg-background px-4 py-10 text-foreground">
-      <div className="mx-auto w-full max-w-4xl">
+    <main className="relative min-h-screen bg-background px-4 py-10 text-foreground">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="gradient-brand-soft absolute inset-0 opacity-65" />
+      </div>
+
+      <div className="relative z-10 mx-auto w-full max-w-4xl">
         <div className="mb-8">
-          <Link href="/login" className="text-sm text-primary hover:underline">
+          <Link href="/login" className="text-sm text-primary underline-offset-2 transition-colors hover:underline">
             Back to Merchant Login
           </Link>
-          <h1 className="mt-4 text-2xl font-semibold md:text-3xl">{title}</h1>
+          <h1 className="font-display mt-4 text-2xl font-semibold md:text-3xl">{title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
           <div className="mt-3 space-y-1 text-xs text-muted-foreground">
             {effectiveDate ? <p>Effective Date: {effectiveDate}</p> : null}
@@ -44,7 +48,7 @@ export function LegalDocumentPage({
           </div>
         </div>
 
-        <div className="space-y-6 rounded-xl border border-border bg-card p-5 md:p-8">
+        <div className="glass-card space-y-6 rounded-2xl border border-border/80 p-5 shadow-[0_22px_54px_rgba(5,8,24,0.34)] md:p-8">
           {sections.map((section, sectionIndex) => (
             <section key={`${sectionIndex}-${section.heading}`} className="space-y-3">
               <h2 className="text-base font-semibold md:text-lg">{section.heading}</h2>

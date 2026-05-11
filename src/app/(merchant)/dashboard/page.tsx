@@ -160,21 +160,21 @@ export default function DashboardPage() {
           <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
             <div className="grid gap-4 md:grid-cols-2">
               {statsCards.map((card) => (
-                <Card key={card.label} className="border border-cyan-400/20 bg-slate-900/45">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{card.label}</p>
-                  <p className="mt-2 font-tabular text-xl font-semibold text-white">{card.value}</p>
-                  <p className="mt-2 text-xs text-slate-400">{card.helper}</p>
+                <Card key={card.label} className="border border-accent/28 bg-card/70">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{card.label}</p>
+                  <p className="mt-2 font-tabular text-xl font-semibold text-foreground">{card.value}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{card.helper}</p>
                 </Card>
               ))}
             </div>
             <div id="growth-boost-card">
-              <CommissionSliderCard className="border border-amber-400/25 bg-slate-900/55" />
+              <CommissionSliderCard className="border border-secondary/30 bg-card/70" />
             </div>
           </div>
 
-          <Card className="border border-cyan-400/15 bg-slate-900/45">
-            <p className="text-xs text-slate-300">
-              Dashboard data is shown for <span className="font-semibold text-slate-100">today only</span>:
+          <Card className="border border-accent/25 bg-card/70">
+            <p className="text-xs text-muted-foreground">
+              Dashboard data is shown for <span className="font-semibold text-foreground">today only</span>:
               from 12:00 AM to current time.
             </p>
           </Card>
@@ -185,21 +185,21 @@ export default function DashboardPage() {
               compositeScore={compositeScore}
               todayTransactions={dashboard?.today?.transactions ?? 0}
             />
-            <RecentRedemptionsSlideshow className="border border-emerald-400/20 bg-slate-900/55" />
+            <RecentRedemptionsSlideshow className="border border-gain/25 bg-card/70" />
           </div>
 
-          <Card className="space-y-4 border border-fuchsia-400/20 bg-slate-900/55">
+          <Card className="space-y-4 border border-primary/28 bg-card/72">
             <div>
-              <h3 className="text-sm font-semibold text-fuchsia-100">Score Insights</h3>
-              <p className="text-xs text-slate-400">
+              <h3 className="font-display text-sm font-semibold text-primary">Score Insights</h3>
+              <p className="text-xs text-muted-foreground">
                 Hover any donut slice or parameter row to inspect it. Use Fix on lower scores for quick guidance.
               </p>
             </div>
             <div className="grid gap-4 xl:grid-cols-[2fr_3fr] xl:items-stretch">
-              <div className="flex h-full flex-col space-y-3 rounded-lg border border-cyan-400/20 bg-slate-900/60 p-3">
+              <div className="flex h-full flex-col space-y-3 rounded-lg border border-accent/28 bg-card/70 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100">
+                    <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
                       <span>Score Breakdown</span>
                       {activeSegment && (
                         <InfoTooltip
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                         />
                       )}
                     </h4>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-muted-foreground">
                       Composite {formatScore(compositeScore)} {typeof compositeRank === "number" ? `· Rank #${compositeRank}` : ""}
                     </p>
                   </div>
@@ -222,24 +222,24 @@ export default function DashboardPage() {
                   onActiveKeyChange={setActiveSegmentKey}
                 />
                 {activeSegment && (
-                  <div className="rounded-md border border-cyan-400/25 bg-cyan-500/5 px-3 py-2">
-                    <p className="text-xs font-semibold text-cyan-100">{activeSegment.label}</p>
-                    <p className="mt-1 text-xs text-slate-300">
-                      Score <span className="font-semibold text-white">{activeSegment.value.toFixed(0)} / 100</span> · Weight{" "}
-                      <span className="font-semibold text-white">{activeSegment.weightPercent}%</span> · Adds{" "}
-                      <span className="font-semibold text-white">{activeSegment.contribution.toFixed(1)}</span>
+                  <div className="rounded-md border border-accent/35 bg-accent/10 px-3 py-2">
+                    <p className="text-xs font-semibold text-accent">{activeSegment.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Score <span className="font-semibold text-foreground">{activeSegment.value.toFixed(0)} / 100</span> · Weight{" "}
+                      <span className="font-semibold text-foreground">{activeSegment.weightPercent}%</span> · Adds{" "}
+                      <span className="font-semibold text-foreground">{activeSegment.contribution.toFixed(1)}</span>
                     </p>
                   </div>
                 )}
               </div>
-              <div className="flex h-full flex-col space-y-3 rounded-lg border border-fuchsia-400/20 bg-slate-900/60 p-3">
+              <div className="flex h-full flex-col space-y-3 rounded-lg border border-primary/28 bg-card/70 p-3">
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-100">Scoring Parameters</h4>
-                  <p className="text-xs text-slate-400">
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Scoring Parameters</h4>
+                  <p className="text-xs text-muted-foreground">
                     Best-performing on top, low-performing at the bottom.
                   </p>
                 </div>
-                <div className="grid max-h-[330px] flex-1 gap-2 overflow-auto pr-1 sm:grid-cols-2">
+                <div className="grid max-h-82.5 flex-1 gap-2 overflow-auto pr-1 sm:grid-cols-2">
                 {parameterCards.map((segment) => {
                   const isActive = activeSegmentKey === segment.key;
 
@@ -250,27 +250,27 @@ export default function DashboardPage() {
                     onMouseLeave={() => setActiveSegmentKey(null)}
                     className={`space-y-1.5 rounded-md border px-2.5 py-2 transition-all ${
                       isActive
-                        ? "border-cyan-300/60 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
+                        ? "border-accent/55 bg-accent/14 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
                         : segment.isTopPerformer
-                          ? "border-emerald-300/60 bg-emerald-500/10"
+                          ? "border-gain/45 bg-gain/14"
                           : segment.isLeastPerformer
-                            ? "border-rose-300/60 bg-rose-500/10"
-                            : "border-white/10 bg-slate-900/60"
+                            ? "border-loss/45 bg-loss/14"
+                            : "border-border/70 bg-card/65"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="flex min-w-0 items-center gap-1.5 text-slate-300">
+                      <span className="flex min-w-0 items-center gap-1.5 text-foreground">
                         <span className="truncate">{segment.label}</span>
                         <InfoTooltip
                           text={`${segment.description} Weight: ${segment.weightPercent}%. Current contribution: ${segment.contribution.toFixed(1)}.`}
                         />
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
-                        <span className="font-tabular text-slate-200">{segment.value.toFixed(1)}</span>
+                        <span className="font-tabular text-foreground">{segment.value.toFixed(1)}</span>
                         <button
                           type="button"
                           onClick={() => handleFixClick(segment.key, segment.label)}
-                          className="inline-flex items-center gap-1 rounded-md border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-medium text-amber-100 transition-colors hover:bg-amber-400/20"
+                          className="inline-flex items-center gap-1 rounded-md border border-warning/35 bg-warning/12 px-2 py-0.5 text-[10px] font-medium text-warning transition-colors hover:bg-warning/20"
                           title="Get improvement guidance"
                         >
                           <svg aria-hidden viewBox="0 0 20 20" className="h-3 w-3">
@@ -287,17 +287,17 @@ export default function DashboardPage() {
                         </button>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-muted-foreground">
                       Weight {segment.weightPercent}% · Contribution {segment.contribution.toFixed(1)}
                     </p>
                     {(segment.isTopPerformer || segment.isLeastPerformer) && (
-                      <p className="text-[10px] font-medium text-slate-300">
+                      <p className="text-[10px] font-medium text-muted-foreground">
                         {segment.isTopPerformer ? "Top performer" : "Least performer"}
                       </p>
                     )}
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                    <div className="h-2 overflow-hidden rounded-full bg-muted/70">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-fuchsia-400"
+                        className="h-full rounded-full bg-linear-to-r from-primary via-secondary to-accent"
                         style={{ width: `${Math.min(segment.value, 100)}%` }}
                       />
                     </div>
@@ -308,22 +308,22 @@ export default function DashboardPage() {
             </div>
           </Card>
           {activeRecommendation && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-              <div className="w-full max-w-xl rounded-xl border border-cyan-400/25 bg-slate-900 p-4 shadow-2xl">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/72 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-xl rounded-xl border border-accent/35 bg-card-solid p-4 shadow-[0_24px_60px_rgba(4,8,26,0.56)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-cyan-100">
+                    <p className="text-sm font-semibold text-accent">
                       Fix plan: {activeRecommendation.label}
                     </p>
-                    <p className="mt-1 text-xs text-slate-300">{activeRecommendation.recommendation}</p>
-                    <p className="mt-2 rounded-md border border-white/10 bg-slate-800/60 px-2.5 py-2 text-xs text-slate-300">
+                    <p className="mt-1 text-xs text-muted-foreground">{activeRecommendation.recommendation}</p>
+                    <p className="mt-2 rounded-md border border-border/80 bg-muted/55 px-2.5 py-2 text-xs text-muted-foreground">
                       {activeRecommendation.example}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setActiveRecommendation(null)}
-                    className="rounded-md border border-white/15 px-2 py-1 text-xs text-slate-200 hover:bg-white/5"
+                    className="rounded-md border border-border/80 px-2 py-1 text-xs text-foreground transition-colors hover:bg-card-hover"
                   >
                     Close
                   </button>

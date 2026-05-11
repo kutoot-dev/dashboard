@@ -62,14 +62,14 @@ export default function LoginPage() {
         aria-hidden
         style={{
           background:
-            "radial-gradient(1200px 500px at 15% 20%, rgba(174,30,63,0.2), transparent 55%), radial-gradient(1000px 450px at 85% 80%, rgba(234,107,30,0.18), transparent 50%)",
+            "radial-gradient(1250px 540px at 12% 18%, rgba(139,92,246,0.34), transparent 58%), radial-gradient(1040px 500px at 88% 82%, rgba(255,111,97,0.26), transparent 52%), radial-gradient(940px 430px at 50% 100%, rgba(34,211,238,0.22), transparent 60%)",
         }}
       />
 
-      <section className="glass-card relative z-10 w-full max-w-md p-6 md:p-7">
+      <section className="glass-card relative z-10 w-full max-w-md border border-border/80 p-6 shadow-[0_24px_60px_rgba(5,8,28,0.38)] md:p-7">
         <div className="mb-6">
           <KutootLogo size="md" />
-          <h1 className="mt-4 font-mono text-lg font-semibold text-foreground">Merchant Panel Login</h1>
+          <h1 className="font-display mt-4 text-xl font-semibold text-foreground">Merchant Panel Login</h1>
           <p className="mt-1 text-sm text-muted-foreground">Use your merchant username and password to continue.</p>
         </div>
 
