@@ -83,6 +83,7 @@ export function TradingViewChart({
   const [isLoading,  setIsLoading]  = useState(true);
   const [ohlc,       setOhlc]       = useState<OhlcDisplay | null>(null);
   const [barsLoaded, setBarsLoaded] = useState(0);
+  const chartColors = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
 
   // Real-time ticks from Reverb
   const { latest, connected } = useScoreTick(locationId);
@@ -92,7 +93,7 @@ export function TradingViewChart({
     const container = containerRef.current;
     if (!container) return;
 
-    const colors = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
+    const colors = chartColors;
 
     const chart = createChart(container, {
       height,
@@ -182,7 +183,7 @@ export function TradingViewChart({
       candleSeriesRef.current = null;
       volumeSeriesRef.current = null;
     };
-  }, [resolvedTheme, height, resolution, metric]);
+  }, [chartColors, resolvedTheme, height, resolution, metric]);
 
   // ── Load historical bars whenever resolution changes ────────────────────────
   useEffect(() => {
@@ -223,8 +224,8 @@ export function TradingViewChart({
           time:  b.time as Time,
           value: b.volume,
           color: b.close >= b.open
-            ? colors.volume_up
-            : colors.volume_down,
+            ? chartColors.volume_up
+            : chartColors.volume_down,
         }));
 
         candleSeriesRef.current.setData(candles);
@@ -241,7 +242,7 @@ export function TradingViewChart({
         setOhlc(null);
       })
       .finally(() => setIsLoading(false));
-  }, [locationId, resolution, resolvedTheme, metric]);
+  }, [chartColors, locationId, resolution, resolvedTheme, metric]);
 
   // ── Real-time tick streaming ───────────────────────────────────────────────
   useEffect(() => {
@@ -263,14 +264,14 @@ export function TradingViewChart({
       time:  tick.time as Time,
       value: tick.volume,
       color: tick.close >= tick.open
-        ? colors.volume_up
-        : colors.volume_down,
+        ? chartColors.volume_up
+        : chartColors.volume_down,
     };
 
     candleSeriesRef.current.update(candle);
     volumeSeriesRef.current.update(vol);
     setOhlc({ open: tick.open, high: tick.high, low: tick.low, close: tick.close, volume: tick.volume });
-  }, [latest, resolution, resolvedTheme, metric]);
+  }, [chartColors, latest, resolution, resolvedTheme, metric]);
 
   const handleResolutionChange = useCallback((r: Resolution) => {
     setResolution(r);
@@ -280,7 +281,6 @@ export function TradingViewChart({
   const isUp = (ohlc?.close ?? 0) >= (ohlc?.open ?? 0);
   // When displaying rank, "close < open" means rank improved → treat as gain.
   const isGain = metric === "rank" ? !isUp : isUp;
-  const colors  = resolvedTheme === "dark" ? CHART_THEME_DARK : CHART_THEME_LIGHT;
 
   return (
     <div className={cn("relative flex min-h-65 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card/55 shadow-[0_14px_32px_rgba(8,13,34,0.24)]", className)}>

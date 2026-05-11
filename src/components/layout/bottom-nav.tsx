@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { BRANCH_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils/cn";
 export function BottomNav() {
   const pathname = usePathname();
   const { isLoading } = useAuth();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const navItems = BRANCH_NAV;
 

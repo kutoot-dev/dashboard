@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { QuickActions } from "@/components/ui/quick-actions";
@@ -9,11 +9,11 @@ export function Topbar() {
   const { user, logout } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const [now, setNow] = useState(new Date());
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => {
