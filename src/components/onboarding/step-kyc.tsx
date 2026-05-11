@@ -12,6 +12,12 @@ import {
   VALIDATION_RULES,
   ONBOARDING_STRINGS,
 } from "@/lib/constants/onboarding";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCircleCheck,
+  faCircleXmark,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface StepKycProps {
   onNext: () => void;
@@ -90,16 +96,21 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
   };
 
   const statusBadge = (status: string) => {
-    const map: Record<string, { label: string; cls: string }> = {
+    const map: Record<string, { label: string; cls: string; icon?: typeof faCircleCheck }> = {
       not_started: { label: "", cls: "" },
       pending: { label: "Verifying...", cls: "text-info" },
-      verified: { label: "✓ Verified", cls: "text-success" },
-      failed: { label: "✗ Failed", cls: "text-error" },
-      api_error: { label: "⚠ Will verify later", cls: "text-warning" },
+      verified: { label: "Verified", cls: "text-success", icon: faCircleCheck },
+      failed: { label: "Failed", cls: "text-error", icon: faCircleXmark },
+      api_error: { label: "Will verify later", cls: "text-warning", icon: faTriangleExclamation },
     };
     const m = map[status] || map.not_started;
     if (!m.label) return null;
-    return <span className={`text-xs font-medium ${m.cls}`}>{m.label}</span>;
+    return (
+      <span className={`inline-flex items-center gap-1 text-xs font-medium ${m.cls}`}>
+        {m.icon && <FontAwesomeIcon icon={m.icon} />}
+        {m.label}
+      </span>
+    );
   };
 
   const validate = (): boolean => {

@@ -13,6 +13,7 @@ import type {
   CommissionTier,
   VisitOutcome,
   FollowUpSchedule,
+  HandoverInventoryItem,
 } from "@/lib/types";
 import { WIZARD_STEPS } from "@/lib/types";
 
@@ -87,6 +88,7 @@ interface OnboardingFormData {
   operating_hours_start: string;
   operating_hours_end: string;
   expected_monthly_volume: string;
+  inventory_handover_items: HandoverInventoryItem[];
 
   // Step 7
   terms_accepted: boolean;
@@ -197,6 +199,7 @@ const initialFormData: OnboardingFormData = {
   operating_hours_start: "09:00",
   operating_hours_end: "21:00",
   expected_monthly_volume: "",
+  inventory_handover_items: [],
 
   terms_accepted: false,
   privacy_accepted: false,

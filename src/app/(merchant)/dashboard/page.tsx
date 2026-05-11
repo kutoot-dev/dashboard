@@ -158,26 +158,24 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+            <div className="space-y-4">
+             
+              <div id="growth-boost-card">
+                <CommissionSliderCard className="border border-secondary/30 bg-card/70" />
+              </div>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               {statsCards.map((card) => (
-                <Card key={card.label} className="border border-accent/28 bg-card/70">
+                <Card key={card.label} className="border border-accent/28 bg-card/70 p-4">
                   <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{card.label}</p>
                   <p className="mt-2 font-tabular text-xl font-semibold text-foreground">{card.value}</p>
                   <p className="mt-2 text-xs text-muted-foreground">{card.helper}</p>
                 </Card>
               ))}
             </div>
-            <div id="growth-boost-card">
-              <CommissionSliderCard className="border border-secondary/30 bg-card/70" />
-            </div>
           </div>
 
-          <Card className="border border-accent/25 bg-card/70">
-            <p className="text-xs text-muted-foreground">
-              Dashboard data is shown for <span className="font-semibold text-foreground">today only</span>:
-              from 12:00 AM to current time.
-            </p>
-          </Card>
+          
 
           <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
             <ScoreTrendCard

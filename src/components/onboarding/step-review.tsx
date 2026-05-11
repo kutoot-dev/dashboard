@@ -13,6 +13,14 @@ import {
   VISIT_OUTCOME_OPTIONS,
 } from "@/lib/constants/onboarding";
 import type { WizardStepId, ApplicationStatus, OnboardingApplication } from "@/lib/types";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCircleCheck,
+  faCircleInfo,
+  faClipboardList,
+  faClock,
+  faFileCircleCheck,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface StepReviewProps {
   onBack: () => void;
@@ -59,6 +67,7 @@ export function StepReview({ onBack }: StepReviewProps) {
       visit_outcome: formData.visit_outcome,
       visit_notes: formData.visit_notes || null,
       follow_up_schedules: formData.follow_up_schedules,
+      inventory_handover_items: formData.inventory_handover_items,
       phone: formData.phone || null,
       owner_name: formData.owner_name || null,
       email: formData.owner_email || null,
@@ -137,7 +146,9 @@ export function StepReview({ onBack }: StepReviewProps) {
     if (isFeVisitOnly) {
       return (
         <div className="text-center py-12 space-y-4">
-          <div className="text-5xl">📋</div>
+          <div className="text-5xl text-primary">
+            <FontAwesomeIcon icon={faClipboardList} />
+          </div>
           <h2 className="text-2xl font-bold text-foreground">Visit Recorded</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
             {`Visit outcome "${visitOutcomeLabel}" has been logged.${formData.visit_notes ? " Notes saved." : ""} This record will be visible in your visit history.`}
@@ -154,7 +165,9 @@ export function StepReview({ onBack }: StepReviewProps) {
     if (!applicationId) {
       return (
         <div className="text-center py-12 space-y-4">
-          <div className="text-5xl">🎉</div>
+          <div className="text-5xl text-success">
+            <FontAwesomeIcon icon={faCircleCheck} />
+          </div>
           <h2 className="text-2xl font-bold text-foreground">
             {ONBOARDING_STRINGS.SUBMIT_SUCCESS}
           </h2>
@@ -197,13 +210,15 @@ export function StepReview({ onBack }: StepReviewProps) {
       {/* Submitted-by banner */}
       <div className="flex items-center gap-2">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-info/10 text-info border border-info/30">
+          <FontAwesomeIcon icon={faCircleInfo} />
           {formData.channel === "merchant"
-            ? "🧑‍💼 Submitted by Merchant"
-            : "🚶 Submitted by Field Executive"}
+            ? "Submitted by Merchant"
+            : "Submitted by Field Executive"}
         </span>
         {isFeVisitOnly && (
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning border border-warning/30">
-            📋 Visit Record — {visitOutcomeLabel}
+            <FontAwesomeIcon icon={faClipboardList} />
+            Visit Record - {visitOutcomeLabel}
           </span>
         )}
       </div>
@@ -227,7 +242,11 @@ export function StepReview({ onBack }: StepReviewProps) {
                 <div key={slot.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2 flex items-start justify-between gap-3">
                   <div className="space-y-0.5">
                     <p className="text-xs font-medium text-foreground">
-                      📅 {slot.date} &nbsp;⏰ {slot.time}
+                      <FontAwesomeIcon icon={faClipboardList} className="mr-2" />
+                      {slot.date}
+                      <span className="mx-2 text-muted-foreground">|</span>
+                      <FontAwesomeIcon icon={faClock} className="mr-2" />
+                      {slot.time}
                     </p>
                     {slot.notes && (
                       <p className="text-xs text-muted-foreground">{slot.notes}</p>
@@ -277,7 +296,7 @@ export function StepReview({ onBack }: StepReviewProps) {
         />
         <Row
           label="Storefront Photo"
-          value={formData.storefront_photo_url ? "✓ Uploaded" : isFeVisitOnly ? "— Skipped" : "✗ Missing"}
+          value={formData.storefront_photo_url ? "Uploaded" : isFeVisitOnly ? "Skipped" : "Missing"}
           valueClass={formData.storefront_photo_url ? "text-success" : isFeVisitOnly ? "text-muted-foreground" : "text-error"}
         />
       </Section>
@@ -310,7 +329,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             /> */}
             <Row
               label="GST Document"
-              value={formData.gst_doc_photo_url ? "✓ Photo uploaded" : "— Not captured"}
+              value={formData.gst_doc_photo_url ? "Photo uploaded" : "Not captured"}
               valueClass={formData.gst_doc_photo_url ? "text-success" : "text-muted-foreground"}
             />
             <Row label="PAN" value={formData.pan_number || "Not provided"} />
@@ -320,7 +339,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             /> */}
             <Row
               label="PAN Document"
-              value={formData.pan_doc_photo_url ? "✓ Photo uploaded" : "— Not captured"}
+              value={formData.pan_doc_photo_url ? "Photo uploaded" : "Not captured"}
               valueClass={formData.pan_doc_photo_url ? "text-success" : "text-muted-foreground"}
             />
             <Row
@@ -333,7 +352,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <Row
               label="Aadhaar Document"
-              value={formData.aadhaar_doc_photo_url ? "✓ Photo uploaded" : "— Not captured"}
+              value={formData.aadhaar_doc_photo_url ? "Photo uploaded" : "Not captured"}
               valueClass={formData.aadhaar_doc_photo_url ? "text-success" : "text-muted-foreground"}
             />
           </Section>
@@ -368,20 +387,35 @@ export function StepReview({ onBack }: StepReviewProps) {
           <Section title="Referral & QR" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "basic_details")}>
             <Row
               label="Referral Code"
-              value={formData.referral_code || "— Not provided"}
+              value={formData.referral_code || "Not provided"}
               valueClass={formData.referral_code ? "" : "text-muted-foreground"}
             />
             <Row
               label="QR Serial"
-              value={formData.qr_serial || (hasQrStep ? "✗ Missing" : "— Not required")}
+              value={formData.qr_serial || (hasQrStep ? "Missing" : "Not required")}
               valueClass={formData.qr_serial ? "text-success" : hasQrStep ? "text-error" : "text-muted-foreground"}
             />
             <Row
               label="QR Placement Photo"
-              value={formData.qr_photo_url ? "✓ Captured" : hasQrStep ? "✗ Missing" : "— Not required"}
+              value={formData.qr_photo_url ? "Captured" : hasQrStep ? "Missing" : "Not required"}
               valueClass={formData.qr_photo_url ? "text-success" : hasQrStep ? "text-error" : "text-muted-foreground"}
             />
           </Section>
+
+          {hasQrStep && formData.inventory_handover_items.length > 0 && (
+            <Section title="Inventory Handover" onEdit={() => goToStep("qr_activation")}>
+              {formData.inventory_handover_items.map((item, index) => (
+                <div key={item.id} className="col-span-2 rounded-md border border-border p-3 text-sm">
+                  <p className="font-medium text-foreground">
+                    {index + 1}. {item.name}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Assigned: {item.assigned_quantity} | Handed Over: {item.used_quantity}
+                  </p>
+                </div>
+              ))}
+            </Section>
+          )}
 
           <Section title="Identity" onEdit={() => goToStep("identity")}>
             <Row
@@ -490,7 +524,10 @@ function Section({
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <h3 className="text-sm font-semibold text-foreground inline-flex items-center gap-2">
+          <FontAwesomeIcon icon={faFileCircleCheck} className="text-primary" />
+          {title}
+        </h3>
         <button
           type="button"
           onClick={onEdit}

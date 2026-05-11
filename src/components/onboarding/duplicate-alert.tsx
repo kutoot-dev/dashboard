@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils/cn";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleCheck, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import type { ApplicationStatus } from "@/lib/types";
 import {
   APPLICATION_STATUS_LABELS,
@@ -46,13 +48,9 @@ export function DuplicateAlert({
       <div className="flex gap-3">
         <div className={cn("shrink-0 mt-0.5", colors.icon)}>
           {status === "active_merchant" ? (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <FontAwesomeIcon icon={faCircleCheck} className="h-5 w-5" />
           ) : (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+            <FontAwesomeIcon icon={faTriangleExclamation} className="h-5 w-5" />
           )}
         </div>
         <div className="flex-1 min-w-0">

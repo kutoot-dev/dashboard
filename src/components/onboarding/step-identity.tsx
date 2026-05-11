@@ -6,16 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FieldWithInfo } from "./field-with-info";
 import { OtpInput } from "./otp-input";
+import { DuplicateAlert } from "./duplicate-alert";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useVerifyExecutive, useSendOtp, useVerifyOtp } from "@/lib/hooks";
+import { useCheckPhone, useVerifyExecutive, useSendOtp, useVerifyOtp } from "@/lib/hooks";
 import { ONBOARDING_FIELDS } from "@/lib/constants/onboarding";
+import type { ApplicationStatus } from "@/lib/types";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBriefcase,
+  faCircleCheck,
+  faStore,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface StepIdentityProps {
   onNext: () => void;
 }
 
 export function StepIdentity({ onNext }: StepIdentityProps) {
-  const { formData, updateFormData } = useOnboardingStore();
+  const {
+    formData,
+    updateFormData,
+    phoneCheckResult,
+    setPhoneCheckResult,
+  } = useOnboardingStore();
   const [employeeCode, setEmployeeCode] = useState(formData.exec_employee_code || "");
   const [otpPhone, setOtpPhone] = useState(formData.merchant_otp_phone || "");
   const [otp, setOtp] = useState("");
@@ -25,6 +38,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const verifyExec = useVerifyExecutive();
+  const checkPhone = useCheckPhone();
   const sendOtp = useSendOtp();
   const verifyOtp = useVerifyOtp();
 
@@ -52,7 +66,39 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
 
   const handleChannelSelect = (ch: "merchant" | "field_executive") => {
     updateFormData({ channel: ch });
+    if (ch !== "merchant") {
+      setPhoneCheckResult(null);
+      setOtpSent(false);
+      setOtp("");
+    }
     setError("");
+  };
+
+  const handleMerchantPhoneChange = (raw: string) => {
+    const clean = raw.replace(/\D/g, "").slice(0, 10);
+    setOtpPhone(clean);
+    setError("");
+
+    if (clean.length !== 10) {
+      setPhoneCheckResult(null);
+      return;
+    }
+
+    checkPhone.mutate(clean, {
+      onSuccess: (res) => {
+        setPhoneCheckResult(
+          res.data.exists
+            ? {
+                exists: true,
+                status: res.data.status,
+                application_id: res.data.application_id,
+                visiting_exec_name: res.data.visiting_exec_name ?? null,
+                message: res.data.message,
+              }
+            : null,
+        );
+      },
+    });
   };
 
   const handleVerifyExecutive = async () => {
@@ -78,6 +124,10 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
     setError("");
     if (!/^[6-9]\d{9}$/.test(otpPhone)) {
       setError("Enter a valid 10-digit Indian mobile number.");
+      return;
+    }
+    if (phoneCheckResult?.exists) {
+      setError("This mobile number already has an application. Resume the existing application.");
       return;
     }
     try {
@@ -121,6 +171,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       if (res.data.verified) {
         updateFormData({
           merchant_phone_verified: true,
+          merchant_otp_phone: otpPhone,
           phone: otpPhone,
         });
         onNext();
@@ -164,9 +215,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
                   : "bg-card border border-border text-muted-foreground",
               )}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <FontAwesomeIcon icon={faStore} className="w-5 h-5" />
             </div>
             <div>
               <p className="font-semibold text-foreground">I am a Merchant</p>
@@ -196,9 +245,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
                   : "bg-card border border-border text-muted-foreground",
               )}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />
-              </svg>
+              <FontAwesomeIcon icon={faBriefcase} className="w-5 h-5" />
             </div>
             <div>
               <p className="font-semibold text-foreground">
@@ -241,9 +288,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
           </FieldWithInfo>
           {formData.exec_name && (
             <div className="flex items-center gap-2 text-sm text-success">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <FontAwesomeIcon icon={faCircleCheck} className="w-4 h-4" />
               Verified: {formData.exec_name}
             </div>
           )}
@@ -253,6 +298,15 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       {/* Merchant: OTP Verification */}
       {channel === "merchant" && (
         <div className="space-y-4 pt-2">
+          {phoneCheckResult?.exists && (
+            <DuplicateAlert
+              status={phoneCheckResult.status as "active_merchant" | "existing_lead" | "already_submitted" | "existing_fe_visit"}
+              applicationId={phoneCheckResult.application_id}
+              applicationStatus={phoneCheckResult.status as ApplicationStatus}
+              message={phoneCheckResult.message}
+            />
+          )}
+
           {!otpSent ? (
             <FieldWithInfo
               fieldInfo={ONBOARDING_FIELDS.phone}
@@ -266,19 +320,22 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
                 <Input
                   placeholder="9876543210"
                   value={otpPhone}
-                  onChange={(e) =>
-                    setOtpPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                  }
+                  onChange={(e) => handleMerchantPhoneChange(e.target.value)}
                   maxLength={10}
                   inputMode="numeric"
                   className="flex-1"
                 />
+                {checkPhone.isPending && otpPhone.length === 10 && (
+                  <div className="flex items-center px-2 text-xs text-muted-foreground">
+                    Checking...
+                  </div>
+                )}
                 <Button
                   variant="primary"
                   size="md"
                   loading={sendOtp.isPending}
                   onClick={handleSendOtp}
-                  disabled={otpPhone.length !== 10}
+                  disabled={otpPhone.length !== 10 || !!phoneCheckResult?.exists}
                 >
                   Send OTP
                 </Button>

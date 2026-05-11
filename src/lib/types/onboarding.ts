@@ -118,6 +118,13 @@ export interface FollowUpSchedule {
   notes: string;             // optional note for this slot
 }
 
+export interface HandoverInventoryItem {
+  id: string;
+  name: string;
+  assigned_quantity: number;
+  used_quantity: number;
+}
+
 // ── Visit Outcome (Field Executive only) ──────────────────────────
 
 export type VisitOutcome =
@@ -158,7 +165,7 @@ export type WizardStepId =
   | "commission"
   | "kyc"
   | "bank"
-  | "qr_activation"
+  | "qr_activation"    // FE handover (QR + inventory)
   | "review";
 
 export const WIZARD_STEPS: WizardStepId[] = [
@@ -186,7 +193,7 @@ export const WIZARD_STEP_CONFIG: WizardStepConfig[] = [
   { id: "commission", label: "Commission", description: "Commission rate agreement", number: 4 },
   { id: "kyc", label: "KYC Documents", description: "Business verification documents", number: 5 },
   { id: "bank", label: "Bank Details", description: "Bank account for payouts", number: 6 },
-  { id: "qr_activation", label: "QR & Activation", description: "QR code setup", number: 7 },
+  { id: "qr_activation", label: "Field Handover", description: "QR code and inventory handover", number: 7 },
   { id: "review", label: "Review & Submit", description: "Review and submit application", number: 8 },
 ];
 
@@ -273,6 +280,7 @@ export interface OnboardingApplication {
   operating_hours_start: string | null;
   operating_hours_end: string | null;
   expected_monthly_volume: string | null;
+  inventory_handover_items?: HandoverInventoryItem[];
   referral_code?: string | null;
   merchant_referral_code?: string | null;
   referred_by_location_id?: number | null;

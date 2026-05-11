@@ -1,21 +1,52 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
 import { PhotoCapture } from "./photo-capture";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
+import type { HandoverInventoryItem } from "@/lib/types";
 import {
   ONBOARDING_FIELDS,
   VOLUME_RANGES,
 } from "@/lib/constants/onboarding";
-import { cn } from "@/lib/utils/cn";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBoxesStacked,
+  faCheckCircle,
+  faClock,
+  faPlus,
+  faQrcode,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface StepQrActivationProps {
   onNext: () => void;
   onBack: () => void;
+}
+
+const DEFAULT_INVENTORY_ASSIGNMENT: Array<
+  Pick<HandoverInventoryItem, "name" | "assigned_quantity" | "used_quantity">
+> = [
+  { name: "Static QR Sticker", assigned_quantity: 20, used_quantity: 1 },
+  { name: "QR Stand", assigned_quantity: 8, used_quantity: 1 },
+  { name: "Welcome Tent Card", assigned_quantity: 15, used_quantity: 0 },
+];
+
+function makeInventoryItem(
+  item?: Partial<HandoverInventoryItem>,
+): HandoverInventoryItem {
+  return {
+    id:
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`,
+    name: item?.name?.trim() || "",
+    assigned_quantity: item?.assigned_quantity ?? 0,
+    used_quantity: item?.used_quantity ?? 0,
+  };
 }
 
 // ── QR module-level grid generator ────────────────────────────────
@@ -141,6 +172,48 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
   const { formData, updateFormData } = useOnboardingStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (
+      formData.channel === "field_executive" &&
+      formData.inventory_handover_items.length === 0
+    ) {
+      updateFormData({
+        inventory_handover_items: DEFAULT_INVENTORY_ASSIGNMENT.map((item) =>
+          makeInventoryItem(item),
+        ),
+      });
+    }
+  }, [
+    formData.channel,
+    formData.inventory_handover_items.length,
+    updateFormData,
+  ]);
+
+  const inventoryRows = formData.inventory_handover_items;
+
+  const updateInventoryItem = (
+    itemId: string,
+    patch: Partial<HandoverInventoryItem>,
+  ) => {
+    updateFormData({
+      inventory_handover_items: inventoryRows.map((item) =>
+        item.id === itemId ? { ...item, ...patch } : item,
+      ),
+    });
+  };
+
+  const addInventoryItem = () => {
+    updateFormData({
+      inventory_handover_items: [...inventoryRows, makeInventoryItem()],
+    });
+  };
+
+  const removeInventoryItem = (itemId: string) => {
+    updateFormData({
+      inventory_handover_items: inventoryRows.filter((item) => item.id !== itemId),
+    });
+  };
+
   const validate = (): boolean => {
     const e: Record<string, string> = {};
 
@@ -156,6 +229,26 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
     if (!formData.expected_monthly_volume) {
       e.expected_volume = "Select expected volume range.";
     }
+    if (formData.channel === "field_executive") {
+      for (const [index, item] of inventoryRows.entries()) {
+        if (!item.name.trim()) {
+          e.inventory = `Inventory item #${index + 1} name is required.`;
+          break;
+        }
+        if (item.assigned_quantity < 0) {
+          e.inventory = `Assigned quantity cannot be negative for item #${index + 1}.`;
+          break;
+        }
+        if (item.used_quantity < 0) {
+          e.inventory = `Used quantity cannot be negative for item #${index + 1}.`;
+          break;
+        }
+        if (item.used_quantity > item.assigned_quantity) {
+          e.inventory = `Used quantity cannot exceed assigned quantity for item #${index + 1}.`;
+          break;
+        }
+      }
+    }
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -170,9 +263,9 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-foreground">QR & Activation</h2>
+        <h2 className="text-xl font-bold text-foreground">Field Handover</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Enter the QR code serial from the physical sticker and set the merchant&apos;s shop hours.
+          Capture QR handover details and inventory usage for this merchant onboarding.
         </p>
       </div>
 
@@ -194,7 +287,10 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
           maxLength={20}
         />
         {formData.qr_assigned && (
-          <p className="mt-1 text-xs text-success">✓ QR code linked</p>
+          <p className="mt-1 text-xs text-success">
+            <FontAwesomeIcon icon={faCheckCircle} className="mr-1" />
+            QR code linked
+          </p>
         )}
       </FieldWithInfo>
 
@@ -217,6 +313,79 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         hint="Take a photo of the QR sticker placed at the merchant's counter."
       />
 
+      {formData.channel === "field_executive" && (
+        <div className="space-y-3 rounded-lg border border-border p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                <FontAwesomeIcon icon={faBoxesStacked} className="mr-2 text-primary" />
+                Inventory Handover
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Assigned quantities come from executive stock. Update what was actually handed over.
+              </p>
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={addInventoryItem}>
+              <FontAwesomeIcon icon={faPlus} className="mr-2" />
+              Add Item
+            </Button>
+          </div>
+
+          {inventoryRows.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No inventory assigned yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {inventoryRows.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_auto] gap-2 rounded-md border border-border p-3"
+                >
+                  <Input
+                    placeholder={`Inventory item ${index + 1}`}
+                    value={item.name}
+                    onChange={(event) =>
+                      updateInventoryItem(item.id, { name: event.target.value })
+                    }
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Assigned"
+                    value={item.assigned_quantity}
+                    onChange={(event) =>
+                      updateInventoryItem(item.id, {
+                        assigned_quantity: Number(event.target.value || 0),
+                      })
+                    }
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Used"
+                    value={item.used_quantity}
+                    onChange={(event) =>
+                      updateInventoryItem(item.id, {
+                        used_quantity: Number(event.target.value || 0),
+                      })
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeInventoryItem(item.id)}
+                    aria-label={`Remove inventory item ${index + 1}`}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {errors.inventory && <p className="text-xs text-error">{errors.inventory}</p>}
+        </div>
+      )}
+
       {/* Operating Hours */}
       <FieldWithInfo
         fieldInfo={ONBOARDING_FIELDS.operating_hours}
@@ -224,6 +393,7 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         error={errors.operating_hours}
       >
         <div className="flex items-center gap-2">
+          <FontAwesomeIcon icon={faClock} className="text-muted-foreground" />
           <Input
             type="time"
             value={formData.operating_hours_start}
@@ -250,12 +420,15 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         required
         error={errors.expected_volume}
       >
-        <Select
-          options={VOLUME_RANGES}
-          value={formData.expected_monthly_volume}
-          onChange={(v) => updateFormData({ expected_monthly_volume: v })}
-          placeholder="Select range..."
-        />
+        <div className="flex items-center gap-2">
+          <FontAwesomeIcon icon={faQrcode} className="text-muted-foreground" />
+          <Select
+            options={VOLUME_RANGES}
+            value={formData.expected_monthly_volume}
+            onChange={(v) => updateFormData({ expected_monthly_volume: v })}
+            placeholder="Select range..."
+          />
+        </div>
       </FieldWithInfo>
 
       {/* Navigation */}

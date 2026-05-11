@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useApplication } from "@/lib/hooks";
 import { STAGE_LABELS, STAGE_COLORS } from "@/lib/constants/onboarding";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCalendarDays,
+  faCircleCheck,
+  faCircleInfo,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   SCHEDULE_STAGES,
   TERMINAL_STAGES,
@@ -94,8 +101,18 @@ export function ApplicationStatusScreen({
 
   return (
     <div className="text-center py-12 space-y-4">
-      <div className="text-5xl">
-        {isApproved ? "✅" : isTerminal ? "⚠️" : isVisitPhase ? "📅" : "🎉"}
+      <div className="text-5xl text-primary">
+        <FontAwesomeIcon
+          icon={
+            isApproved
+              ? faCircleCheck
+              : isTerminal
+                ? faTriangleExclamation
+                : isVisitPhase
+                  ? faCalendarDays
+                  : faCircleInfo
+          }
+        />
       </div>
       <h2 className="text-2xl font-bold text-foreground">
         {isApproved

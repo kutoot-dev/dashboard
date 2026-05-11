@@ -27,6 +27,12 @@ export default function OnboardStartPage() {
     [mobile],
   );
 
+  const proceedToNewApplication = () => {
+    reset();
+    updateFormData({ phone: cleanPhone });
+    router.push("/onboard?mode=new");
+  };
+
   const goResume = () => {
     const query = cleanPhone.length === 10 ? `?from=start&phone=${cleanPhone}` : "?from=start";
     router.push(`/onboard/resume${query}`);
@@ -50,9 +56,7 @@ export default function OnboardStartPage() {
           return;
         }
 
-        reset();
-        updateFormData({ phone: cleanPhone });
-        router.push("/onboard?mode=new");
+        proceedToNewApplication();
       },
       onError: () => setError("Failed to verify mobile number. Please try again."),
     });
@@ -67,7 +71,7 @@ export default function OnboardStartPage() {
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
           Choose whether you want to create a new application or resume an existing one.
         </p>
-        <div className="mt-4 h-px w-16 bg-gradient-to-r from-transparent via-primary to-transparent" />
+        <div className="mt-4 h-px w-16 bg-linear-to-r from-transparent via-primary to-transparent" />
       </div>
 
       <div className={cn(cardClass)}>
@@ -105,6 +109,13 @@ export default function OnboardStartPage() {
               onClick={goResume}
             >
               Resume existing application
+            </button>
+            <button
+              type="button"
+              className="mt-2 block text-xs font-medium text-accent underline underline-offset-2"
+              onClick={proceedToNewApplication}
+            >
+              Continue with a new application (Field Executive)
             </button>
           </div>
         )}

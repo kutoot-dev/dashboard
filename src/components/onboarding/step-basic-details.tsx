@@ -19,6 +19,8 @@ import {
 } from "@/lib/hooks";
 import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus } from "@/lib/types";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 interface StepBasicDetailsProps {
   onNext: () => void;
@@ -50,6 +52,10 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       const clean = value.replace(/\D/g, "").slice(0, 10);
       updateFormData({ phone: clean });
 
+      if (formData.channel !== "field_executive") {
+        return;
+      }
+
       if (clean.length === 10) {
         checkPhone.mutate(clean, {
           onSuccess: (res) => {
@@ -70,7 +76,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         setPhoneCheckResult(null);
       }
     },
-    [checkPhone, setPhoneCheckResult, updateFormData],
+    [checkPhone, formData.channel, setPhoneCheckResult, updateFormData],
   );
 
   // Auto-fill city/state from PIN code (mock)
@@ -157,10 +163,6 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!isFeVisitOnly && !formData.storefront_photo_url) {
       e.storefront_photo = "Shop storefront photo is mandatory.";
     }
-    if (phoneCheckResult?.exists) {
-      e.phone = "This number is already registered.";
-    }
-
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -170,8 +172,6 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       onNext();
     }
   };
-
-  const isPhoneBlocked = !!phoneCheckResult?.exists;
 
   const { states } = useStates();
   const selectedState =
@@ -298,18 +298,21 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             onChange={(e) => handlePhoneChange(e.target.value)}
             maxLength={10}
             inputMode="numeric"
-            disabled={formData.merchant_phone_verified}
+            disabled={formData.channel === "merchant"}
           />
-          {checkPhone.isPending && (
+          {formData.channel === "field_executive" && checkPhone.isPending && (
             <div className="flex items-center px-2 text-xs text-muted-foreground">
               Checking...
             </div>
           )}
         </div>
+        {formData.channel === "merchant" && formData.merchant_phone_verified && (
+          <p className="mt-1 text-xs text-success">Mobile number verified in identity step.</p>
+        )}
       </FieldWithInfo>
 
       {/* Duplicate alert */}
-      {phoneCheckResult?.exists && (
+      {formData.channel === "field_executive" && phoneCheckResult?.exists && (
         <DuplicateAlert
           status={phoneCheckResult.status as "active_merchant" | "existing_lead" | "already_submitted" | "existing_fe_visit"}
           applicationId={phoneCheckResult.application_id}
@@ -323,19 +326,10 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         phoneCheckResult?.status === "existing_fe_visit" && (
           <div className="rounded-lg border border-warning/40 bg-warning/5 p-4">
             <div className="flex gap-3">
-              <svg
-                className="h-5 w-5 shrink-0 text-warning mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                <FontAwesomeIcon
+                  icon={faTriangleExclamation}
+                  className="h-5 w-5 shrink-0 text-warning mt-0.5"
                 />
-              </svg>
               <div>
                 <p className="text-sm font-medium text-foreground">
                   Another field executive already visited this store
@@ -344,7 +338,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
                   {phoneCheckResult.visiting_exec_name
                     ? `This merchant was visited by ${phoneCheckResult.visiting_exec_name}.`
                     : "A previous visit record exists for this number."}{" "}
-                  A new application cannot be created for this mobile number.
+                  You can still continue if this is a new field visit and submit another application.
                 </p>
               </div>
             </div>
@@ -666,7 +660,6 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         <Button
           variant="primary"
           onClick={handleNext}
-          disabled={isPhoneBlocked}
         >
           Save & Continue
         </Button>
