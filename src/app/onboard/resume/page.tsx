@@ -92,12 +92,27 @@ export default function ResumePage() {
   const verifyOtp = useVerifyOtp();
   const verifyExec = useVerifyExecutive();
   const loadFromApplication = useOnboardingStore((s) => s.loadFromApplication);
+  const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const from = searchParams.get("from");
+    const queryReferralCode = (searchParams.get("referral_code") ?? "").trim().toUpperCase();
+
+    if (queryReferralCode) {
+      setReferralCode(queryReferralCode);
+    }
+
     if (from !== "start") {
-      router.replace("/onboard/start");
+      const targetParams = new URLSearchParams();
+      if (queryReferralCode) {
+        targetParams.set("referral_code", queryReferralCode);
+      }
+      router.replace(
+        targetParams.size > 0
+          ? `/onboard/start?${targetParams.toString()}`
+          : "/onboard/start",
+      );
       return;
     }
 
@@ -174,7 +189,11 @@ export default function ResumePage() {
     } catch {
       // fall through with whatever the listing already returned
     }
-    router.push("/onboard?mode=resume");
+    const params = new URLSearchParams({ mode: "resume" });
+    if (referralCode) {
+      params.set("referral_code", referralCode);
+    }
+    router.push(`/onboard?${params.toString()}`);
   };
 
   const loadApplication = async (phone: string) => {
@@ -224,7 +243,7 @@ export default function ResumePage() {
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
           {ONBOARDING_STRINGS.RESUME_SUBTITLE}
         </p>
-        <div className="mt-4 h-px w-16 bg-gradient-to-r from-transparent via-primary to-transparent" />
+        <div className="mt-4 h-px w-16 bg-linear-to-r from-transparent via-primary to-transparent" />
       </div>
 
       {mode === "select" && (

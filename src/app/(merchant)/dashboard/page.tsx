@@ -120,7 +120,12 @@ export default function DashboardPage() {
     }
 
     try {
-      await navigator.clipboard.writeText(referralShareUrl);
+      const absoluteShareUrl =
+        referralShareUrl.startsWith("http://") || referralShareUrl.startsWith("https://")
+          ? referralShareUrl
+          : `${window.location.origin}${referralShareUrl.startsWith("/") ? "" : "/"}${referralShareUrl}`;
+
+      await navigator.clipboard.writeText(absoluteShareUrl);
       pushToast({
         variant: "success",
         title: "Referral link copied",
@@ -238,7 +243,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          
+
 
           <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
             <ScoreTrendCard

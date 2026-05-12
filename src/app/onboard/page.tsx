@@ -119,9 +119,17 @@ export default function OnboardPage() {
   }, []);
 
   useEffect(() => {
-    const mode = new URLSearchParams(window.location.search).get("mode");
+    const searchParams = new URLSearchParams(window.location.search);
+    const mode = searchParams.get("mode");
+    const referralCode = (searchParams.get("referral_code") ?? "").trim().toUpperCase();
     if (!applicationId && mode !== "new" && mode !== "resume") {
-      router.replace("/onboard/start");
+      const targetParams = new URLSearchParams();
+      if (referralCode) targetParams.set("referral_code", referralCode);
+      router.replace(
+        targetParams.size > 0
+          ? `/onboard/start?${targetParams.toString()}`
+          : "/onboard/start",
+      );
     }
   }, [applicationId, router]);
 

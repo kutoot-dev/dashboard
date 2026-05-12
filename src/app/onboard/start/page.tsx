@@ -26,16 +26,26 @@ export default function OnboardStartPage() {
     () => mobile.replace(/\D/g, "").slice(0, 10),
     [mobile],
   );
+  const referralCode = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return (new URLSearchParams(window.location.search).get("referral_code") ?? "")
+      .trim()
+      .toUpperCase();
+  }, []);
 
   const proceedToNewApplication = () => {
     reset();
     updateFormData({ phone: cleanPhone });
-    router.push("/onboard?mode=new");
+    const params = new URLSearchParams({ mode: "new" });
+    if (referralCode) params.set("referral_code", referralCode);
+    router.push(`/onboard?${params.toString()}`);
   };
 
   const goResume = () => {
-    const query = cleanPhone.length === 10 ? `?from=start&phone=${cleanPhone}` : "?from=start";
-    router.push(`/onboard/resume${query}`);
+    const params = new URLSearchParams({ from: "start" });
+    if (cleanPhone.length === 10) params.set("phone", cleanPhone);
+    if (referralCode) params.set("referral_code", referralCode);
+    router.push(`/onboard/resume?${params.toString()}`);
   };
 
   const startNew = () => {
