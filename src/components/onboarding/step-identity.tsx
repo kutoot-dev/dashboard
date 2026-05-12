@@ -10,6 +10,7 @@ import { DuplicateAlert } from "./duplicate-alert";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useCheckPhone, useVerifyExecutive, useSendOtp, useVerifyOtp } from "@/lib/hooks";
 import { ONBOARDING_FIELDS } from "@/lib/constants/onboarding";
+import { useToastStore } from "@/lib/stores/toast.store";
 import type { ApplicationStatus } from "@/lib/types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -29,6 +30,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
     phoneCheckResult,
     setPhoneCheckResult,
   } = useOnboardingStore();
+  const pushToast = useToastStore((s) => s.push);
   const [employeeCode, setEmployeeCode] = useState(formData.exec_employee_code || "");
   const [otpPhone, setOtpPhone] = useState(formData.merchant_otp_phone || "");
   const [otp, setOtp] = useState("");
@@ -124,23 +126,44 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
     setError("");
     if (!/^[6-9]\d{9}$/.test(otpPhone)) {
       setError("Enter a valid 10-digit Indian mobile number.");
+      pushToast({
+        variant: "error",
+        title: "Invalid phone number",
+        description: "Enter a valid 10-digit Indian mobile number.",
+      });
       return;
     }
     if (phoneCheckResult?.exists) {
       setError("This mobile number already has an application. Resume the existing application.");
+      pushToast({
+        variant: "warning",
+        title: "Application already exists",
+        description: "Use resume onboarding for this mobile number.",
+      });
       return;
     }
+    setOtp("");
     try {
       const res = await sendOtp.mutateAsync(otpPhone);
       if (res.data.sent) {
         setOtpSent(true);
         updateFormData({ merchant_otp_phone: otpPhone });
         startCountdown(res.data.expires_in_seconds || 300);
+        pushToast({
+          variant: "success",
+          title: "OTP sent",
+          description: "Enter the latest OTP to continue.",
+        });
       } else {
         setError(res.data.message);
       }
     } catch {
       setError("Failed to send OTP. Try again.");
+      pushToast({
+        variant: "error",
+        title: "Failed to send OTP",
+        description: "Please try again in a moment.",
+      });
     }
   };
 
@@ -152,11 +175,21 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       const res = await sendOtp.mutateAsync(otpPhone);
       if (res.data.sent) {
         startCountdown(res.data.expires_in_seconds || 300);
+        pushToast({
+          variant: "success",
+          title: "New OTP sent",
+          description: "Previous OTP has been cleared. Enter the new OTP.",
+        });
       } else {
         setError(res.data.message);
       }
     } catch {
       setError("Failed to resend OTP. Try again.");
+      pushToast({
+        variant: "error",
+        title: "Failed to resend OTP",
+        description: "Please try again in a moment.",
+      });
     }
   };
 
@@ -164,6 +197,11 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
     setError("");
     if (otp.length !== 6) {
       setError("Enter the 6-digit OTP.");
+      pushToast({
+        variant: "error",
+        title: "Invalid OTP",
+        description: "Enter a valid 6-digit OTP.",
+      });
       return;
     }
     try {
@@ -180,6 +218,11 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       }
     } catch {
       setError("OTP verification failed. Try again.");
+      pushToast({
+        variant: "error",
+        title: "OTP verification failed",
+        description: "Invalid or expired OTP. Request a new code and retry.",
+      });
     }
   };
 

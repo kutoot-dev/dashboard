@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
+import { useToastStore } from "@/lib/stores/toast.store";
 import { useCreateApplication, useUpdateApplication } from "@/lib/hooks";
 import {
   APPLICATION_STATUS_LABELS,
@@ -28,6 +29,7 @@ interface StepReviewProps {
 
 export function StepReview({ onBack }: StepReviewProps) {
   const { formData, applicationId, setStep } = useOnboardingStore();
+  const pushToast = useToastStore((s) => s.push);
   const createApp = useCreateApplication();
   const updateApp = useUpdateApplication();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,6 +53,16 @@ export function StepReview({ onBack }: StepReviewProps) {
       if (!formData.terms_accepted) e.terms = "You must accept the terms.";
       if (!formData.privacy_accepted) e.privacy = "You must accept the privacy policy.";
     }
+
+    if (Object.keys(e).length > 0) {
+      const firstMessage = Object.values(e)[0] ?? "Please review the highlighted fields.";
+      pushToast({
+        variant: "error",
+        title: "Please fix form errors",
+        description: firstMessage,
+      });
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -131,11 +143,25 @@ export function StepReview({ onBack }: StepReviewProps) {
         { id: applicationId, data: payload as unknown as Partial<OnboardingApplication> },
         {
           onSuccess: () => setSubmitted(true),
+          onError: () => {
+            pushToast({
+              variant: "error",
+              title: "Submission failed",
+              description: "Could not submit onboarding details. Please retry.",
+            });
+          },
         },
       );
     } else {
       createApp.mutate(payload as unknown as Partial<OnboardingApplication>, {
         onSuccess: () => setSubmitted(true),
+        onError: () => {
+          pushToast({
+            variant: "error",
+            title: "Submission failed",
+            description: "Could not submit onboarding details. Please retry.",
+          });
+        },
       });
     }
   };

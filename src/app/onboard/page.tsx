@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/providers/theme-provider";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
@@ -15,6 +15,8 @@ import { StepReview } from "@/components/onboarding/step-review";
 import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useApplication, useUpdateApplication, useCreateApplication } from "@/lib/hooks";
+import { useToastStore } from "@/lib/stores/toast.store";
+import { ApiError } from "@/lib/api/client";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
 import type {
   WizardStepId,
@@ -71,6 +73,8 @@ const EDITABLE_STAGES: ReadonlySet<string> = new Set([
 export default function OnboardPage() {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+  const pushToast = useToastStore((s) => s.push);
+  const referralHydratedRef = useRef(false);
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -83,9 +87,36 @@ export default function OnboardPage() {
     completeStep,
     setStep,
     formData,
+    updateFormData,
   } = useOnboardingStore();
   const updateApp = useUpdateApplication();
   const createApp = useCreateApplication();
+
+  const extractApiErrorMessage = useCallback((error: unknown): string => {
+    if (error instanceof ApiError) {
+      if (typeof error.details === "object" && error.details !== null) {
+        const detailValues = Object.values(error.details as Record<string, unknown>);
+        for (const value of detailValues) {
+          if (typeof value === "string" && value.trim()) {
+            return value;
+          }
+          if (Array.isArray(value) && typeof value[0] === "string" && value[0].trim()) {
+            return value[0];
+          }
+        }
+      }
+
+      if (error.message.trim()) {
+        return error.message;
+      }
+    }
+
+    if (error instanceof Error && error.message.trim()) {
+      return error.message;
+    }
+
+    return "Unable to save this step. Please try again.";
+  }, []);
 
   useEffect(() => {
     const mode = new URLSearchParams(window.location.search).get("mode");
@@ -93,6 +124,21 @@ export default function OnboardPage() {
       router.replace("/onboard/start");
     }
   }, [applicationId, router]);
+
+  useEffect(() => {
+    if (referralHydratedRef.current) return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const queryReferralCode = (searchParams.get("referral_code") ?? "").trim().toUpperCase();
+
+    if (!queryReferralCode || formData.referral_code) {
+      referralHydratedRef.current = true;
+      return;
+    }
+
+    updateFormData({ referral_code: queryReferralCode });
+    referralHydratedRef.current = true;
+  }, [formData.referral_code, updateFormData]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -152,7 +198,10 @@ export default function OnboardPage() {
   // Auto-save draft on step transition
   const saveAndAdvance = useCallback(
     (fromStep: WizardStepId) => {
-      completeStep(fromStep);
+      const advance = () => {
+        completeStep(fromStep);
+        goNext();
+      };
 
       const payload = {
         current_step: fromStep,
@@ -165,7 +214,18 @@ export default function OnboardPage() {
       if (applicationId) {
         updateApp.mutate(
           { id: applicationId, data: payload as Partial<OnboardingApplication> },
-          { onSettled: () => goNext() },
+          {
+            onSuccess: () => {
+              advance();
+            },
+            onError: (error) => {
+              pushToast({
+                variant: "error",
+                title: "Could not save step",
+                description: extractApiErrorMessage(error),
+              });
+            },
+          },
         );
       } else {
         createApp.mutate(payload as Partial<OnboardingApplication>, {
@@ -173,15 +233,19 @@ export default function OnboardPage() {
             if (res.data?.application_id) {
               useOnboardingStore.getState().setApplicationId(res.data.application_id);
             }
-            goNext();
+            advance();
           },
-          onError: () => {
-            goNext();
+          onError: (error) => {
+            pushToast({
+              variant: "error",
+              title: "Could not save step",
+              description: extractApiErrorMessage(error),
+            });
           },
         });
       }
     },
-    [applicationId, completeStep, createApp, formData, goNext, updateApp],
+    [applicationId, completeStep, createApp, extractApiErrorMessage, formData, goNext, pushToast, updateApp],
   );
 
   const handleNext = useCallback(

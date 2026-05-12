@@ -20,10 +20,12 @@ import {
 import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
 import { getScoringWeight } from "@/lib/utils/scoring-weights";
 import { formatINR, formatScore } from "@/lib/utils/format";
+import { useToastStore } from "@/lib/stores/toast.store";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const pushToast = useToastStore((s) => s.push);
   const branchId = user?.branch_id ?? "";
 
   const { data, isLoading } = useQuery({
@@ -103,6 +105,35 @@ export default function DashboardPage() {
     { label: "Net Amount", value: formatINR(Math.max(0, netAmount)), helper: "After discounts" },
     { label: "Walk-ins", value: walkins.toLocaleString("en-IN"), helper: "Customer visits / bills" },
   ];
+  const merchantReferralCode = dashboard?.merchant_referral_code ?? null;
+  const referralShareUrl = dashboard?.referral_share_url ?? null;
+
+  async function handleCopyReferralLink() {
+    if (!referralShareUrl) {
+      pushToast({
+        variant: "warning",
+        title: "Referral link unavailable",
+        description: "Please wait for dashboard data to load and try again.",
+      });
+
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(referralShareUrl);
+      pushToast({
+        variant: "success",
+        title: "Referral link copied",
+        description: "Share it with merchants to auto-fill your referral code.",
+      });
+    } catch {
+      pushToast({
+        variant: "error",
+        title: "Could not copy link",
+        description: "Copy manually from the link shown in the referral card.",
+      });
+    }
+  }
 
   function handleFixClick(key: string, label: string) {
     setActiveRecommendation(null);
@@ -161,7 +192,37 @@ export default function DashboardPage() {
         <>
           <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
             <div className="space-y-4">
-             
+              <Card className="border border-primary/25 bg-card/75 p-4">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Merchant Referral
+                </p>
+                <p className="mt-1 text-lg font-semibold text-foreground">
+                  {merchantReferralCode ?? "--"}
+                </p>
+                <p className="mt-2 break-all text-xs text-muted-foreground">
+                  {referralShareUrl ?? "--"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyReferralLink}
+                    className="rounded-md border border-accent/35 bg-accent/12 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20"
+                  >
+                    Copy Link
+                  </button>
+                  {referralShareUrl && (
+                    <a
+                      href={referralShareUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-md border border-border/70 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      Open Link
+                    </a>
+                  )}
+                </div>
+              </Card>
+
               <div id="growth-boost-card">
                 <CommissionSliderCard className="border border-secondary/30 bg-card/70" />
               </div>

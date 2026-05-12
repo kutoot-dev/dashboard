@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { KutootLogo } from "@/components/branding";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Merchant Onboarding — Kutoot",
@@ -52,6 +53,8 @@ export default function OnboardLayout({
           </Link>
         </div>
       </footer>
+
+      <Toaster />
     </div>
   );
 }

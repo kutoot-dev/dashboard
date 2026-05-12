@@ -19,6 +19,7 @@ import {
 } from "@/lib/hooks";
 import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus } from "@/lib/types";
+import { useToastStore } from "@/lib/stores/toast.store";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
@@ -30,6 +31,7 @@ interface StepBasicDetailsProps {
 export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const { formData, updateFormData, phoneCheckResult, setPhoneCheckResult } =
     useOnboardingStore();
+  const pushToast = useToastStore((s) => s.push);
   const checkPhone = useCheckPhone();
   const sendEmailOtp = useSendEmailOtp();
   const verifyEmailOtp = useVerifyEmailOtp();
@@ -45,6 +47,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     formData.channel === "field_executive" &&
     formData.visit_outcome !== "interested" &&
     formData.visit_outcome !== null;
+  const showReferralField =
+    formData.channel === "merchant" ||
+    (formData.channel === "field_executive" && formData.visit_outcome === "interested");
 
   // Debounced phone check
   const handlePhoneChange = useCallback(
@@ -163,6 +168,16 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!isFeVisitOnly && !formData.storefront_photo_url) {
       e.storefront_photo = "Shop storefront photo is mandatory.";
     }
+
+    if (Object.keys(e).length > 0) {
+      const firstMessage = Object.values(e)[0] ?? "Please review the highlighted fields.";
+      pushToast({
+        variant: "error",
+        title: "Please fix form errors",
+        description: firstMessage,
+      });
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -231,13 +246,24 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     const email = formData.owner_email.trim().toLowerCase();
     if (!email) {
       setErrors((prev) => ({ ...prev, owner_email: "Email is required to send OTP." }));
+      pushToast({
+        variant: "error",
+        title: "Email required",
+        description: "Enter a valid email address before sending OTP.",
+      });
       return;
     }
+    setEmailOtp("");
     try {
       const res = await sendEmailOtp.mutateAsync(email);
       if (res.data.sent) {
         setEmailOtpSent(true);
         setEmailOtpMessage("OTP sent to email.");
+        pushToast({
+          variant: "success",
+          title: "Email OTP sent",
+          description: "Enter the new OTP to verify this email.",
+        });
         setErrors((prev) => {
           const next = { ...prev };
           delete next.owner_email;
@@ -246,6 +272,11 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       }
     } catch {
       setEmailOtpMessage("Failed to send OTP. Please try again.");
+      pushToast({
+        variant: "error",
+        title: "OTP send failed",
+        description: "Unable to send email OTP right now. Please retry.",
+      });
     }
   };
 
@@ -253,6 +284,11 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     const email = formData.owner_email.trim().toLowerCase();
     if (emailOtp.length !== 6) {
       setEmailOtpMessage("Enter 6-digit OTP.");
+      pushToast({
+        variant: "error",
+        title: "Invalid OTP",
+        description: "Enter a valid 6-digit OTP.",
+      });
       return;
     }
     try {
@@ -260,6 +296,11 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       if (res.data.verified) {
         updateFormData({ owner_email_verified: true, owner_email: email });
         setEmailOtpMessage("Email verified.");
+        pushToast({
+          variant: "success",
+          title: "Email verified",
+          description: "You can continue onboarding.",
+        });
         setErrors((prev) => {
           const next = { ...prev };
           delete next.owner_email;
@@ -268,6 +309,11 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       }
     } catch {
       setEmailOtpMessage("Invalid or expired OTP.");
+      pushToast({
+        variant: "error",
+        title: "OTP verification failed",
+        description: "Invalid or expired OTP. Request a new code and try again.",
+      });
     }
   };
 
@@ -359,7 +405,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </FieldWithInfo>
 
-      {formData.channel === "field_executive" && formData.visit_outcome === "interested" && (
+      {showReferralField && (
         <FieldWithInfo
           fieldInfo={ONBOARDING_FIELDS.referral_code}
           error={errors.referral_code}

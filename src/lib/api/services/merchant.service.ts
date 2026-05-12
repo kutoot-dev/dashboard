@@ -262,12 +262,16 @@ export interface MerchantMe {
   category_min_commission: number;
   category: string | null;
   is_test: boolean;
+  merchant_referral_code?: string | null;
+  referral_share_url?: string | null;
 }
 
 export interface MerchantDashboard {
   today: { transactions: number; gmv: number; discount: number; commission: number };
   week: { transactions: number; gmv: number; discount: number; commission: number };
   month: { transactions: number; gmv: number; discount: number; commission: number };
+  merchant_referral_code?: string | null;
+  referral_share_url?: string | null;
   live: {
     composite_score: number;
     rank: number;
