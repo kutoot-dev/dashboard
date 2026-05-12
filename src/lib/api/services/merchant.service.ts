@@ -266,6 +266,16 @@ export interface MerchantMe {
   referral_share_url?: string | null;
 }
 
+export interface MerchantScoreInsight {
+  key: string;
+  score: number;
+  weight: number;
+  weight_percent: number;
+  contribution: number;
+  is_top_performer: boolean;
+  is_least_performer: boolean;
+}
+
 export interface MerchantDashboard {
   today: { transactions: number; gmv: number; discount: number; commission: number };
   week: { transactions: number; gmv: number; discount: number; commission: number };
@@ -278,6 +288,7 @@ export interface MerchantDashboard {
     gmv_today: number;
     active_deals: number;
     score_breakdown?: Record<string, number>;
+    score_insights?: MerchantScoreInsight[];
   };
 }
 

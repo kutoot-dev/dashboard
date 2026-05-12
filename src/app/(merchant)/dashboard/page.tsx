@@ -10,17 +10,15 @@ import { ScoreTrendCard } from "@/components/ui/score-trend-card";
 import { CommissionSliderCard } from "@/components/ui/commission-slider-card";
 import { RecentRedemptionsSlideshow } from "@/components/ui/recent-redemptions-slideshow";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { getMerchantDashboard } from "@/lib/api/services/merchant.service";
-import { getBranchScore } from "@/lib/api/services/branches.service";
+import { getMerchantDashboard, type MerchantScoreInsight } from "@/lib/api/services/merchant.service";
 import {
   SUB_SCORE_DESCRIPTIONS,
   SUB_SCORE_LABELS,
-  SUB_SCORE_ORDER,
 } from "@/lib/constants/scoring";
-import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
-import { getScoringWeight } from "@/lib/utils/scoring-weights";
 import { formatINR, formatScore } from "@/lib/utils/format";
 import { useToastStore } from "@/lib/stores/toast.store";
+
+const EMPTY_SCORE_INSIGHTS: MerchantScoreInsight[] = [];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -36,40 +34,33 @@ export default function DashboardPage() {
     enabled: Boolean(branchId),
   });
 
-  const { data: scoreData } = useQuery({
-    queryKey: ["merchant-branch-score", branchId],
-    queryFn: () => getBranchScore(branchId),
-    enabled: Boolean(branchId),
-    retry: false,
-    refetchInterval: 30_000,
-  });
-
   const dashboard = data?.success ? data.data : null;
-  const branchScore = scoreData?.success ? scoreData.data : null;
-  const { weights: scoringWeights } = useScoringWeights(SUB_SCORE_ORDER);
-  const scoreBreakdown = dashboard?.live?.score_breakdown ?? branchScore?.score_breakdown ?? {};
-  const pieData = SUB_SCORE_ORDER.map((key) => ({
-    key,
-    label: SUB_SCORE_LABELS[key] ?? key,
-    value: Number(scoreBreakdown[key] ?? 0),
-    weight: getScoringWeight(key, SUB_SCORE_ORDER, scoringWeights),
-  }));
-  const sortedParameters = useMemo(() => [...pieData].sort((a, b) => b.value - a.value), [pieData]);
+  const scoreBreakdown = dashboard?.live?.score_breakdown ?? {};
+  const scoreInsights = dashboard?.live?.score_insights ?? EMPTY_SCORE_INSIGHTS;
   const parameterCards = useMemo(
     () =>
-      sortedParameters.map((segment, index) => {
-        const contribution = segment.value * segment.weight;
-        const weightPercent = Math.round(segment.weight * 100);
-        return {
-          ...segment,
-          contribution,
-          weightPercent,
-          isTopPerformer: index === 0,
-          isLeastPerformer: index === sortedParameters.length - 1,
-          description: SUB_SCORE_DESCRIPTIONS[segment.key] ?? "No description available.",
-        };
-      }),
-    [sortedParameters],
+      scoreInsights.map((segment) => ({
+        key: segment.key,
+        value: Number(segment.score ?? 0),
+        weight: Number(segment.weight ?? 0),
+        weightPercent: Number(segment.weight ?? 0) * 100,
+        contribution: Number(segment.contribution ?? 0),
+        isTopPerformer: Boolean(segment.is_top_performer),
+        isLeastPerformer: Boolean(segment.is_least_performer),
+        label: SUB_SCORE_LABELS[segment.key] ?? segment.key,
+        description: SUB_SCORE_DESCRIPTIONS[segment.key] ?? "No description available.",
+      })),
+    [scoreInsights],
+  );
+  const pieData = useMemo(
+    () =>
+      parameterCards.map((segment) => ({
+        key: segment.key,
+        label: segment.label,
+        value: segment.value,
+        weight: segment.weight,
+      })),
+    [parameterCards],
   );
   const [activeSegmentKey, setActiveSegmentKey] = useState<string | null>(null);
   const [activeRecommendation, setActiveRecommendation] = useState<{
@@ -93,8 +84,8 @@ export default function DashboardPage() {
     }),
     [],
   );
-  const compositeScore = dashboard?.live.composite_score ?? branchScore?.composite_index_score ?? 0;
-  const compositeRank = dashboard?.live.rank ?? branchScore?.final_rank ?? null;
+  const compositeScore = dashboard?.live.composite_score ?? 0;
+  const compositeRank = dashboard?.live.rank ?? null;
   const totalAmount = Number(dashboard?.today?.gmv ?? 0);
   const discounts = Number(dashboard?.today?.discount ?? 0);
   const netAmount = totalAmount - discounts;
@@ -250,7 +241,7 @@ export default function DashboardPage() {
               scoreBreakdown={scoreBreakdown}
               compositeScore={compositeScore}
               todayTransactions={dashboard?.today?.transactions ?? 0}
-              weights={scoringWeights}
+              scoreInsights={scoreInsights}
             />
             <RecentRedemptionsSlideshow className="border border-gain/25 bg-card/70" />
           </div>
@@ -293,7 +284,7 @@ export default function DashboardPage() {
                     <p className="text-xs font-semibold text-accent">{activeSegment.label}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Score <span className="font-semibold text-foreground">{activeSegment.value.toFixed(0)} / 100</span> · Weight{" "}
-                      <span className="font-semibold text-foreground">{activeSegment.weightPercent}%</span> · Adds{" "}
+                      <span className="font-semibold text-foreground">{activeSegment.weightPercent.toFixed(2)}%</span> · Adds{" "}
                       <span className="font-semibold text-foreground">{activeSegment.contribution.toFixed(1)}</span>
                     </p>
                   </div>
@@ -329,7 +320,7 @@ export default function DashboardPage() {
                       <span className="flex min-w-0 items-center gap-1.5 text-foreground">
                         <span className="truncate">{segment.label}</span>
                         <InfoTooltip
-                          text={`${segment.description} Weight: ${segment.weightPercent}%. Current contribution: ${segment.contribution.toFixed(1)}.`}
+                          text={`${segment.description} Weight: ${segment.weightPercent.toFixed(2)}%. Current contribution: ${segment.contribution.toFixed(1)}.`}
                         />
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
@@ -355,7 +346,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Weight {segment.weightPercent}% · Contribution {segment.contribution.toFixed(1)}
+                      Weight {segment.weightPercent.toFixed(2)}% · Contribution {segment.contribution.toFixed(1)}
                     </p>
                     {(segment.isTopPerformer || segment.isLeastPerformer) && (
                       <p className="text-[10px] font-medium text-muted-foreground">

@@ -22,9 +22,20 @@ import {
 import type { ScoreBreakdown } from "@/lib/types";
 import { getScoringWeight, type ScoringWeights } from "@/lib/utils/scoring-weights";
 
+type ScoreInsight = {
+  key: string;
+  score: number;
+  weight: number;
+  weight_percent: number;
+  contribution: number;
+  is_top_performer: boolean;
+  is_least_performer: boolean;
+};
+
 interface ScoreTrendCardProps {
   scoreBreakdown: ScoreBreakdown;
   weights?: ScoringWeights;
+  scoreInsights?: ScoreInsight[];
   /**
    * The same composite score shown above the breakdown card. The chart's
    * rightmost point is pinned to this value so the breakdown header and
@@ -89,10 +100,27 @@ function formatMinuteLabel(minuteOfDay: number): string {
  * rightmost point is pinned to the live composite score that the
  * breakdown card displays — so the two values are always identical.
  */
-export function ScoreTrendCard({ scoreBreakdown, weights, compositeScore, todayTransactions = 0 }: ScoreTrendCardProps) {
+export function ScoreTrendCard({
+  scoreBreakdown,
+  weights,
+  scoreInsights,
+  compositeScore,
+  todayTransactions = 0,
+}: ScoreTrendCardProps) {
   const chartData = useMemo(
-    () =>
-      SUB_SCORE_ORDER.map((key) => {
+    () => {
+      if (scoreInsights?.length) {
+        return scoreInsights.map((segment) => ({
+          key: segment.key,
+          label: SUB_SCORE_LABELS[segment.key] ?? segment.key,
+          score: Number(segment.score.toFixed(2)),
+          weight: segment.weight,
+          weightPercent: segment.weight * 100,
+          contribution: Number(segment.contribution.toFixed(2)),
+        }));
+      }
+
+      return SUB_SCORE_ORDER.map((key) => {
         const score = Number(scoreBreakdown[key] ?? 0);
         const weight = getScoringWeight(key, SUB_SCORE_ORDER, weights);
         const contribution = score * weight;
@@ -104,8 +132,9 @@ export function ScoreTrendCard({ scoreBreakdown, weights, compositeScore, todayT
           weightPercent: Math.round(weight * 100),
           contribution: Number(contribution.toFixed(2)),
         };
-      }),
-    [scoreBreakdown, weights],
+      });
+    },
+    [scoreBreakdown, scoreInsights, weights],
   );
 
   const headerComposite =
