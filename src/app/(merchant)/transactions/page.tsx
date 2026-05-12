@@ -190,7 +190,10 @@ export default function TransactionsPage() {
   const rows = transactionsQuery.data?.success ? transactionsQuery.data.data.rows : [];
   const total = transactionsQuery.data?.success ? transactionsQuery.data.data.total : 0;
   const pages = transactionsQuery.data?.success ? transactionsQuery.data.data.pages : 1;
-  const gstRows = gstSummaryQuery.data?.success ? gstSummaryQuery.data.data.rows : [];
+  const gstRows = useMemo(
+    () => (gstSummaryQuery.data?.success ? gstSummaryQuery.data.data.rows : []),
+    [gstSummaryQuery.data],
+  );
 
   const totals = useMemo(() => {
     return gstRows.reduce(
