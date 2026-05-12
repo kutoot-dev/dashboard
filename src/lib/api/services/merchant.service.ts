@@ -78,8 +78,18 @@ export interface Transaction {
   customer_phone: string | null;
   bill_amount: number;
   discount: number;
+  discounted_bill_amount?: number;
+  platform_fee?: number;
+  gst_amount?: number;
+  platform_fee_gst_amount?: number;
   total_paid: number;
   commission: number;
+  commission_gst_amount?: number;
+  merchant_bonus_wallet?: number;
+  user_reward_wallet?: number;
+  merchant_settlement_wallet?: number;
+  kutoot_retained_commission_wallet?: number;
+  kutoot_company_wallet?: number;
   status: string;
   type: string;
   coupon_code: string | null;
@@ -197,8 +207,15 @@ export interface GstSummaryRow {
   gross_bill_amount: number;
   discount_amount: number;
   taxable_amount: number;
+  user_paid_amount?: number;
+  platform_fee_amount?: number;
   gst_amount: number;
   commission_amount: number;
+  commission_gst_amount?: number;
+  merchant_bonus_wallet?: number;
+  user_reward_wallet?: number;
+  kutoot_retained_commission_wallet?: number;
+  kutoot_company_wallet?: number;
   settlement_amount: number;
 }
 

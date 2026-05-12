@@ -195,12 +195,34 @@ export default function TransactionsPage() {
   const totals = useMemo(() => {
     return gstRows.reduce(
       (acc, row) => {
+        acc.gross += row.gross_bill_amount;
+        acc.discount += row.discount_amount;
+        acc.userPaid += Number(row.user_paid_amount ?? 0);
+        acc.platformFee += Number(row.platform_fee_amount ?? 0);
+        acc.platformGst += row.gst_amount;
+        acc.commission += row.commission_amount;
+        acc.commissionGst += Number(row.commission_gst_amount ?? 0);
+        acc.merchantBonus += Number(row.merchant_bonus_wallet ?? 0);
+        acc.userReward += Number(row.user_reward_wallet ?? 0);
+        acc.kutootCompany += Number(row.kutoot_company_wallet ?? 0);
         acc.taxable += row.taxable_amount;
-        acc.gst += row.gst_amount;
-        acc.settlement += row.settlement_amount;
+        acc.settlement += Number(row.settlement_amount ?? 0);
         return acc;
       },
-      { taxable: 0, gst: 0, settlement: 0 },
+      {
+        gross: 0,
+        discount: 0,
+        userPaid: 0,
+        platformFee: 0,
+        platformGst: 0,
+        commission: 0,
+        commissionGst: 0,
+        merchantBonus: 0,
+        userReward: 0,
+        kutootCompany: 0,
+        taxable: 0,
+        settlement: 0,
+      },
     );
   }, [gstRows]);
 
@@ -267,18 +289,61 @@ export default function TransactionsPage() {
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Taxable amount</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.taxable)}</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Gross bill</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.gross)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Before discounts</p>
         </Card>
         <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GST total</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.gst)}</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Discount</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.discount)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Coupons redeemed</p>
         </Card>
         <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Settlement</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">User paid</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.userPaid)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Gross - discount + fee + GST</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchant settlement</p>
           <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.settlement)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">After KC and GST on KC</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Platform fee</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.platformFee)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Merchant bonus wallet source</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GST on platform fee</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.platformGst)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Tax collected by Kutoot</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">KC commission</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.commission)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Collected from merchant</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GST on KC</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.commissionGst)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Tax on commission</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchant bonus wallet</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.merchantBonus)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Full platform fee allocation</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">User reward wallet</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.userReward)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Configured share of KC</p>
+        </Card>
+        <Card>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Kutoot company wallet</p>
+          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.kutootCompany)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Platform GST + KC GST + retained KC</p>
         </Card>
       </div>
 
@@ -289,14 +354,22 @@ export default function TransactionsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[940px] text-sm">
+          <table className="w-full min-w-[1400px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-2 py-2">Date</th>
                 <th className="px-2 py-2">Customer</th>
-                <th className="px-2 py-2">Bill</th>
+                <th className="px-2 py-2">Gross bill</th>
                 <th className="px-2 py-2">Discount</th>
-                <th className="px-2 py-2">Total paid</th>
+                <th className="px-2 py-2">Discounted bill</th>
+                <th className="px-2 py-2">Platform fee</th>
+                <th className="px-2 py-2">GST on fee</th>
+                <th className="px-2 py-2">KC</th>
+                <th className="px-2 py-2">GST on KC</th>
+                <th className="px-2 py-2">User paid</th>
+                <th className="px-2 py-2">Merchant settlement</th>
+                <th className="px-2 py-2">Merchant bonus</th>
+                <th className="px-2 py-2">User reward</th>
                 <th className="px-2 py-2">Status</th>
                 <th className="px-2 py-2">Invoice</th>
               </tr>
@@ -313,7 +386,15 @@ export default function TransactionsPage() {
                   </td>
                   <td className="px-2 py-3 font-mono">{formatINR(row.bill_amount)}</td>
                   <td className="px-2 py-3 font-mono">{formatINR(row.discount)}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.discounted_bill_amount ?? row.bill_amount - row.discount))}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.platform_fee ?? 0))}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.platform_fee_gst_amount ?? row.gst_amount ?? 0))}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(row.commission)}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.commission_gst_amount ?? 0))}</td>
                   <td className="px-2 py-3 font-mono">{formatINR(row.total_paid)}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.merchant_settlement_wallet ?? 0))}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.merchant_bonus_wallet ?? 0))}</td>
+                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.user_reward_wallet ?? 0))}</td>
                   <td className="px-2 py-3">
                     <span className="rounded-full border border-border/70 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
                       {row.status}
@@ -334,7 +415,7 @@ export default function TransactionsPage() {
 
               {!transactionsQuery.isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-2 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={16} className="px-2 py-8 text-center text-sm text-muted-foreground">
                     No transactions found for this filter.
                   </td>
                 </tr>
