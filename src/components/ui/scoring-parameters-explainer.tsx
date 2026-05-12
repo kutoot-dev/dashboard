@@ -6,9 +6,10 @@ import {
   SUB_SCORE_DESCRIPTIONS,
   SUB_SCORE_LABELS,
   SUB_SCORE_ORDER,
-  SUB_SCORE_WEIGHTS,
   IMPROVEMENT_TIPS,
 } from "@/lib/constants/scoring";
+import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
+import { getScoringWeight } from "@/lib/utils/scoring-weights";
 
 /** Same palette used by ScorePie so slice colour = row colour. */
 const PALETTE = [
@@ -49,6 +50,7 @@ export function ScoringParametersExplainer({
   defaultOpen = false,
 }: ScoringParametersExplainerProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const { weights } = useScoringWeights(SUB_SCORE_ORDER);
 
   const list = (
     <ul className="max-h-[340px] space-y-1.5 overflow-y-auto pr-1 scrollbar-hide">
@@ -56,7 +58,7 @@ export function ScoringParametersExplainer({
           const label = SUB_SCORE_LABELS[key] ?? key;
           const desc = SUB_SCORE_DESCRIPTIONS[key] ?? "";
           const tip = IMPROVEMENT_TIPS[key]?.[0];
-          const weight = SUB_SCORE_WEIGHTS[key] ?? 0;
+          const weight = getScoringWeight(key, SUB_SCORE_ORDER, weights);
           const color = PALETTE[i % PALETTE.length];
           const value = values?.[key];
 

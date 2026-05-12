@@ -16,8 +16,9 @@ import {
   SUB_SCORE_DESCRIPTIONS,
   SUB_SCORE_LABELS,
   SUB_SCORE_ORDER,
-  SUB_SCORE_WEIGHTS,
 } from "@/lib/constants/scoring";
+import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
+import { getScoringWeight } from "@/lib/utils/scoring-weights";
 import { formatINR, formatScore } from "@/lib/utils/format";
 
 export default function DashboardPage() {
@@ -43,12 +44,13 @@ export default function DashboardPage() {
 
   const dashboard = data?.success ? data.data : null;
   const branchScore = scoreData?.success ? scoreData.data : null;
+  const { weights: scoringWeights } = useScoringWeights(SUB_SCORE_ORDER);
   const scoreBreakdown = dashboard?.live?.score_breakdown ?? branchScore?.score_breakdown ?? {};
   const pieData = SUB_SCORE_ORDER.map((key) => ({
     key,
     label: SUB_SCORE_LABELS[key] ?? key,
     value: Number(scoreBreakdown[key] ?? 0),
-    weight: Number(SUB_SCORE_WEIGHTS[key] ?? 0),
+    weight: getScoringWeight(key, SUB_SCORE_ORDER, scoringWeights),
   }));
   const sortedParameters = useMemo(() => [...pieData].sort((a, b) => b.value - a.value), [pieData]);
   const parameterCards = useMemo(
@@ -182,6 +184,7 @@ export default function DashboardPage() {
               scoreBreakdown={scoreBreakdown}
               compositeScore={compositeScore}
               todayTransactions={dashboard?.today?.transactions ?? 0}
+              weights={scoringWeights}
             />
             <RecentRedemptionsSlideshow className="border border-gain/25 bg-card/70" />
           </div>

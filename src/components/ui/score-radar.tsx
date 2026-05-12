@@ -1,7 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils/cn";
-import { SUB_SCORE_LABELS, SUB_SCORE_WEIGHTS, SUB_SCORE_DESCRIPTIONS } from "@/lib/constants/scoring";
+import { SUB_SCORE_LABELS, SUB_SCORE_ORDER, SUB_SCORE_DESCRIPTIONS } from "@/lib/constants/scoring";
+import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
+import { getScoringWeight } from "@/lib/utils/scoring-weights";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface ScoreRadarProps {
@@ -29,6 +31,7 @@ function getTextColor(value: number): string {
  */
 export function ScoreRadar({ scores, className }: ScoreRadarProps) {
   if (scores.length === 0) return null;
+  const { weights } = useScoringWeights(SUB_SCORE_ORDER);
 
   const size = 260;
   const cx = size / 2;
@@ -36,14 +39,14 @@ export function ScoreRadar({ scores, className }: ScoreRadarProps) {
   const outerR = 110;
   const innerR = 40;
   const totalWeight = scores.reduce(
-    (sum, s) => sum + (SUB_SCORE_WEIGHTS[s.key] ?? 0.125),
+    (sum, s) => sum + getScoringWeight(s.key, SUB_SCORE_ORDER, weights),
     0
   );
 
   let cumulativeAngle = -Math.PI / 2; // start from top
 
   const segments = scores.map((s) => {
-    const weight = SUB_SCORE_WEIGHTS[s.key] ?? 0.125;
+    const weight = getScoringWeight(s.key, SUB_SCORE_ORDER, weights);
     const sweepAngle = (weight / totalWeight) * 2 * Math.PI;
     const fillR = innerR + ((outerR - innerR) * s.value) / 100;
     const startAngle = cumulativeAngle;
@@ -182,7 +185,7 @@ export function ScoreRadar({ scores, className }: ScoreRadarProps) {
             fontWeight="bold"
             fontFamily="monospace"
           >
-            {(scores.reduce((sum, s) => sum + s.value * (SUB_SCORE_WEIGHTS[s.key] ?? 0.125), 0)).toFixed(1)}
+            {(scores.reduce((sum, s) => sum + s.value * getScoringWeight(s.key, SUB_SCORE_ORDER, weights), 0)).toFixed(1)}
           </text>
           <text
             x={cx}
@@ -200,8 +203,9 @@ export function ScoreRadar({ scores, className }: ScoreRadarProps) {
       {/* Detailed breakdown grid */}
       <div className="grid grid-cols-2 gap-2">
         {scores.map((s) => {
-          const weightPct = Math.round((SUB_SCORE_WEIGHTS[s.key] ?? 0.125) * 100);
-          const contribution = (s.value * (SUB_SCORE_WEIGHTS[s.key] ?? 0.125)).toFixed(1);
+          const weight = getScoringWeight(s.key, SUB_SCORE_ORDER, weights);
+          const weightPct = Math.round(weight * 100);
+          const contribution = (s.value * weight).toFixed(1);
           return (
             <div
               key={s.key}

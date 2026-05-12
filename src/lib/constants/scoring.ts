@@ -59,27 +59,6 @@ export const SUB_SCORE_DESCRIPTIONS: Record<string, string> = {
     "Penalises customer concentration — if most of your GMV comes from one person, this score drops. Broad reach is rewarded.",
 };
 
-/** Default weights (fraction of composite). Must sum to 1.0. */
-export const SUB_SCORE_WEIGHTS: Record<string, number> = {
-  // Legacy aliases
-  trading_performance:        0.20,
-  margin_efficiency:          0.20,
-  location_opportunity:       0.15,
-  transaction_quality:        0.15,
-  momentum:                   0.15,
-  ecosystem_contribution:     0.15,
-
-  // v2 exchange model keys
-  gmv_score:                 0.15,
-  commission_score:          0.20,
-  platform_capture_score:    0.15,
-  user_growth_score:         0.15,
-  repeat_rate_score:         0.15,
-  discount_aggression_score: 0.10,
-  referral_score:            0.10,
-  fairness_score:            0.10,
-};
-
 /** Display order for parameter meters */
 export const SUB_SCORE_ORDER: string[] = [
   "gmv_score",

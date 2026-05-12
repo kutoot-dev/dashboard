@@ -7,7 +7,9 @@ import { getMerchantMe, updateCommission } from "@/lib/api/services/merchant.ser
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
+import { SUB_SCORE_ORDER } from "@/lib/constants/scoring";
+import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
+import { getScoringWeight } from "@/lib/utils/scoring-weights";
 import { cn } from "@/lib/utils/cn";
 
 interface CommissionSliderCardProps {
@@ -27,6 +29,7 @@ interface CommissionSliderCardProps {
  */
 export function CommissionSliderCard({ className, ceiling = 100 }: CommissionSliderCardProps) {
   const qc = useQueryClient();
+  const { weights } = useScoringWeights(SUB_SCORE_ORDER);
   const [me, setMe] = useState<Awaited<ReturnType<typeof getMerchantMe>>["data"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [value, setValue] = useState<number>(0);
@@ -56,7 +59,7 @@ export function CommissionSliderCard({ className, ceiling = 100 }: CommissionSli
   const min = Number(me?.category_min_commission ?? 0);
   const max = Math.max(min, ceiling);
   const current = Number(me?.commission_percentage ?? min);
-  const commissionWeight = Number(SUB_SCORE_WEIGHTS.commission_score ?? 0.2);
+  const commissionWeight = getScoringWeight("commission_score", SUB_SCORE_ORDER, weights);
   const normalizedBoost = useMemo(() => {
     const spread = Math.max(0.01, max - min);
     return Math.max(0, Math.min(1, (value - min) / spread));

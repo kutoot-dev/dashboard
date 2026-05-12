@@ -7,7 +7,7 @@
  */
 import axios from "axios";
 
-const DEFAULT_BACKEND = "https://dev.kutoot.com/api/v1/dashboard";
+const DEFAULT_BACKEND = "https://kutoot.test/api/v1/dashboard";
 
 function normalizeBackendBaseUrl(value: string): string {
   const raw = (value || "").trim();

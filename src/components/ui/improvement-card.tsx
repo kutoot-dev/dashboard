@@ -2,7 +2,9 @@
 
 import { cn } from "@/lib/utils/cn";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { IMPROVEMENT_TIPS, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
+import { IMPROVEMENT_TIPS, SUB_SCORE_ORDER } from "@/lib/constants/scoring";
+import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
+import { getScoringWeight } from "@/lib/utils/scoring-weights";
 
 interface ImprovementCardProps {
   weakestScores: { key: string; value: number; label: string }[];
@@ -36,6 +38,7 @@ function getNextTarget(value: number): { target: number; tier: string } {
 
 export function ImprovementCard({ weakestScores, className }: ImprovementCardProps) {
   const items = weakestScores.slice(0, 3);
+  const { weights } = useScoringWeights(SUB_SCORE_ORDER);
 
   return (
     <div
@@ -56,7 +59,7 @@ export function ImprovementCard({ weakestScores, className }: ImprovementCardPro
           const tips = IMPROVEMENT_TIPS[key] ?? [];
           const { target, tier } = getNextTarget(value);
           const gap = target - value;
-          const weight = SUB_SCORE_WEIGHTS[key] ?? 0;
+          const weight = getScoringWeight(key, SUB_SCORE_ORDER, weights);
           const scoreImpact = gap * weight;
 
           return (

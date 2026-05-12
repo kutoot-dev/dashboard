@@ -14,15 +14,17 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SUB_SCORE_LABELS, SUB_SCORE_ORDER, SUB_SCORE_WEIGHTS } from "@/lib/constants/scoring";
+import { SUB_SCORE_LABELS, SUB_SCORE_ORDER } from "@/lib/constants/scoring";
 import {
   getCompositeScoreHistory,
   type CompositeScoreHistoryPoint,
 } from "@/lib/api/services/merchant.service";
 import type { ScoreBreakdown } from "@/lib/types";
+import { getScoringWeight, type ScoringWeights } from "@/lib/utils/scoring-weights";
 
 interface ScoreTrendCardProps {
   scoreBreakdown: ScoreBreakdown;
+  weights?: ScoringWeights;
   /**
    * The same composite score shown above the breakdown card. The chart's
    * rightmost point is pinned to this value so the breakdown header and
@@ -87,12 +89,12 @@ function formatMinuteLabel(minuteOfDay: number): string {
  * rightmost point is pinned to the live composite score that the
  * breakdown card displays — so the two values are always identical.
  */
-export function ScoreTrendCard({ scoreBreakdown, compositeScore, todayTransactions = 0 }: ScoreTrendCardProps) {
+export function ScoreTrendCard({ scoreBreakdown, weights, compositeScore, todayTransactions = 0 }: ScoreTrendCardProps) {
   const chartData = useMemo(
     () =>
       SUB_SCORE_ORDER.map((key) => {
         const score = Number(scoreBreakdown[key] ?? 0);
-        const weight = Number(SUB_SCORE_WEIGHTS[key] ?? 0);
+        const weight = getScoringWeight(key, SUB_SCORE_ORDER, weights);
         const contribution = score * weight;
         return {
           key,
@@ -103,7 +105,7 @@ export function ScoreTrendCard({ scoreBreakdown, compositeScore, todayTransactio
           contribution: Number(contribution.toFixed(2)),
         };
       }),
-    [scoreBreakdown],
+    [scoreBreakdown, weights],
   );
 
   const headerComposite =
