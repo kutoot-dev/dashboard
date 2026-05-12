@@ -133,13 +133,16 @@ export function ScoreTrendCard({
   // Chart.js cannot parse CSS variables itself — we must pass concrete values.
   const { resolvedTheme } = useTheme();
   const colors = useMemo<ChartColors>(
-    () => ({
-      gain: resolveCssVar("--gain") || "#2dd4bf",
-      loss: resolveCssVar("--loss") || "#fb7185",
-      accent: resolveCssVar("--accent") || "#38bdf8",
-      grid: resolveCssVar("--chart-grid") || "rgba(126,148,228,0.22)",
-      text: resolveCssVar("--chart-text") || "#9fafd9",
-    }),
+    () => {
+      const isDark = resolvedTheme === "dark";
+      return {
+        gain: resolveCssVar("--gain") || (isDark ? "#2dd4bf" : "#14b8a6"),
+        loss: resolveCssVar("--loss") || "#fb7185",
+        accent: resolveCssVar("--accent") || (isDark ? "#38bdf8" : "#22d3ee"),
+        grid: resolveCssVar("--chart-grid") || (isDark ? "rgba(126,148,228,0.22)" : "rgba(127,136,190,0.28)"),
+        text: resolveCssVar("--chart-text") || (isDark ? "#9fafd9" : "#60709f"),
+      };
+    },
     [resolvedTheme],
   );
 
