@@ -1,17 +1,21 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  ReferenceLine,
-} from "recharts";
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip as ChartTooltip,
+  type ChartData,
+  type ChartOptions,
+} from "chart.js";
+import zoomPlugin from "chartjs-plugin-zoom";
+import { Line } from "react-chartjs-2";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SUB_SCORE_LABELS, SUB_SCORE_ORDER } from "@/lib/constants/scoring";
@@ -47,13 +51,14 @@ interface ScoreTrendCardProps {
 
 const IST_TIME_ZONE = "Asia/Kolkata";
 const MINUTES_PER_DAY = 24 * 60;
-const X_AXIS_TICKS = [0, 180, 360, 540, 720, 900, 1080, 1260, 1439];
 
 interface CompositePoint {
   /** Minute of day in IST, 0..1439. Used as the x-axis value. */
   minuteOfDay: number;
   composite: number;
 }
+
+ChartJS.register(LinearScale, PointElement, LineElement, ChartTooltip, Legend, Filler, zoomPlugin);
 
 const istPartsFormatter = new Intl.DateTimeFormat("en-IN", {
   timeZone: IST_TIME_ZONE,
@@ -93,10 +98,24 @@ function formatMinuteLabel(minuteOfDay: number): string {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
+/** Read a CSS custom property from :root as a resolved string. SSR-safe. */
+function resolveCssVar(name: string, fallback = "#888"): string {
+  if (typeof window === "undefined") return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
+interface ChartColors {
+  gain: string;
+  loss: string;
+  accent: string;
+  grid: string;
+  text: string;
+}
+
 /**
  * ScoreTrendCard — plots today's composite-score line on a fixed 24-hour
  * IST window (00:00 → 23:59). The line moves up and down with each
- * 5-minute snapshot persisted in `composite_score_history`, and the
+ * 1-minute snapshot persisted in `composite_score_history`, and the
  * rightmost point is pinned to the live composite score that the
  * breakdown card displays — so the two values are always identical.
  */
@@ -107,6 +126,32 @@ export function ScoreTrendCard({
   compositeScore,
   todayTransactions = 0,
 }: ScoreTrendCardProps) {
+  const chartRef = useRef<ChartJS<"line"> | null>(null);
+  const [xWindow, setXWindow] = useState({ start: 0, end: MINUTES_PER_DAY - 1 });
+
+  // Resolve CSS custom properties to real colors whenever the theme switches.
+  // Chart.js cannot read CSS variables itself, so we must pass concrete values.
+  const { resolvedTheme } = useTheme();
+  const [colors, setColors] = useState<ChartColors>({
+    gain: "#2dd4bf",
+    loss: "#fb7185",
+    accent: "#38bdf8",
+    grid: "rgba(126,148,228,0.22)",
+    text: "#9fafd9",
+  });
+
+  useEffect(() => {
+    setColors({
+      gain: resolveCssVar("--gain"),
+      loss: resolveCssVar("--loss"),
+      accent: resolveCssVar("--accent"),
+      grid: resolveCssVar("--chart-grid"),
+      text: resolveCssVar("--chart-text"),
+    });
+    // Force chart to repaint with new colors immediately after theme switch.
+    chartRef.current?.update();
+  }, [resolvedTheme]);
+
   const chartData = useMemo(
     () => {
       if (scoreInsights?.length) {
@@ -193,10 +238,169 @@ export function ScoreTrendCard({
 
   const windowDelta = Number((headerComposite - openComposite).toFixed(2));
   const isUp = windowDelta >= 0;
-  const lineStroke = isUp ? "var(--gain)" : "var(--loss)";
+  const lineStroke = isUp ? colors.gain : colors.loss;
 
-  const yMin = Math.max(0, Math.floor(dayLow - 4));
-  const yMax = Math.min(100, Math.ceil(dayHigh + 4));
+  const visibleSeries = useMemo(
+    () =>
+      series.filter(
+        (point) => point.minuteOfDay >= xWindow.start && point.minuteOfDay <= xWindow.end,
+      ),
+    [series, xWindow],
+  );
+
+  // Keep y-domain tight for the currently visible x-range so minute-level
+  // changes remain obvious when zoomed in.
+  const yRangeSource = visibleSeries.length > 0 ? visibleSeries : series;
+  const visibleHigh =
+    yRangeSource.length > 0
+      ? Math.max(...yRangeSource.map((point) => point.composite))
+      : headerComposite;
+  const visibleLow =
+    yRangeSource.length > 0
+      ? Math.min(...yRangeSource.map((point) => point.composite))
+      : headerComposite;
+  const visibleRange = Math.abs(visibleHigh - visibleLow);
+  const yPadding = Math.max(visibleRange * 0.35, 0.03);
+  const yMin = Math.max(0, Number((visibleLow - yPadding).toFixed(4)));
+  const yMax = Math.min(100, Number((visibleHigh + yPadding).toFixed(4)));
+
+  const compositeLineData = useMemo<ChartData<"line">>(
+    () => ({
+      datasets: [
+        {
+          label: "Composite",
+          data: series.map((point) => ({ x: point.minuteOfDay, y: point.composite })),
+          borderColor: lineStroke,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHitRadius: 10,
+          tension: 0.2,
+        },
+      ],
+    }),
+    [lineStroke, series],
+  );
+
+  const chartOptions = useMemo<ChartOptions<"line">>(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      animation: {
+        duration: 220,
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: "rgba(15,23,42,0.88)",
+          titleColor: colors.text,
+          bodyColor: colors.gain,
+          borderColor: colors.grid,
+          borderWidth: 1,
+          callbacks: {
+            title: (items) => {
+              if (!items.length) {
+                return "";
+              }
+              const minute = Number(items[0].parsed.x);
+              return `IST ${formatMinuteLabel(minute)}`;
+            },
+            label: (item) => `Composite ${Number(item.parsed.y).toFixed(2)}`,
+          },
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: "x",
+            onPanComplete: ({ chart }) => {
+              const xScale = chart.scales.x;
+              setXWindow({
+                start: Math.max(0, Math.floor(xScale.min)),
+                end: Math.min(MINUTES_PER_DAY - 1, Math.ceil(xScale.max)),
+              });
+            },
+          },
+          zoom: {
+            wheel: {
+              enabled: true,
+            },
+            pinch: {
+              enabled: true,
+            },
+            drag: {
+              enabled: true,
+              borderColor: colors.accent,
+              borderWidth: 1,
+              backgroundColor: `${colors.accent}26`,
+            },
+            mode: "x",
+            onZoomComplete: ({ chart }) => {
+              const xScale = chart.scales.x;
+              setXWindow({
+                start: Math.max(0, Math.floor(xScale.min)),
+                end: Math.min(MINUTES_PER_DAY - 1, Math.ceil(xScale.max)),
+              });
+            },
+          },
+          limits: {
+            x: {
+              min: 0,
+              max: MINUTES_PER_DAY - 1,
+              minRange: 5,
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: "linear",
+          min: xWindow.start,
+          max: xWindow.end,
+          grid: {
+            color: colors.grid,
+          },
+          ticks: {
+            color: colors.text,
+            maxTicksLimit: 9,
+            callback: (value) => formatMinuteLabel(Number(value)),
+          },
+        },
+        y: {
+          min: yMin,
+          max: yMax,
+          grid: {
+            color: colors.grid,
+          },
+          ticks: {
+            color: colors.text,
+            callback: (value) => Number(value).toFixed(2),
+          },
+        },
+      },
+    }),
+    [xWindow, yMin, yMax, colors],
+  );
+
+  const applyZoomWindow = (minutes: number) => {
+    const end = currentMinute;
+    const start = Math.max(0, end - minutes);
+
+    setXWindow({ start, end });
+
+    const chart = chartRef.current;
+    if (chart) {
+      chart.zoomScale("x", { min: start, max: end }, "default");
+      chart.update("none");
+    }
+  };
+
+  const resetZoom = () => {
+    setXWindow({ start: 0, end: MINUTES_PER_DAY - 1 });
+    const chart = chartRef.current as ChartJS<"line"> & { resetZoom?: () => void };
+    chart?.resetZoom?.();
+  };
 
   const topDriver = chartData.reduce((top, current) =>
     current.contribution > top.contribution ? current : top,
@@ -229,49 +433,43 @@ export function ScoreTrendCard({
             Loading composite score history…
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-              <XAxis
-                dataKey="minuteOfDay"
-                type="number"
-                domain={[0, MINUTES_PER_DAY - 1]}
-                ticks={X_AXIS_TICKS}
-                tickFormatter={(value) => formatMinuteLabel(Number(value))}
-                tick={{ fontSize: 10, fill: "var(--chart-text)" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "var(--chart-text)" }}
-                tickLine={false}
-                axisLine={false}
-                width={48}
-                domain={[yMin, yMax]}
-                allowDecimals={false}
-              />
-              <Tooltip
-                formatter={(value, name) => {
-                  if (name === "composite") {
-                    return [Number(value).toFixed(2), "Composite"];
-                  }
-                  return [String(value), String(name)];
-                }}
-                labelFormatter={(value) => `IST ${formatMinuteLabel(Number(value))}`}
-              />
-              <ReferenceLine y={openComposite} stroke="var(--chart-crosshair)" strokeDasharray="4 4" />
-              <ReferenceLine x={currentMinute} stroke="var(--accent)" strokeDasharray="2 4" />
-              <Line
-                type="monotone"
-                dataKey="composite"
-                stroke={lineStroke}
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <Line ref={chartRef} data={compositeLineData} options={chartOptions} />
         )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="text-muted-foreground">Zoom:</span>
+        <button
+          type="button"
+          onClick={() => applyZoomWindow(15)}
+          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
+        >
+          15m
+        </button>
+        <button
+          type="button"
+          onClick={() => applyZoomWindow(60)}
+          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
+        >
+          1h
+        </button>
+        <button
+          type="button"
+          onClick={() => applyZoomWindow(360)}
+          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
+        >
+          6h
+        </button>
+        <button
+          type="button"
+          onClick={resetZoom}
+          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
+        >
+          24h Reset
+        </button>
+        <span className="ml-auto text-muted-foreground">
+          Drag to zoom, wheel or pinch to zoom, drag horizontally to pan.
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
@@ -287,25 +485,10 @@ export function ScoreTrendCard({
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Day Low</p>
           <p className="font-tabular text-sm font-semibold text-loss">{dayLow.toFixed(2)}</p>
         </div>
-        <div className="rounded-md border border-primary/35 bg-primary/10 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Top Driver</p>
-          <p className="truncate text-sm font-semibold text-primary" title={topDriver.label}>
-            {topDriver.label}
-          </p>
-        </div>
+        
       </div>
 
-      <div className="space-y-2 rounded-md border border-accent/35 bg-muted/45 p-3 text-xs text-muted-foreground">
-        <p>
-          Each plotted point is a 5-minute snapshot of your live composite score — the exact same value the
-          breakdown card shows. The line rises when the composite grows and falls when it drops.
-        </p>
-        <p>
-          Today’s top driver: <span className="font-semibold text-foreground">{topDriver.label}</span>{" "}
-          ({topDriver.contribution.toFixed(2)} pts). Today’s transaction count:{" "}
-          <span className="font-semibold text-foreground">{todayTransactions}</span>.
-        </p>
-      </div>
+      
     </Card>
   );
 }

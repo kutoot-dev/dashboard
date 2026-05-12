@@ -362,7 +362,7 @@ export async function getRollingScore(days = 30) {
   return res.data;
 }
 
-// ── Composite score history (5-min granularity, intraday) ───────────────────
+// ── Composite score history (1-min granularity, intraday) ───────────────────
 
 export interface CompositeScoreHistoryPoint {
   recorded_at: string;
