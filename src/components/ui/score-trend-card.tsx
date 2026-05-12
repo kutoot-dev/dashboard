@@ -130,27 +130,22 @@ export function ScoreTrendCard({
   const [xWindow, setXWindow] = useState({ start: 0, end: MINUTES_PER_DAY - 1 });
 
   // Resolve CSS custom properties to real colors whenever the theme switches.
-  // Chart.js cannot read CSS variables itself, so we must pass concrete values.
+  // Chart.js cannot parse CSS variables itself — we must pass concrete values.
   const { resolvedTheme } = useTheme();
-  const [colors, setColors] = useState<ChartColors>({
-    gain: "#2dd4bf",
-    loss: "#fb7185",
-    accent: "#38bdf8",
-    grid: "rgba(126,148,228,0.22)",
-    text: "#9fafd9",
-  });
+  const colors = useMemo<ChartColors>(
+    () => ({
+      gain: resolveCssVar("--gain") || "#2dd4bf",
+      loss: resolveCssVar("--loss") || "#fb7185",
+      accent: resolveCssVar("--accent") || "#38bdf8",
+      grid: resolveCssVar("--chart-grid") || "rgba(126,148,228,0.22)",
+      text: resolveCssVar("--chart-text") || "#9fafd9",
+    }),
+    [resolvedTheme],
+  );
 
   useEffect(() => {
-    setColors({
-      gain: resolveCssVar("--gain"),
-      loss: resolveCssVar("--loss"),
-      accent: resolveCssVar("--accent"),
-      grid: resolveCssVar("--chart-grid"),
-      text: resolveCssVar("--chart-text"),
-    });
-    // Force chart to repaint with new colors immediately after theme switch.
     chartRef.current?.update();
-  }, [resolvedTheme]);
+  }, [colors]);
 
   const chartData = useMemo(
     () => {
