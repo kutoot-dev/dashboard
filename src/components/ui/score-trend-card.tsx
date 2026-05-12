@@ -210,7 +210,7 @@ export function ScoreTrendCard({
             Composite Score · Today (24h, IST)
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Same composite as the breakdown card. The line traces every 5-minute change recorded today
+            Same composite as the breakdown card. The line traces every minute change recorded today
             from 00:00 to 23:59 IST.
           </p>
         </div>
