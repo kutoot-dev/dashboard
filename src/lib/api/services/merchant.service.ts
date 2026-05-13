@@ -76,6 +76,8 @@ export interface Transaction {
   payment_id: string;
   customer_name: string | null;
   customer_phone: string | null;
+  merchant_branch_name?: string | null;
+  campaign_reward_name?: string | null;
   bill_amount: number;
   discount: number;
   discounted_bill_amount?: number;

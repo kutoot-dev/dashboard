@@ -386,6 +386,8 @@ export default function TransactionsPage() {
                   <td className="px-2 py-3">
                     <p className="font-medium text-foreground">{row.customer_name || "Walk-in customer"}</p>
                     <p className="text-xs text-muted-foreground">{row.customer_phone || "--"}</p>
+                    <p className="text-xs text-muted-foreground">Branch: {row.merchant_branch_name || "--"}</p>
+                    <p className="text-xs text-muted-foreground">Campaign: {row.campaign_reward_name || "--"}</p>
                   </td>
                   <td className="px-2 py-3 font-mono">{formatINR(row.bill_amount)}</td>
                   <td className="px-2 py-3 font-mono">{formatINR(row.discount)}</td>
