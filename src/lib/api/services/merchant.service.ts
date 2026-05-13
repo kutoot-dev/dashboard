@@ -330,6 +330,11 @@ export interface MerchantNewsFeedItem {
   icon: string;
   message: string;
   subject: string;
+  merchant_location_id: number | null;
+  merchant_location_name: string | null;
+  user_name: string | null;
+  actor_name: string | null;
+  subject_id: number | null;
   created_at: string;
 }
 

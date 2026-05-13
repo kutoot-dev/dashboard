@@ -10,6 +10,8 @@ export interface ActivityItem {
   icon: string;
   event: string;
   message: string;
+  merchantLocationName: string | null;
+  userName: string | null;
   timestamp: string;
 }
 
@@ -51,6 +53,8 @@ export function ActivityTicker({ className }: { className?: string }) {
     icon: item.icon || "⚡",
     event: item.event,
     message: item.message,
+    merchantLocationName: item.merchant_location_name ?? null,
+    userName: item.user_name ?? null,
     timestamp: item.created_at,
   }));
 
@@ -131,6 +135,12 @@ export function ActivityTicker({ className }: { className?: string }) {
                   <p className={cn("text-[11px] leading-tight", color)}>
                     {item.message}
                   </p>
+                  {(item.merchantLocationName || item.userName) && (
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {item.merchantLocationName ? `Location: ${item.merchantLocationName}` : ""}
+                      {item.userName ? `${item.merchantLocationName ? " • " : ""}User: ${item.userName}` : ""}
+                    </p>
+                  )}
                   <p className="font-mono text-[9px] text-muted-foreground">
                     {timeAgo(item.timestamp)}
                   </p>
