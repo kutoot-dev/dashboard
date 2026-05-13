@@ -324,6 +324,22 @@ export interface RecentRedemption {
   created_at: string;
 }
 
+export interface MerchantNewsFeedItem {
+  id: string;
+  event: string;
+  icon: string;
+  message: string;
+  subject: string;
+  created_at: string;
+}
+
+export interface MerchantNewsFeed {
+  rows: MerchantNewsFeedItem[];
+  hours: number;
+  configured_hours: number;
+  limit: number;
+}
+
 export async function getMerchantMe() {
   const res = await apiClient.get<ApiResponse<MerchantMe>>(`/merchant/me`);
   return res.data;
@@ -331,6 +347,13 @@ export async function getMerchantMe() {
 
 export async function getMerchantDashboard() {
   const res = await apiClient.get<ApiResponse<MerchantDashboard>>(`/merchant/dashboard`);
+  return res.data;
+}
+
+export async function getMerchantNewsFeed(params?: { hours?: number; limit?: number }) {
+  const res = await apiClient.get<ApiResponse<MerchantNewsFeed>>(`/merchant/news-feed`, {
+    params,
+  });
   return res.data;
 }
 

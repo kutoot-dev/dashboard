@@ -9,6 +9,7 @@ import { ScorePie } from "@/components/ui/score-pie";
 import { ScoreTrendCard } from "@/components/ui/score-trend-card";
 import { CommissionSliderCard } from "@/components/ui/commission-slider-card";
 import { RecentRedemptionsSlideshow } from "@/components/ui/recent-redemptions-slideshow";
+import { ActivityTicker } from "@/components/ui/activity-ticker";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { getMerchantDashboard, type MerchantScoreInsight } from "@/lib/api/services/merchant.service";
 import {
@@ -471,6 +472,10 @@ export default function DashboardPage() {
               </div>
 
               <RecentRedemptionsSlideshow className="border border-gain/25 bg-card/70" />
+
+              <Card className="border border-accent/25 bg-card/70 p-3">
+                <ActivityTicker />
+              </Card>
             </div>
             </div>
           {activeRecommendation && (

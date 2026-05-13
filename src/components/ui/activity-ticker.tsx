@@ -2,36 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "@/lib/api/client";
-import type { ApiResponse } from "@/lib/types";
+import { getMerchantNewsFeed } from "@/lib/api/services/merchant.service";
 import { cn } from "@/lib/utils/cn";
 
 export interface ActivityItem {
   id: string;
-  icon: "rank_up" | "rank_down" | "deal" | "commission" | "reward" | "milestone";
+  icon: string;
+  event: string;
   message: string;
   timestamp: string;
 }
 
-interface BackendActivityItem {
-  id: string;
-  icon_type: string;
-  message: string;
-  branch_name: string | null;
-  branch_id: string | null;
-  created_at: string;
-}
-
-const ICON_MAP: Record<ActivityItem["icon"], { emoji: string; color: string }> = {
-  rank_up:    { emoji: "🔺", color: "text-gain" },
-  rank_down:  { emoji: "🔻", color: "text-loss" },
-  deal:       { emoji: "🏷️", color: "text-accent" },
-  commission: { emoji: "💰", color: "text-warning" },
-  reward:     { emoji: "🎁", color: "text-gain" },
-  milestone:  { emoji: "🏆", color: "text-accent" },
+const EVENT_COLOR_MAP: Record<string, string> = {
+  created: "text-gain",
+  updated: "text-accent",
+  deleted: "text-loss",
+  scanned: "text-warning",
+  approved: "text-gain",
+  rejected: "text-loss",
 };
-
-const VALID_ICONS = new Set<string>(Object.keys(ICON_MAP));
 
 function timeAgo(ts: string): string {
   const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
@@ -42,19 +31,25 @@ function timeAgo(ts: string): string {
 }
 
 export function ActivityTicker({ className }: { className?: string }) {
-  const { data: backendItems } = useQuery({
-    queryKey: ["activity"],
+  const [hours, setHours] = useState(24);
+
+  const { data } = useQuery({
+    queryKey: ["merchant-news-feed", hours],
     queryFn: async () => {
-      const res = await apiClient.get<ApiResponse<BackendActivityItem[]>>("/activity?limit=50");
-      return res.data.data;
+      const res = await getMerchantNewsFeed({ hours, limit: 50 });
+      return res.success ? res.data : null;
     },
     refetchInterval: 60_000,
     retry: false,
   });
 
-  const items: ActivityItem[] = (backendItems ?? []).map((item) => ({
+  const backendItems = data?.rows ?? [];
+  const effectiveHours = data?.hours ?? hours;
+
+  const items: ActivityItem[] = backendItems.map((item) => ({
     id: item.id,
-    icon: (VALID_ICONS.has(item.icon_type) ? item.icon_type : "milestone") as ActivityItem["icon"],
+    icon: item.icon || "⚡",
+    event: item.event,
     message: item.message,
     timestamp: item.created_at,
   }));
@@ -88,16 +83,28 @@ export function ActivityTicker({ className }: { className?: string }) {
 
   return (
     <div className={cn("relative", className)}>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
           </span>
           <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Live Activity
+            News Feed ({effectiveHours}h)
           </h3>
         </div>
+        <select
+          value={hours}
+          onChange={(event) => setHours(Number(event.target.value))}
+          className="rounded-md border border-glass-border bg-background/65 px-2 py-1 text-[10px] text-muted-foreground"
+          aria-label="News feed lookback window"
+        >
+          {[6, 12, 24, 48, 72, 168].map((h) => (
+            <option key={h} value={h}>
+              Last {h}h
+            </option>
+          ))}
+        </select>
       </div>
 
       <div
@@ -107,14 +114,19 @@ export function ActivityTicker({ className }: { className?: string }) {
         className="h-[200px] overflow-hidden scrollbar-hide"
       >
         <div className="space-y-1.5">
+          {items.length === 0 && (
+            <p className="rounded-lg border border-glass-border bg-glass-bg/40 px-2.5 py-2 text-[11px] text-muted-foreground">
+              No merchant activity in this window.
+            </p>
+          )}
           {items.map((item) => {
-            const { emoji, color } = ICON_MAP[item.icon];
+            const color = EVENT_COLOR_MAP[item.event] ?? "text-foreground";
             return (
               <div
                 key={item.id}
                 className="flex items-start gap-2 rounded-lg border border-glass-border bg-glass-bg/50 px-2.5 py-1.5 transition-colors hover:bg-glass-bg"
               >
-                <span className="text-xs flex-shrink-0">{emoji}</span>
+                <span className="text-xs flex-shrink-0">{item.icon}</span>
                 <div className="min-w-0 flex-1">
                   <p className={cn("text-[11px] leading-tight", color)}>
                     {item.message}
