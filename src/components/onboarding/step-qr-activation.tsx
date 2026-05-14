@@ -150,10 +150,10 @@ function QrPreviewCard({
 
       {/* Merchant info below QR */}
       <div className="text-center space-y-0.5">
-        <p className="font-bold text-sm text-foreground truncate max-w-[200px]">
+        <p className="font-bold text-sm text-foreground truncate max-w-50">
           {shopName || "Your Shop Name"}
         </p>
-        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+        <p className="text-xs text-muted-foreground truncate max-w-50">
           {ownerName || "Owner Name"}
         </p>
         <p className="font-mono text-[10px] text-muted-foreground tracking-wide mt-1">
@@ -171,6 +171,28 @@ function QrPreviewCard({
 export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
   const { formData, updateFormData } = useOnboardingStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (formData.qr_serial.trim()) {
+      setErrors((prev) => {
+        if (!prev.qr_serial) return prev;
+        const next = { ...prev };
+        delete next.qr_serial;
+        return next;
+      });
+    }
+  }, [formData.qr_serial]);
+
+  useEffect(() => {
+    if (formData.qr_photo_url) {
+      setErrors((prev) => {
+        if (!prev.qr_photo) return prev;
+        const next = { ...prev };
+        delete next.qr_photo;
+        return next;
+      });
+    }
+  }, [formData.qr_photo_url]);
 
   useEffect(() => {
     if (
@@ -278,12 +300,13 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         <Input
           placeholder={ONBOARDING_FIELDS.qr_serial.placeholder}
           value={formData.qr_serial}
-          onChange={(e) =>
+          onChange={(e) => {
+            const value = e.target.value.toUpperCase();
             updateFormData({
-              qr_serial: e.target.value.toUpperCase(),
-              qr_assigned: e.target.value.trim().length > 0,
-            })
-          }
+              qr_serial: value,
+              qr_assigned: value.trim().length > 0,
+            });
+          }}
           maxLength={20}
         />
         {formData.qr_assigned && (
@@ -325,7 +348,13 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
                 Assigned quantities come from executive stock. Update what was actually handed over.
               </p>
             </div>
-            <Button type="button" variant="secondary" size="sm" onClick={addInventoryItem}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 px-3 text-xs rounded-md self-start sm:self-auto"
+              onClick={addInventoryItem}
+            >
               <FontAwesomeIcon icon={faPlus} className="mr-2" />
               Add Item
             </Button>

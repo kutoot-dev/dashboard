@@ -525,7 +525,12 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <a href="/merchant-terms" className="text-accent underline">
+              <a
+                href="/merchant-terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
                 Terms & Conditions
               </a>{" "}
               and agree to the commission structure above.
@@ -546,7 +551,12 @@ export function StepReview({ onBack }: StepReviewProps) {
             />
             <span className="text-sm text-foreground">
               I accept the{" "}
-              <a href="/privacy-policy" className="text-accent underline">
+              <a
+                href="/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
                 Privacy Policy
               </a>{" "}
               and

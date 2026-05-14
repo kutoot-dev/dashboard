@@ -324,13 +324,21 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
               <Input
                 placeholder={ONBOARDING_FIELDS.employee_code.placeholder}
                 value={employeeCode}
-                onChange={(e) => setEmployeeCode(e.target.value.slice(0, 8))}
-                maxLength={8}
-                className="flex-1 uppercase"
+                onChange={(e) =>
+                  setEmployeeCode(
+                    e.target.value
+                      .replace(/[^a-zA-Z0-9]/g, "")
+                      .toUpperCase()
+                      .slice(0, 25),
+                  )
+                }
+                maxLength={25}
+                className="min-h-11 flex-1 uppercase"
               />
               <Button
                 variant="primary"
                 size="md"
+                className="min-h-11 w-full sm:w-auto"
                 loading={verifyExec.isPending}
                 onClick={handleVerifyExecutive}
                 disabled={employeeCode.length < 4}

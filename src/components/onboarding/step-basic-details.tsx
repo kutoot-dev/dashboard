@@ -9,6 +9,7 @@ import { FieldWithInfo } from "./field-with-info";
 import { PhotoCapture } from "./photo-capture";
 import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
+import { OtpInput } from "./otp-input";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import {
   useCheckPhone,
@@ -27,6 +28,20 @@ import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 interface StepBasicDetailsProps {
   onNext: () => void;
   onBack: () => void;
+}
+
+function normalizeIndianMobileInput(value: string): string {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.length > 10 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.length > 10) {
+    digits = digits.slice(-10);
+  }
+
+  return digits;
 }
 
 export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
@@ -56,7 +71,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   // Debounced phone check
   const handlePhoneChange = useCallback(
     (value: string) => {
-      const clean = value.replace(/\D/g, "").slice(0, 10);
+      const clean = normalizeIndianMobileInput(value);
       updateFormData({ phone: clean });
 
       if (formData.channel !== "field_executive") {
@@ -469,15 +484,11 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           )}
         </div>
         {emailOtpSent && !formData.owner_email_verified && (
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Input
-              placeholder="Enter 6-digit OTP"
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <OtpInput
               value={emailOtp}
-              onChange={(e) =>
-                setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
-              maxLength={6}
-              inputMode="numeric"
+              onChange={(value) => setEmailOtp(value.replace(/\D/g, "").slice(0, 6))}
+              disabled={verifyEmailOtp.isPending}
               className="flex-1"
             />
             <Button
