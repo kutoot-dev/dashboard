@@ -7,7 +7,13 @@
  */
 import axios from "axios";
 
-const DEFAULT_BACKEND = "https://dev.kutoot.com/api/v1/dashboard";
+const DEFAULT_LOCAL_BACKEND = "https://kutoot.test/api/v1/dashboard";
+const DEFAULT_PRODUCTION_BACKEND = "https://dev.kutoot.com/api/v1/dashboard";
+
+const DEFAULT_BACKEND =
+  process.env.NODE_ENV === "production"
+    ? DEFAULT_PRODUCTION_BACKEND
+    : DEFAULT_LOCAL_BACKEND;
 
 function normalizeBackendBaseUrl(value: string): string {
   const raw = (value || "").trim();

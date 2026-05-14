@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
@@ -28,12 +29,14 @@ interface StepReviewProps {
 }
 
 export function StepReview({ onBack }: StepReviewProps) {
+  const router = useRouter();
   const { formData, applicationId, setStep } = useOnboardingStore();
   const pushToast = useToastStore((s) => s.push);
   const createApp = useCreateApplication();
   const updateApp = useUpdateApplication();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [duplicatePhoneError, setDuplicatePhoneError] = useState<string | null>(null);
 
   const isFeVisitOnly =
     formData.channel === "field_executive" &&
@@ -155,18 +158,69 @@ export function StepReview({ onBack }: StepReviewProps) {
     } else {
       createApp.mutate(payload as unknown as Partial<OnboardingApplication>, {
         onSuccess: () => setSubmitted(true),
-        onError: () => {
-          pushToast({
-            variant: "error",
-            title: "Submission failed",
-            description: "Could not submit onboarding details. Please retry.",
-          });
+        onError: (error: any) => {
+          const errorCode = error?.response?.data?.code;
+          const existingAppId = error?.response?.data?.data?.existing_application_id;
+          const phone = formData.phone || payload.phone;
+
+          if (errorCode === "DUPLICATE_APPLICATION" && phone) {
+            setDuplicatePhoneError(phone);
+            pushToast({
+              variant: "warning",
+              title: "Application already exists",
+              description: "An application already exists for this phone number.",
+            });
+          } else {
+            pushToast({
+              variant: "error",
+              title: "Submission failed",
+              description: "Could not submit onboarding details. Please retry.",
+            });
+          }
         },
       });
     }
   };
 
   const goToStep = (step: WizardStepId) => setStep(step);
+
+  // Show duplicate application error
+  if (duplicatePhoneError) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl text-warning">
+              <FontAwesomeIcon icon={faCircleInfo} />
+            </div>
+            <div className="space-y-2 flex-1">
+              <h3 className="font-semibold text-foreground">Application Already Exists</h3>
+              <p className="text-sm text-muted-foreground">
+                An application already exists for +91 {duplicatePhoneError.slice(0, 2)}XXXXXX{duplicatePhoneError.slice(8)}. 
+                You can resume your existing application or contact support for assistance.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="primary"
+              onClick={() =>
+                router.push(`/onboard/resume?from=duplicate&phone=${duplicatePhoneError}`)
+              }
+            >
+              Resume Existing Application
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setDuplicatePhoneError(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     if (isFeVisitOnly) {
