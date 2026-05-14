@@ -33,6 +33,7 @@ export function PhotoCapture({
   const [gpsStatus, setGpsStatus] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   function handleFileSelect(file: File) {
@@ -46,6 +47,16 @@ export function PhotoCapture({
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  function openFilePicker() {
+    fileInputRef.current?.click();
+  }
+
+  function onFileInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) handleFileSelect(file);
   }
 
   function capturePhoto() {
@@ -132,15 +143,7 @@ export function PhotoCapture({
     } catch {
       setCapturing(false);
       // Fallback to file input
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = "image/jpeg,image/png";
-      input.capture = "environment";
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) handleFileSelect(file);
-      };
-      input.click();
+      openFilePicker();
     }
   }
 
@@ -151,6 +154,13 @@ export function PhotoCapture({
 
   return (
     <div className={cn("space-y-2", className)}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onFileInputChange}
+      />
       <p className="text-sm font-medium text-foreground">
         {label} {required && <span className="text-error">*</span>}
       </p>
@@ -183,9 +193,14 @@ export function PhotoCapture({
             alt="Captured"
             className="w-full max-w-md rounded-lg border border-border"
           />
-          <Button variant="secondary" size="sm" onClick={startCamera}>
-            Retake Photo
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={startCamera}>
+              Retake Photo
+            </Button>
+            <Button variant="ghost" size="sm" onClick={openFilePicker}>
+              Upload from Device
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-start gap-2">
@@ -215,9 +230,14 @@ export function PhotoCapture({
               </p>
             </div>
           </div>
-          <Button variant="primary" size="sm" onClick={startCamera}>
-            Take Photo
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" size="sm" onClick={startCamera}>
+              Take Photo
+            </Button>
+            <Button variant="secondary" size="sm" onClick={openFilePicker}>
+              Upload from Device
+            </Button>
+          </div>
         </div>
       )}
       {gpsStatus && (
