@@ -18,6 +18,7 @@ export default function OnboardStartPage() {
   const [error, setError] = useState<string | null>(null);
   const [existsMessage, setExistsMessage] = useState<string | null>(null);
   const [existingAppId, setExistingAppId] = useState<string | null>(null);
+  const [existingActionLabel, setExistingActionLabel] = useState("Resume existing application");
 
   const reset = useOnboardingStore((s) => s.reset);
   const updateFormData = useOnboardingStore((s) => s.updateFormData);
@@ -57,12 +58,18 @@ export default function OnboardStartPage() {
     setError(null);
     setExistsMessage(null);
     setExistingAppId(null);
+    setExistingActionLabel("Resume existing application");
 
     checkPhone.mutate(cleanPhone, {
       onSuccess: (res) => {
         if (res.data.exists) {
           setExistsMessage(res.data.message || "An application already exists for this mobile number.");
           setExistingAppId(res.data.application_id ?? null);
+          const stage = res.data.stage ?? res.data.application_status;
+          const canResume = stage === "lead" || stage === "invited" || stage === "in_progress";
+          setExistingActionLabel(
+            canResume ? "Resume existing application" : "View current application status",
+          );
           return;
         }
 
@@ -89,7 +96,7 @@ export default function OnboardStartPage() {
         <p className="text-xs leading-relaxed text-muted-foreground">
           Mobile number is unique across applications. We will first verify your number.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex shrink-0 items-center justify-center rounded-lg border border-border/80 bg-background/40 px-3 py-2.5 text-sm text-muted-foreground backdrop-blur-sm sm:py-2">
             +91
           </div>
@@ -113,20 +120,22 @@ export default function OnboardStartPage() {
                 Application ID: <span className="font-mono">{existingAppId}</span>
               </p>
             )}
-            <button
-              type="button"
-              className="mt-2 text-xs font-medium text-primary underline underline-offset-2"
-              onClick={goResume}
-            >
-              Resume existing application
-            </button>
-            <button
-              type="button"
-              className="mt-2 block text-xs font-medium text-accent underline underline-offset-2"
-              onClick={proceedToNewApplication}
-            >
-              Continue with a new application (Field Executive)
-            </button>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <button
+                type="button"
+                className="text-xs font-medium text-primary underline underline-offset-2"
+                onClick={goResume}
+              >
+                {existingActionLabel}
+              </button>
+              <button
+                type="button"
+                className="text-xs font-medium text-accent underline underline-offset-2"
+                onClick={proceedToNewApplication}
+              >
+                Continue with a new application
+              </button>
+            </div>
           </div>
         )}
 

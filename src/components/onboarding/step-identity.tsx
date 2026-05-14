@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ interface StepIdentityProps {
 }
 
 export function StepIdentity({ onNext }: StepIdentityProps) {
+  const router = useRouter();
   const {
     formData,
     updateFormData,
@@ -65,6 +67,14 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
   };
 
   const channel = formData.channel;
+
+  const goResume = () => {
+    const params = new URLSearchParams({ from: "identity" });
+    if (otpPhone.length === 10) {
+      params.set("phone", otpPhone);
+    }
+    router.push(`/onboard/resume?${params.toString()}`);
+  };
 
   const handleChannelSelect = (ch: "merchant" | "field_executive") => {
     updateFormData({ channel: ch });
@@ -111,7 +121,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
         updateFormData({
           exec_id: res.data.exec_id,
           exec_name: res.data.exec_name,
-          exec_employee_code: employeeCode.toUpperCase(),
+          exec_employee_code: employeeCode,
         });
         onNext();
       } else {
@@ -134,11 +144,11 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       return;
     }
     if (phoneCheckResult?.exists) {
-      setError("This mobile number already has an application. Resume the existing application.");
+      setError("This mobile number already has an application. Use resume to continue or view status.");
       pushToast({
         variant: "warning",
         title: "Application already exists",
-        description: "Use resume onboarding for this mobile number.",
+        description: "Use resume onboarding to continue this application or check its current status.",
       });
       return;
     }
@@ -310,11 +320,11 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
             required
             error={error}
           >
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Input
                 placeholder={ONBOARDING_FIELDS.employee_code.placeholder}
                 value={employeeCode}
-                onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
+                onChange={(e) => setEmployeeCode(e.target.value.slice(0, 8))}
                 maxLength={8}
                 className="flex-1 uppercase"
               />
@@ -347,6 +357,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
               applicationId={phoneCheckResult.application_id}
               applicationStatus={phoneCheckResult.status as ApplicationStatus}
               message={phoneCheckResult.message}
+              onResume={goResume}
             />
           )}
 
@@ -356,32 +367,33 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
               required
               error={error}
             >
-              <div className="flex gap-2">
-                <div className="flex items-center gap-1 px-3 bg-card border border-border rounded-md text-sm text-muted-foreground">
-                  +91
-                </div>
-                <Input
-                  placeholder="9876543210"
-                  value={otpPhone}
-                  onChange={(e) => handleMerchantPhoneChange(e.target.value)}
-                  maxLength={10}
-                  inputMode="numeric"
-                  className="flex-1"
-                />
-                {checkPhone.isPending && otpPhone.length === 10 && (
-                  <div className="flex items-center px-2 text-xs text-muted-foreground">
-                    Checking...
+              <div className="space-y-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="flex min-h-11 w-full shrink-0 items-center justify-center rounded-lg border border-border/80 bg-background/40 px-3 py-2 text-sm text-muted-foreground backdrop-blur-sm sm:w-auto">
+                    +91
                   </div>
+                  <Input
+                    placeholder="9876543210"
+                    value={otpPhone}
+                    onChange={(e) => handleMerchantPhoneChange(e.target.value)}
+                    maxLength={10}
+                    inputMode="numeric"
+                    className="min-h-11 flex-1"
+                  />
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="min-h-11 w-full sm:w-auto"
+                    loading={sendOtp.isPending}
+                    onClick={handleSendOtp}
+                    disabled={otpPhone.length !== 10 || !!phoneCheckResult?.exists}
+                  >
+                    Send OTP
+                  </Button>
+                </div>
+                {checkPhone.isPending && otpPhone.length === 10 && (
+                  <p className="text-xs text-muted-foreground">Checking...</p>
                 )}
-                <Button
-                  variant="primary"
-                  size="md"
-                  loading={sendOtp.isPending}
-                  onClick={handleSendOtp}
-                  disabled={otpPhone.length !== 10 || !!phoneCheckResult?.exists}
-                >
-                  Send OTP
-                </Button>
               </div>
             </FieldWithInfo>
           ) : (

@@ -20,6 +20,9 @@ interface StepCommissionProps {
 export function StepCommission({ onNext, onBack }: StepCommissionProps) {
   const { formData, updateFormData } = useOnboardingStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [commissionInput, setCommissionInput] = useState(
+    formData.commission_rate?.toString() || "",
+  );
   const { categories } = useMerchantCategories();
 
   const selectedCategory = useMemo(
@@ -48,33 +51,36 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
     });
 
   useEffect(() => {
-    if (
-      formData.commission_model === "flat" &&
-      formData.commission_rate !== null &&
-      formData.commission_rate < categoryMinCommission
-    ) {
-      updateFormData({ commission_rate: categoryMinCommission });
-    }
-  }, [
-    categoryMinCommission,
-    formData.commission_model,
-    formData.commission_rate,
-    updateFormData,
-  ]);
+    setCommissionInput(formData.commission_rate?.toString() || "");
+  }, [formData.commission_rate]);
 
-  const handleRateChange = (value: string) => {
+  const handleRateInputChange = (value: string) => {
+    setCommissionInput(value);
+
     const num = parseFloat(value);
     if (value === "" || value === ".") {
       updateFormData({ commission_rate: null });
       return;
     }
+
     if (!isNaN(num)) {
-      const clamped = Math.min(
-        VALIDATION_RULES.commission_rate.max,
-        Math.max(categoryMinCommission, num),
-      );
+      const clamped = Math.min(VALIDATION_RULES.commission_rate.max, num);
       updateFormData({ commission_rate: clamped });
     }
+  };
+
+  const handleRateSliderChange = (value: string) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+      return;
+    }
+
+    const clamped = Math.min(
+      VALIDATION_RULES.commission_rate.max,
+      Math.max(categoryMinCommission, num),
+    );
+    setCommissionInput(clamped.toString());
+    updateFormData({ commission_rate: clamped });
   };
 
   const validate = (): boolean => {
@@ -145,7 +151,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
           error={errors.commission_rate}
         >
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
               <p className="text-sm text-muted-foreground">
                 Category minimum:{" "}
                 <span className="font-medium text-foreground">
@@ -156,8 +162,8 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
                 <Input
                   type="number"
                   placeholder={categoryMinCommission.toFixed(2)}
-                  value={formData.commission_rate?.toString() || ""}
-                  onChange={(e) => handleRateChange(e.target.value)}
+                  value={commissionInput}
+                  onChange={(e) => handleRateInputChange(e.target.value)}
                   min={categoryMinCommission}
                   max={VALIDATION_RULES.commission_rate.max}
                   step={0.01}
@@ -172,7 +178,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
               max={VALIDATION_RULES.commission_rate.max}
               step={0.25}
               value={formData.commission_rate ?? categoryMinCommission}
-              onChange={(e) => handleRateChange(e.target.value)}
+              onChange={(e) => handleRateSliderChange(e.target.value)}
               className="w-full accent-accent"
               aria-label="Commission rate percentage"
             />

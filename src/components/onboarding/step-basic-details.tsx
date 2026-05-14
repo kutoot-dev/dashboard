@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ interface StepBasicDetailsProps {
 }
 
 export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
+  const router = useRouter();
   const { formData, updateFormData, phoneCheckResult, setPhoneCheckResult } =
     useOnboardingStore();
   const pushToast = useToastStore((s) => s.push);
@@ -242,6 +244,14 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     );
   }, [updateFormData]);
 
+  const goResume = useCallback(() => {
+    const params = new URLSearchParams({ from: "basic_details" });
+    if (formData.phone?.length === 10) {
+      params.set("phone", formData.phone);
+    }
+    router.push(`/onboard/resume?${params.toString()}`);
+  }, [formData.phone, router]);
+
   const handleSendEmailOtp = async () => {
     const email = formData.owner_email.trim().toLowerCase();
     if (!email) {
@@ -334,8 +344,8 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         required={!isFeVisitOnly}
         error={errors.phone}
       >
-        <div className="flex gap-2">
-          <div className="flex items-center px-3 bg-card border border-border rounded-md text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center justify-center rounded-lg border border-border/80 bg-background/40 px-3 py-2 text-sm text-muted-foreground backdrop-blur-sm">
             +91
           </div>
           <Input
@@ -345,6 +355,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             maxLength={10}
             inputMode="numeric"
             disabled={formData.channel === "merchant"}
+            className="flex-1"
           />
           {formData.channel === "field_executive" && checkPhone.isPending && (
             <div className="flex items-center px-2 text-xs text-muted-foreground">
@@ -364,6 +375,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           applicationId={phoneCheckResult.application_id}
           applicationStatus={phoneCheckResult.status as ApplicationStatus}
           message={phoneCheckResult.message}
+          onResume={goResume}
         />
       )}
 
@@ -441,22 +453,23 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           }}
         />
         <div className="mt-2 flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleSendEmailOtp}
-            loading={sendEmailOtp.isPending}
-            disabled={!formData.owner_email}
-          >
-            Send Email OTP
-          </Button>
-          {formData.owner_email_verified && (
-            <span className="text-xs text-success self-center">Verified</span>
+          {!formData.owner_email_verified ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleSendEmailOtp}
+              loading={sendEmailOtp.isPending}
+              disabled={!formData.owner_email}
+            >
+              {emailOtpSent ? "Resend OTP" : "Send Email OTP"}
+            </Button>
+          ) : (
+            <span className="text-xs text-success self-center">Email verified</span>
           )}
         </div>
         {emailOtpSent && !formData.owner_email_verified && (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               placeholder="Enter 6-digit OTP"
               value={emailOtp}
@@ -465,11 +478,13 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
               }
               maxLength={6}
               inputMode="numeric"
+              className="flex-1"
             />
             <Button
               type="button"
               variant="primary"
-              size="sm"
+              size="md"
+              className="w-full sm:w-auto"
               onClick={handleVerifyEmailOtp}
               loading={verifyEmailOtp.isPending}
               disabled={emailOtp.length !== 6}
@@ -479,7 +494,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           </div>
         )}
         {(errors.owner_email || emailOtpMessage) && (
-          <p className="mt-1 text-xs text-error">{errors.owner_email ?? emailOtpMessage}</p>
+          <p className="mt-1 wrap-break-word text-xs leading-5 text-error">
+            {errors.owner_email ?? emailOtpMessage}
+          </p>
         )}
       </div>
 

@@ -103,7 +103,7 @@ export default function ResumePage() {
       setReferralCode(queryReferralCode);
     }
 
-    if (from !== "start") {
+    if (!from) {
       const targetParams = new URLSearchParams();
       if (queryReferralCode) {
         targetParams.set("referral_code", queryReferralCode);
@@ -199,14 +199,14 @@ export default function ResumePage() {
   const loadApplication = async (phone: string) => {
     setLoading(true);
     try {
-      const res = await onboardingService.listApplications({ phone, status: "inprogress" });
+      const res = await onboardingService.listApplications({ phone });
       const apps = res.data?.items || [];
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];
         loadFromApplication(toResumePayload(app));
         await hydrateAndGo(app.application_id);
       } else {
-        setError("No draft application found for this number.");
+        setError("No application found for this number.");
       }
     } catch {
       setError("Failed to load application. Try again.");
@@ -218,14 +218,14 @@ export default function ResumePage() {
   const loadApplicationByExec = async (execId: string) => {
     setLoading(true);
     try {
-      const res = await onboardingService.listApplications({ exec_id: execId, status: "inprogress" });
+      const res = await onboardingService.listApplications({ exec_id: execId });
       const apps = res.data?.items || [];
       if (Array.isArray(apps) && apps.length > 0) {
         const app = apps[0];
         loadFromApplication(toResumePayload(app));
         await hydrateAndGo(app.application_id);
       } else {
-        setError("No draft applications found for your account.");
+        setError("No applications found for your account.");
       }
     } catch {
       setError("Failed to load application. Try again.");
@@ -364,10 +364,10 @@ export default function ResumePage() {
             placeholder="KT1234"
             value={employeeCode}
             onChange={(e) =>
-              setEmployeeCode(e.target.value.toUpperCase().slice(0, 8))
+              setEmployeeCode(e.target.value.slice(0, 8))
             }
             maxLength={8}
-            className="min-h-11"
+            className="min-h-11 uppercase"
           />
           {error && <p className="text-xs text-error">{error}</p>}
           <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:gap-3">

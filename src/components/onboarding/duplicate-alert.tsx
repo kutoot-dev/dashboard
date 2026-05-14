@@ -29,6 +29,11 @@ export function DuplicateAlert({
   onResume,
   className,
 }: DuplicateAlertProps) {
+  const actionLabel =
+    status === "already_submitted" || status === "active_merchant"
+      ? "View current application status"
+      : "Resume this application";
+
   const colors =
     status === "active_merchant"
       ? { bg: "bg-success/10", border: "border-success/30", icon: "text-success" }
@@ -71,13 +76,13 @@ export function DuplicateAlert({
               </span>
             </div>
           )}
-          {(status === "existing_lead" || status === "existing_fe_visit") && onResume && (
+          {applicationId && onResume && (
             <button
               type="button"
               onClick={onResume}
               className="mt-2 text-sm font-medium text-primary hover:text-primary/80 underline"
             >
-              Resume this application
+              {actionLabel}
             </button>
           )}
         </div>
