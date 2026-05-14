@@ -28,6 +28,7 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
   { value: "pending", label: "Pending" },
   { value: "failed", label: "Failed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 function parseFileName(response: AxiosResponse<Blob>, fallback: string): string {
@@ -357,7 +358,7 @@ export default function TransactionsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1400px] text-sm">
+          <table className="w-full min-w-350 text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-2 py-2">Date</th>

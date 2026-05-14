@@ -150,12 +150,13 @@ export default function ResumePage() {
   };
 
   const handleExecResume = () => {
-    if (!VALIDATION_RULES.employee_code.pattern.test(employeeCode)) {
+    const normalizedEmployeeCode = employeeCode.trim();
+    if (!VALIDATION_RULES.employee_code.pattern.test(normalizedEmployeeCode)) {
       setError("Enter a valid employee code (4-8 alphanumeric).");
       return;
     }
     setError(null);
-    verifyExec.mutate(employeeCode, {
+    verifyExec.mutate(normalizedEmployeeCode, {
       onSuccess: async (res) => {
         if (!res.data.valid) {
           setError(res.data.message || "Invalid employee code.");
@@ -364,10 +365,10 @@ export default function ResumePage() {
             placeholder="KT1234"
             value={employeeCode}
             onChange={(e) =>
-              setEmployeeCode(e.target.value.slice(0, 8))
+              setEmployeeCode(e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8))
             }
             maxLength={8}
-            className="min-h-11 uppercase"
+            className="min-h-11"
           />
           {error && <p className="text-xs text-error">{error}</p>}
           <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:gap-3">

@@ -626,7 +626,7 @@ function Section({
           Edit
         </button>
       </div>
-      <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2">
+      <div className="grid grid-cols-1 gap-x-4 gap-y-2 px-4 py-3 sm:grid-cols-2">
         {children}
       </div>
     </div>
@@ -644,8 +644,8 @@ function Row({
 }) {
   return (
     <>
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-sm text-foreground ${valueClass || ""}`}>
+      <span className="text-xs text-muted-foreground wrap-break-word">{label}</span>
+      <span className={`text-sm text-foreground wrap-break-word sm:break-all ${valueClass || ""}`}>
         {value}
       </span>
     </>

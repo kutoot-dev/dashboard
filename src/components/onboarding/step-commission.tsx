@@ -164,7 +164,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
                   placeholder={categoryMinCommission.toFixed(2)}
                   value={commissionInput}
                   onChange={(e) => handleRateInputChange(e.target.value)}
-                  min={categoryMinCommission}
+                  min={VALIDATION_RULES.commission_rate.min}
                   max={VALIDATION_RULES.commission_rate.max}
                   step={0.01}
                   className="w-32"

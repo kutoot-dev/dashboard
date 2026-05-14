@@ -298,7 +298,7 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     tooltip: {
       title: "Username",
       description:
-        "Your unique Kutoot username (4-25 alphanumeric characters) provided by your manager.",
+        "Your unique Kutoot username (4-8 alphanumeric characters) provided by your manager.",
       example: "KT1234, EX00789",
       whyNeeded:
         "Authenticates you as an authorized field executive and links onboardings to your performance record.",
@@ -327,8 +327,8 @@ export const VALIDATION_RULES = {
   },
   employee_code: {
     minLength: 4,
-    maxLength: 25,
-    pattern: /^[A-Za-z0-9]{4,25}$/,
+    maxLength: 8,
+    pattern: /^[A-Za-z0-9]{4,8}$/,
   },
   photo_min_size: 100 * 1024, // 100KB
   photo_max_size: 10 * 1024 * 1024, // 10MB

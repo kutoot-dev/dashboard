@@ -286,7 +286,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         setEmailOtpMessage("OTP sent to email.");
         pushToast({
           variant: "success",
-          title: "Email OTP sent",
+          title: "Onboarding email OTP sent",
           description: "Enter the new OTP to verify this email.",
         });
         setErrors((prev) => {
@@ -320,7 +320,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       const res = await verifyEmailOtp.mutateAsync({ email, otp: emailOtp });
       if (res.data.verified) {
         updateFormData({ owner_email_verified: true, owner_email: email });
-        setEmailOtpMessage("Email verified.");
+        setEmailOtpSent(false);
+        setEmailOtp("");
+        setEmailOtpMessage("");
         pushToast({
           variant: "success",
           title: "Email verified",
@@ -442,7 +444,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             value={formData.referral_code}
             onChange={(e) =>
               updateFormData({
-                referral_code: e.target.value.toUpperCase().trim(),
+                referral_code: e.target.value.trim(),
               })
             }
             maxLength={16}
@@ -479,9 +481,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             >
               {emailOtpSent ? "Resend OTP" : "Send Email OTP"}
             </Button>
-          ) : (
-            <span className="text-xs text-success self-center">Email verified</span>
-          )}
+          ) : null}
         </div>
         {emailOtpSent && !formData.owner_email_verified && (
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -505,7 +505,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           </div>
         )}
         {(errors.owner_email || emailOtpMessage) && (
-          <p className="mt-1 wrap-break-word text-xs leading-5 text-error">
+          <p
+            className={`mt-1 wrap-break-word text-xs leading-5 ${errors.owner_email ? "text-error" : "text-muted-foreground"}`}
+          >
             {errors.owner_email ?? emailOtpMessage}
           </p>
         )}

@@ -11,6 +11,20 @@ import { cn } from "@/lib/utils/cn";
 const cardClass =
   "glass-card-transparent rounded-2xl p-5 sm:p-6 space-y-4 transition-shadow hover:shadow-lg";
 
+function normalizeIndianMobileInput(value: string): string {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.length > 10 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.length > 10) {
+    digits = digits.slice(-10);
+  }
+
+  return digits;
+}
+
 export default function OnboardStartPage() {
   const router = useRouter();
   const checkPhone = useCheckPhone();
@@ -23,10 +37,7 @@ export default function OnboardStartPage() {
   const reset = useOnboardingStore((s) => s.reset);
   const updateFormData = useOnboardingStore((s) => s.updateFormData);
 
-  const cleanPhone = useMemo(
-    () => mobile.replace(/\D/g, "").slice(0, 10),
-    [mobile],
-  );
+  const cleanPhone = useMemo(() => normalizeIndianMobileInput(mobile), [mobile]);
   const referralCode = useMemo(() => {
     if (typeof window === "undefined") return "";
     return (new URLSearchParams(window.location.search).get("referral_code") ?? "")

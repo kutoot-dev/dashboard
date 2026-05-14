@@ -24,6 +24,20 @@ interface StepIdentityProps {
   onNext: () => void;
 }
 
+function normalizeIndianMobileInput(value: string): string {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.length > 10 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.length > 10) {
+    digits = digits.slice(-10);
+  }
+
+  return digits;
+}
+
 export function StepIdentity({ onNext }: StepIdentityProps) {
   const router = useRouter();
   const {
@@ -87,7 +101,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
   };
 
   const handleMerchantPhoneChange = (raw: string) => {
-    const clean = raw.replace(/\D/g, "").slice(0, 10);
+    const clean = normalizeIndianMobileInput(raw);
     setOtpPhone(clean);
     setError("");
 
@@ -115,13 +129,18 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
 
   const handleVerifyExecutive = async () => {
     setError("");
+    const normalizedEmployeeCode = employeeCode.trim();
+    if (normalizedEmployeeCode.length < 4) {
+      setError("Enter a valid employee code (4-8 alphanumeric).");
+      return;
+    }
     try {
-      const res = await verifyExec.mutateAsync(employeeCode);
+      const res = await verifyExec.mutateAsync(normalizedEmployeeCode);
       if (res.data.valid) {
         updateFormData({
           exec_id: res.data.exec_id,
           exec_name: res.data.exec_name,
-          exec_employee_code: employeeCode,
+          exec_employee_code: normalizedEmployeeCode,
         });
         onNext();
       } else {
@@ -328,12 +347,11 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
                   setEmployeeCode(
                     e.target.value
                       .replace(/[^a-zA-Z0-9]/g, "")
-                      .toUpperCase()
-                      .slice(0, 25),
+                      .slice(0, 8),
                   )
                 }
-                maxLength={25}
-                className="min-h-11 flex-1 uppercase"
+                maxLength={8}
+                className="min-h-11 flex-1"
               />
               <Button
                 variant="primary"
