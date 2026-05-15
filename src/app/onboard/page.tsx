@@ -211,6 +211,16 @@ export default function OnboardPage() {
         goNext();
       };
 
+      if (fromStep !== "identity" && !formData.channel) {
+        pushToast({
+          variant: "warning",
+          title: "Complete identity first",
+          description: "Select who is filling this form before saving other steps.",
+        });
+        setStep("identity");
+        return;
+      }
+
       // FE identity step happens before phone collection. Avoid creating a draft
       // too early, otherwise backend validation rejects it and blocks navigation.
       if (!applicationId && fromStep === "identity" && formData.channel === "field_executive") {
