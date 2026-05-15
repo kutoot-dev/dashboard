@@ -171,6 +171,9 @@ function QrPreviewCard({
 export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
   const { formData, updateFormData } = useOnboardingStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const inventoryRows = Array.isArray(formData.inventory_handover_items)
+    ? formData.inventory_handover_items
+    : [];
 
   useEffect(() => {
     if (formData.qr_serial.trim()) {
@@ -197,7 +200,7 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
   useEffect(() => {
     if (
       formData.channel === "field_executive" &&
-      formData.inventory_handover_items.length === 0
+      inventoryRows.length === 0
     ) {
       updateFormData({
         inventory_handover_items: DEFAULT_INVENTORY_ASSIGNMENT.map((item) =>
@@ -207,11 +210,9 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
     }
   }, [
     formData.channel,
-    formData.inventory_handover_items.length,
+    inventoryRows.length,
     updateFormData,
   ]);
-
-  const inventoryRows = formData.inventory_handover_items;
 
   const updateInventoryItem = (
     itemId: string,

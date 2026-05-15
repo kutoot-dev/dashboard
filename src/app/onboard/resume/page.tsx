@@ -131,7 +131,13 @@ export default function ResumePage() {
     }
     setError(null);
     sendOtp.mutate(phone, {
-      onSuccess: () => setMerchantStep("otp"),
+      onSuccess: (res) => {
+        if (res.success && res.data?.sent) {
+          setMerchantStep("otp");
+          return;
+        }
+        setError(res.data?.message || "Failed to send OTP. Try again.");
+      },
       onError: () => setError("Failed to send OTP. Try again."),
     });
   };

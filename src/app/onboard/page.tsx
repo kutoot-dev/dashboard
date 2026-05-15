@@ -211,6 +211,13 @@ export default function OnboardPage() {
         goNext();
       };
 
+      // FE identity step happens before phone collection. Avoid creating a draft
+      // too early, otherwise backend validation rejects it and blocks navigation.
+      if (!applicationId && fromStep === "identity" && formData.channel === "field_executive") {
+        advance();
+        return;
+      }
+
       const payload = {
         current_step: fromStep,
         ...formData,
