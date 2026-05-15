@@ -167,7 +167,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       e.state = "State is required.";
     }
     if (formData.referral_code && !/^(ML-\d+|\d+)$/i.test(formData.referral_code.trim())) {
-      e.referral_code = "Referral code must be in format ML-000123 (or numeric location id).";
+      e.referral_code = "If provided, referral code must be in format ML-000123 (or numeric location id).";
     }
     if (formData.gps_lat == null || formData.gps_long == null) {
       e.gps = "Select map location to capture latitude and longitude.";

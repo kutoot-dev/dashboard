@@ -144,6 +144,13 @@ export default function OnboardPage() {
       return;
     }
 
+    // Only pre-fill when the URL code is actually valid format; skip otherwise
+    // so the user doesn't land on a pre-filled field that immediately errors.
+    if (!/^(ML-\d+|\d+)$/i.test(queryReferralCode)) {
+      referralHydratedRef.current = true;
+      return;
+    }
+
     updateFormData({ referral_code: queryReferralCode });
     referralHydratedRef.current = true;
   }, [formData.referral_code, updateFormData]);
@@ -228,12 +235,17 @@ export default function OnboardPage() {
         return;
       }
 
+      // FE interested: completing bank is a mid-point submission for admin review.
+      // The wizard will re-open after approval to continue with qr_activation.
+      const isFeBank =
+        fromStep === "bank" &&
+        formData.channel === "field_executive" &&
+        formData.visit_outcome === "interested";
+
       const payload = {
         current_step: fromStep,
         ...formData,
-        // Send the new stage field; backend still accepts the legacy
-        // `status: "draft"` alias for one release.
-        stage: "in_progress" as MerchantStage,
+        stage: (isFeBank ? "submitted" : "in_progress") as MerchantStage,
       } as Record<string, unknown>;
 
       if (applicationId) {
@@ -278,6 +290,28 @@ export default function OnboardPage() {
     [currentStep, saveAndAdvance],
   );
 
+  // Called from ApplicationStatusScreen when FE app is approved and
+  // qr_activation still needs to be completed.
+  const handleResume = useCallback(() => {
+    if (!applicationId) return;
+    updateApp.mutate(
+      {
+        id: applicationId,
+        data: { stage: "in_progress" as MerchantStage, current_step: "qr_activation" as WizardStepId },
+      },
+      {
+        onSuccess: () => setStep("qr_activation"),
+        onError: () => {
+          pushToast({
+            variant: "error",
+            title: "Could not resume",
+            description: "Unable to resume setup. Please try again.",
+          });
+        },
+      },
+    );
+  }, [applicationId, updateApp, setStep, pushToast]);
+
   const renderStep = () => {
     switch (currentStep) {
       case "identity":
@@ -318,12 +352,22 @@ export default function OnboardPage() {
   );
 
   if (applicationId && lockedStage) {
+    // Offer a "Continue Setup" resume path only when:
+    //   - the application was just approved, AND
+    //   - the FE still has qr_activation to complete.
+    const canResume =
+      lockedStage === "approved" &&
+      formData.channel === "field_executive" &&
+      formData.visit_outcome === "interested" &&
+      !completedSteps.includes("qr_activation");
+
     return (
       <div className="space-y-6">
         <div className="flex justify-end">{themeToggle}</div>
         <ApplicationStatusScreen
           applicationId={applicationId}
           phone={formData.phone ?? null}
+          onResume={canResume ? handleResume : undefined}
         />
       </div>
     );

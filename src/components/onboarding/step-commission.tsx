@@ -192,15 +192,23 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
               <p className="text-sm text-muted-foreground">
                 On a ₹1,000 transaction:
               </p>
-              <div className="flex justify-between mt-1">
-                <span className="text-sm text-foreground">
-                  Kutoot fee: ₹
-                  {((1000 * formData.commission_rate) / 100).toFixed(2)}
-                </span>
-                <span className="text-sm text-success">
-                  You receive: ₹
-                  {(1000 - (1000 * formData.commission_rate) / 100).toFixed(2)}
-                </span>
+              <div className="flex flex-col gap-1 mt-1">
+                <div className="flex justify-between">
+                  <span className="text-sm text-foreground">
+                    Kutoot fee: ₹
+                    {((1000 * formData.commission_rate) / 100).toFixed(2)}
+                  </span>
+                  <span className="text-sm text-foreground">
+                    GST (18%): ₹
+                    {((1000 * formData.commission_rate) / 100 * 0.18).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-end border-t border-border pt-1">
+                  <span className="text-sm text-success">
+                    You receive: ₹
+                    {(1000 - (1000 * formData.commission_rate) / 100 * 1.18).toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
           )}

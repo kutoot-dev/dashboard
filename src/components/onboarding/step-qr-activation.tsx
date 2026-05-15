@@ -258,16 +258,8 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
           e.inventory = `Inventory item #${index + 1} name is required.`;
           break;
         }
-        if (item.assigned_quantity < 0) {
-          e.inventory = `Assigned quantity cannot be negative for item #${index + 1}.`;
-          break;
-        }
         if (item.used_quantity < 0) {
-          e.inventory = `Used quantity cannot be negative for item #${index + 1}.`;
-          break;
-        }
-        if (item.used_quantity > item.assigned_quantity) {
-          e.inventory = `Used quantity cannot exceed assigned quantity for item #${index + 1}.`;
+          e.inventory = `Issued quantity cannot be negative for item #${index + 1}.`;
           break;
         }
       }
@@ -335,6 +327,7 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         required
         error={errors.qr_photo}
         hint="Take a photo of the QR sticker placed at the merchant's counter."
+        hideUpload
       />
 
       {formData.channel === "field_executive" && (
@@ -368,7 +361,7 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
               {inventoryRows.map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_auto] gap-2 rounded-md border border-border p-3"
+                  className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto] gap-2 rounded-md border border-border p-3"
                 >
                   <Input
                     placeholder={`Inventory item ${index + 1}`}
@@ -380,18 +373,7 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
                   <Input
                     type="number"
                     min="0"
-                    placeholder="Assigned"
-                    value={item.assigned_quantity}
-                    onChange={(event) =>
-                      updateInventoryItem(item.id, {
-                        assigned_quantity: Number(event.target.value || 0),
-                      })
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Used"
+                    placeholder="Issued qty"
                     value={item.used_quantity}
                     onChange={(event) =>
                       updateInventoryItem(item.id, {
@@ -422,24 +404,24 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         required
         error={errors.operating_hours}
       >
-        <div className="flex items-center gap-2">
-          <FontAwesomeIcon icon={faClock} className="text-muted-foreground" />
+        <div className="flex flex-wrap items-center gap-2">
+          <FontAwesomeIcon icon={faClock} className="text-muted-foreground shrink-0" />
           <Input
             type="time"
             value={formData.operating_hours_start}
             onChange={(e) =>
               updateFormData({ operating_hours_start: e.target.value })
             }
-            className="w-36"
+            className="w-full sm:w-36"
           />
-          <span className="text-sm text-muted-foreground">to</span>
+          <span className="text-sm text-muted-foreground shrink-0">to</span>
           <Input
             type="time"
             value={formData.operating_hours_end}
             onChange={(e) =>
               updateFormData({ operating_hours_end: e.target.value })
             }
-            className="w-36"
+            className="w-full sm:w-36"
           />
         </div>
       </FieldWithInfo>

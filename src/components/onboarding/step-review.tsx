@@ -30,7 +30,7 @@ interface StepReviewProps {
 
 export function StepReview({ onBack }: StepReviewProps) {
   const router = useRouter();
-  const { formData, applicationId, setStep } = useOnboardingStore();
+  const { formData, applicationId, completedSteps, setStep } = useOnboardingStore();
   const pushToast = useToastStore((s) => s.push);
   const createApp = useCreateApplication();
   const updateApp = useUpdateApplication();
@@ -131,11 +131,13 @@ export function StepReview({ onBack }: StepReviewProps) {
         operating_hours: `${formData.operating_hours_start} - ${formData.operating_hours_end}`,
         expected_monthly_volume: formData.expected_monthly_volume,
       }),
-      // Send the canonical `stage` field; the backend retains `status` as a
-      // deprecated alias for one release.
+      // FE post-approval second pass (qr_activation already done) → mark active.
+      // First-pass merchant/FE submissions remain "submitted" for admin review.
       stage: isFeVisitOnly
         ? ((formData.visit_outcome ?? "revisit") as string)
-        : "submitted",
+        : completedSteps.includes("qr_activation")
+          ? "active"
+          : "submitted",
       status: (isFeVisitOnly ? "visit_record" : "pending_review") as ApplicationStatus,
       current_step: "review" as WizardStepId,
       website_url: formData.website_url, // honeypot
@@ -302,6 +304,20 @@ export function StepReview({ onBack }: StepReviewProps) {
           </span>
         )}
       </div>
+
+      {/* Identity section — shown first for correct step-order matching */}
+      {!isFeVisitOnly && (
+        <Section title="Identity" onEdit={() => goToStep("identity")}>
+          <Row
+            label="Channel"
+            value={formData.channel === "merchant" ? "Merchant" : "Field Executive"}
+          />
+          {formData.exec_name && <Row label="Executive Name" value={formData.exec_name} />}
+          {formData.exec_employee_code && (
+            <Row label="Employee Code" value={formData.exec_employee_code} />
+          )}
+        </Section>
+      )}
 
       {/* Visit details section (FE visit-only) */}
       {isFeVisitOnly && (
@@ -496,17 +512,6 @@ export function StepReview({ onBack }: StepReviewProps) {
               ))}
             </Section>
           )}
-
-          <Section title="Identity" onEdit={() => goToStep("identity")}>
-            <Row
-              label="Channel"
-              value={formData.channel === "merchant" ? "Merchant" : "Field Executive"}
-            />
-            {formData.exec_name && <Row label="Executive Name" value={formData.exec_name} />}
-            {formData.exec_employee_code && (
-              <Row label="Employee Code" value={formData.exec_employee_code} />
-            )}
-          </Section>
         </>
       )}
 

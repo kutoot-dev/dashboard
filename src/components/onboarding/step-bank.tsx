@@ -177,6 +177,11 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
           }
           placeholder="Select method..."
         />
+        {formData.preferred_settlement_method === "instant" && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+            Additional charges applicable for instant settlement.
+          </p>
+        )}
       </div>
 
       {/* Navigation */}

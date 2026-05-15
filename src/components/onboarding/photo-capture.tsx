@@ -13,6 +13,7 @@ interface PhotoCaptureProps {
   error?: string;
   hint?: string;
   className?: string;
+  hideUpload?: boolean;
 }
 
 /**
@@ -28,6 +29,7 @@ export function PhotoCapture({
   error,
   hint,
   className,
+  hideUpload = false,
 }: PhotoCaptureProps) {
   const [capturing, setCapturing] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<string>("");
@@ -37,7 +39,7 @@ export function PhotoCapture({
   const streamRef = useRef<MediaStream | null>(null);
 
   function handleFileSelect(file: File) {
-    if (file.size < 100 * 1024 || file.size > 10 * 1024 * 1024) {
+    if (file.size < 1 * 1024 || file.size > 10 * 1024 * 1024) {
       return;
     }
     const reader = new FileReader();
@@ -197,9 +199,11 @@ export function PhotoCapture({
             <Button variant="secondary" size="sm" onClick={startCamera}>
               Retake Photo
             </Button>
-            <Button variant="ghost" size="sm" onClick={openFilePicker}>
-              Upload from Device
-            </Button>
+            {!hideUpload && (
+              <Button variant="ghost" size="sm" onClick={openFilePicker}>
+                Upload from Device
+              </Button>
+            )}
           </div>
         </div>
       ) : (
@@ -234,9 +238,11 @@ export function PhotoCapture({
             <Button variant="primary" size="sm" onClick={startCamera}>
               Take Photo
             </Button>
-            <Button variant="secondary" size="sm" onClick={openFilePicker}>
-              Upload from Device
-            </Button>
+            {!hideUpload && (
+              <Button variant="secondary" size="sm" onClick={openFilePicker}>
+                Upload from Device
+              </Button>
+            )}
           </div>
         </div>
       )}
