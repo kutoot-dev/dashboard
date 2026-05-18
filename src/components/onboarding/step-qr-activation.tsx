@@ -361,35 +361,33 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
               {inventoryRows.map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto] gap-2 rounded-md border border-border p-3"
+                  className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 rounded-md border border-border p-3"
                 >
-                  <Input
-                    placeholder={`Inventory item ${index + 1}`}
-                    value={item.name}
-                    onChange={(event) =>
-                      updateInventoryItem(item.id, { name: event.target.value })
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Issued qty"
-                    value={item.used_quantity}
-                    onChange={(event) =>
-                      updateInventoryItem(item.id, {
-                        used_quantity: Number(event.target.value || 0),
-                      })
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeInventoryItem(item.id)}
-                    aria-label={`Remove inventory item ${index + 1}`}
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </Button>
+                  <div className="flex items-center justify-between col-span-1 sm:col-span-2">
+                    <span className="text-sm font-medium text-foreground">{item.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeInventoryItem(item.id)}
+                      aria-label={`Remove inventory item ${index + 1}`}
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </Button>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Issued item quantity"
+                      value={item.used_quantity}
+                      onChange={(event) =>
+                        updateInventoryItem(item.id, {
+                          used_quantity: Number(event.target.value || 0),
+                        })
+                      }
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -404,25 +402,27 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         required
         error={errors.operating_hours}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <FontAwesomeIcon icon={faClock} className="text-muted-foreground shrink-0" />
-          <Input
-            type="time"
-            value={formData.operating_hours_start}
-            onChange={(e) =>
-              updateFormData({ operating_hours_start: e.target.value })
-            }
-            className="w-full sm:w-36"
-          />
-          <span className="text-sm text-muted-foreground shrink-0">to</span>
-          <Input
-            type="time"
-            value={formData.operating_hours_end}
-            onChange={(e) =>
-              updateFormData({ operating_hours_end: e.target.value })
-            }
-            className="w-full sm:w-36"
-          />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <FontAwesomeIcon icon={faClock} className="text-muted-foreground shrink-0 hidden sm:inline" />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Input
+              type="time"
+              value={formData.operating_hours_start}
+              onChange={(e) =>
+                updateFormData({ operating_hours_start: e.target.value })
+              }
+              className="flex-1 sm:flex-none sm:w-32"
+            />
+            <span className="text-sm text-muted-foreground shrink-0">to</span>
+            <Input
+              type="time"
+              value={formData.operating_hours_end}
+              onChange={(e) =>
+                updateFormData({ operating_hours_end: e.target.value })
+              }
+              className="flex-1 sm:flex-none sm:w-32"
+            />
+          </div>
         </div>
       </FieldWithInfo>
 

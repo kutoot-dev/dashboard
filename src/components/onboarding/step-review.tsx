@@ -472,15 +472,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             /> */}
           </Section>
 
-          <Section title="Operations" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "bank")}>
-            <Row
-              label="Operating Hours"
-              value={`${formData.operating_hours_start} - ${formData.operating_hours_end}`}
-            />
-            <Row label="Expected Volume" value={volumeLabel} />
-          </Section>
-
-          <Section title="Referral & QR" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "basic_details")}>
+          <Section title="Field Handover" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "basic_details")}>
             <Row
               label="Referral Code"
               value={formData.referral_code || "Not provided"}
@@ -502,16 +494,22 @@ export function StepReview({ onBack }: StepReviewProps) {
             <Section title="Inventory Handover" onEdit={() => goToStep("qr_activation")}>
               {formData.inventory_handover_items.map((item, index) => (
                 <div key={item.id} className="col-span-2 rounded-md border border-border p-3 text-sm">
-                  <p className="font-medium text-foreground">
-                    {index + 1}. {item.name}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Assigned: {item.assigned_quantity} | Handed Over: {item.used_quantity}
+                  <p className="text-xs text-muted-foreground">Item {index + 1}</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    Issued Quantity: {item.used_quantity}
                   </p>
                 </div>
               ))}
             </Section>
           )}
+
+          <Section title="Operations" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "bank")}>
+            <Row
+              label="Operating Hours"
+              value={`${formData.operating_hours_start} - ${formData.operating_hours_end}`}
+            />
+            <Row label="Expected Volume" value={volumeLabel} />
+          </Section>
         </>
       )}
 
