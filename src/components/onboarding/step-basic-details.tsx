@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
 import { PhotoCapture } from "./photo-capture";
@@ -676,7 +677,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           />
         </FieldWithInfo>
         <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} required error={errors.state}>
-          <Select
+          <SearchableSelect
             options={states.map((s) => ({ value: String(s.id), label: s.name }))}
             value={selectedStateValue}
             onChange={(v) => {
@@ -685,6 +686,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
               updateFormData({ state: state?.name ?? "", city: "" });
             }}
             placeholder="Select state..."
+            noResultsText="No states found"
           />
         </FieldWithInfo>
       </div>
@@ -695,7 +697,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             Could not load cities for selected state.
           </p>
         )}
-        <Select
+        <SearchableSelect
           options={cityOptions.map((city) => ({ value: city, label: city }))}
           value={formData.city}
           onChange={(v) => updateFormData({ city: v })}
@@ -707,6 +709,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
                 : "Select city..."
           }
           disabled={!selectedState || citiesLoading || citiesError}
+          noResultsText="No cities found"
         />
       </FieldWithInfo>
 
@@ -759,7 +762,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
 
       {/* Storefront Photo — optional for FE visit-only, required otherwise */}
       <PhotoCapture
-        label="Shop Storefront Photo"
+        label="Store / Business Photo"
         value={formData.storefront_photo_url}
         onChange={(url) =>
           updateFormData({
