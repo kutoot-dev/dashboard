@@ -521,9 +521,19 @@ export function StepReview({ onBack }: StepReviewProps) {
             <input
               type="checkbox"
               checked={formData.terms_accepted}
-              onChange={(e) =>
-                useOnboardingStore.getState().updateFormData({ terms_accepted: e.target.checked })
-              }
+              onChange={(e) => {
+                const checked = e.target.checked;
+                useOnboardingStore.getState().updateFormData({ terms_accepted: checked });
+                if (checked) {
+                  setErrors((prev) => {
+                    if (!prev.terms) return prev;
+                    const next = { ...prev };
+                    delete next.terms;
+
+                    return next;
+                  });
+                }
+              }}
               className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
             />
             <span className="text-sm text-foreground">
@@ -547,9 +557,19 @@ export function StepReview({ onBack }: StepReviewProps) {
             <input
               type="checkbox"
               checked={formData.privacy_accepted}
-              onChange={(e) =>
-                useOnboardingStore.getState().updateFormData({ privacy_accepted: e.target.checked })
-              }
+              onChange={(e) => {
+                const checked = e.target.checked;
+                useOnboardingStore.getState().updateFormData({ privacy_accepted: checked });
+                if (checked) {
+                  setErrors((prev) => {
+                    if (!prev.privacy) return prev;
+                    const next = { ...prev };
+                    delete next.privacy;
+
+                    return next;
+                  });
+                }
+              }}
               className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
             />
             <span className="text-sm text-foreground">
