@@ -20,6 +20,19 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
   const { formData, updateFormData } = useOnboardingStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const clearFieldError = (field: string) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const setFieldError = (field: string, message: string) => {
+    setErrors((prev) => ({ ...prev, [field]: message }));
+  };
+
   // IFSC auto-verification on blur
   const handleIfscBlur = () => {
     const ifsc = (formData.bank_ifsc ?? "").toUpperCase();
@@ -93,7 +106,15 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
         <Input
           placeholder={ONBOARDING_FIELDS.bank_account_name.placeholder}
           value={formData.bank_account_name}
-          onChange={(e) => updateFormData({ bank_account_name: e.target.value })}
+          onChange={(e) => {
+            const value = e.target.value;
+            updateFormData({ bank_account_name: value });
+            if (value.trim()) {
+              clearFieldError("bank_account_name");
+            } else {
+              setFieldError("bank_account_name", "Account holder name is required.");
+            }
+          }}
           maxLength={100}
         />
       </FieldWithInfo>
@@ -107,11 +128,21 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
         <Input
           placeholder={ONBOARDING_FIELDS.bank_account_number.placeholder}
           value={formData.bank_account_number}
-          onChange={(e) =>
+          onChange={(e) => {
+            const value = e.target.value.replace(/\D/g, "").slice(0, 18);
             updateFormData({
-              bank_account_number: e.target.value.replace(/\D/g, "").slice(0, 18),
-            })
-          }
+              bank_account_number: value,
+            });
+            if (VALIDATION_RULES.bank_account_number.pattern.test(value)) {
+              clearFieldError("bank_account_number");
+            } else {
+              setFieldError("bank_account_number", "Enter a valid account number (9-18 digits).");
+            }
+
+            if (formData.bank_account_confirm && value === formData.bank_account_confirm) {
+              clearFieldError("bank_account_confirm");
+            }
+          }}
           maxLength={18}
           inputMode="numeric"
         />
@@ -126,11 +157,17 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
         <Input
           placeholder={ONBOARDING_FIELDS.bank_account_confirm.placeholder}
           value={formData.bank_account_confirm}
-          onChange={(e) =>
+          onChange={(e) => {
+            const value = e.target.value.replace(/\D/g, "").slice(0, 18);
             updateFormData({
-              bank_account_confirm: e.target.value.replace(/\D/g, "").slice(0, 18),
-            })
-          }
+              bank_account_confirm: value,
+            });
+            if (value === (formData.bank_account_number ?? "")) {
+              clearFieldError("bank_account_confirm");
+            } else {
+              setFieldError("bank_account_confirm", "Account numbers do not match.");
+            }
+          }}
           maxLength={18}
           inputMode="numeric"
         />
@@ -146,11 +183,17 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
           <Input
             placeholder={ONBOARDING_FIELDS.bank_ifsc.placeholder}
             value={formData.bank_ifsc}
-            onChange={(e) =>
+            onChange={(e) => {
+              const value = e.target.value.toUpperCase().slice(0, 11);
               updateFormData({
-                bank_ifsc: e.target.value.toUpperCase().slice(0, 11),
-              })
-            }
+                bank_ifsc: value,
+              });
+              if (VALIDATION_RULES.bank_ifsc.pattern.test(value)) {
+                clearFieldError("bank_ifsc");
+              } else {
+                setFieldError("bank_ifsc", "Enter a valid 11-character IFSC code.");
+              }
+            }}
             onBlur={handleIfscBlur}
             maxLength={11}
             className="uppercase"

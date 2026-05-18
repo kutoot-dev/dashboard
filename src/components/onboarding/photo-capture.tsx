@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 interface PhotoCaptureProps {
   label: string;
   value: string | null;
-  onChange: (dataUrl: string) => void;
+  onChange: (dataUrl: string | null) => void;
   onLocationCaptured?: (coords: { lat: number; long: number; accuracy: number }) => void;
   required?: boolean;
   error?: string;
@@ -154,6 +154,12 @@ export function PhotoCapture({
     setCapturing(false);
   }, []);
 
+  function removeImage() {
+    onChange(null);
+    setGpsStatus("");
+    cancelCamera();
+  }
+
   return (
     <div className={cn("space-y-2", className)}>
       <input
@@ -204,6 +210,9 @@ export function PhotoCapture({
                 Upload from Device
               </Button>
             )}
+            <Button variant="ghost" size="sm" onClick={removeImage}>
+              Remove Image
+            </Button>
           </div>
         </div>
       ) : (
