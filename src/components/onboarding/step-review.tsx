@@ -105,6 +105,7 @@ export function StepReview({ onBack }: StepReviewProps) {
         formData.gps_lat != null && formData.gps_long != null
           ? `https://maps.google.com/?q=${formData.gps_lat},${formData.gps_long}`
           : undefined,
+      expected_monthly_volume: formData.expected_monthly_volume || undefined,
       ...(!isFeVisitOnly && {
         commission_rate: formData.commission_rate,
         commission_model: "flat",
@@ -129,7 +130,6 @@ export function StepReview({ onBack }: StepReviewProps) {
         operating_hours_start: formData.operating_hours_start,
         operating_hours_end: formData.operating_hours_end,
         operating_hours: `${formData.operating_hours_start} - ${formData.operating_hours_end}`,
-        expected_monthly_volume: formData.expected_monthly_volume,
       }),
       // FE post-approval second pass (qr_activation already done) → mark active.
       // First-pass merchant/FE submissions remain "submitted" for admin review.

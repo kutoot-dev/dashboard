@@ -19,7 +19,11 @@ import {
   useStates,
   useVerifyEmailOtp,
 } from "@/lib/hooks";
-import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
+import {
+  ONBOARDING_FIELDS,
+  VALIDATION_RULES,
+  VOLUME_RANGES,
+} from "@/lib/constants/onboarding";
 import type { ApplicationStatus } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -165,6 +169,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     }
     if (!formData.state) {
       e.state = "State is required.";
+    }
+    if (!isFeVisitOnly && !formData.expected_monthly_volume) {
+      e.expected_monthly_volume = "Select expected monthly volume.";
     }
     if (formData.referral_code && !/^(ML-\d+|\d+)$/i.test(formData.referral_code.trim())) {
       e.referral_code = "If provided, referral code must be in format ML-000123 (or numeric location id).";
@@ -636,6 +643,21 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             />
           </div>
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">
+          Expected Monthly Volume {!isFeVisitOnly && <span className="text-error">*</span>}
+        </label>
+        <Select
+          options={VOLUME_RANGES}
+          value={formData.expected_monthly_volume ?? ""}
+          onChange={(value) => updateFormData({ expected_monthly_volume: value })}
+          placeholder="Select expected volume..."
+        />
+        {errors.expected_monthly_volume && (
+          <p className="text-xs text-error">{errors.expected_monthly_volume}</p>
+        )}
       </div>
 
       {/* PIN / State / City */}
