@@ -92,6 +92,12 @@ export default function LoginPage() {
             disabled={submitting}
           />
 
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-xs text-accent hover:text-accent/85 underline underline-offset-2">
+              Forgot password?
+            </Link>
+          </div>
+
           {error && (
             <p className="rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-xs text-loss">{error}</p>
           )}

@@ -37,6 +37,22 @@ interface MerchantMeResponse {
   };
 }
 
+interface GenericAuthResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface MerchantPasswordResetOtpPayload {
+  username: string;
+}
+
+interface MerchantPasswordResetPayload {
+  username: string;
+  otp: string;
+  password: string;
+  password_confirmation: string;
+}
+
 const COOKIE_MAX_AGE_DAYS = 7;
 
 function buildMeta(): ApiResponse<null>["meta"] {
@@ -159,4 +175,62 @@ export async function getMe(): Promise<ApiResponse<AuthUser | null>> {
   }
 
   return toAuthEnvelope(user, res.data.message);
+}
+
+/**
+ * Request a password reset email for merchant panel login.
+ */
+export async function requestPasswordReset(email: string): Promise<ApiResponse<null>> {
+  const res = await apiClient.post<GenericAuthResponse>("/auth/forgot-password", { email });
+
+  return {
+    success: !!res.data.success,
+    data: null,
+    meta: buildMeta(),
+    error: res.data.success
+      ? null
+      : {
+          code: "PASSWORD_RESET_REQUEST_FAILED",
+          message: res.data.message ?? "Could not send password reset link.",
+        },
+  };
+}
+
+/**
+ * Send OTP to merchant's registered mobile for password reset.
+ */
+export async function requestMerchantPasswordResetOtp(username: string): Promise<ApiResponse<null>> {
+  const payload: MerchantPasswordResetOtpPayload = { username };
+  const res = await apiClient.post<GenericAuthResponse>("/merchant-locations/auth/password/otp/send", payload);
+
+  return {
+    success: !!res.data.success,
+    data: null,
+    meta: buildMeta(),
+    error: res.data.success
+      ? null
+      : {
+          code: "MERCHANT_RESET_OTP_SEND_FAILED",
+          message: res.data.message ?? "Could not send reset OTP.",
+        },
+  };
+}
+
+/**
+ * Reset merchant password using username + OTP.
+ */
+export async function resetMerchantPasswordWithOtp(payload: MerchantPasswordResetPayload): Promise<ApiResponse<null>> {
+  const res = await apiClient.post<GenericAuthResponse>("/merchant-locations/auth/password/reset", payload);
+
+  return {
+    success: !!res.data.success,
+    data: null,
+    meta: buildMeta(),
+    error: res.data.success
+      ? null
+      : {
+          code: "MERCHANT_RESET_PASSWORD_FAILED",
+          message: res.data.message ?? "Could not reset password.",
+        },
+  };
 }

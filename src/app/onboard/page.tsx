@@ -352,14 +352,8 @@ export default function OnboardPage() {
   );
 
   if (applicationId && lockedStage) {
-    // Offer a "Continue Setup" resume path only when:
-    //   - the application was just approved, AND
-    //   - the FE still has qr_activation to complete.
-    const canResume =
-      lockedStage === "approved" &&
-      formData.channel === "field_executive" &&
-      formData.visit_outcome === "interested" &&
-      !completedSteps.includes("qr_activation");
+    // Approved applications are treated as final in merchant panel.
+    const canResume = false;
 
     return (
       <div className="space-y-6">
