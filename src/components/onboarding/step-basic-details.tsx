@@ -605,6 +605,39 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         </div>
       </div>
 
+      <div className="space-y-2 rounded-lg border border-border p-3">
+        <p className="text-sm font-medium text-foreground">Shop Operating Hours</p>
+        <p className="text-xs text-muted-foreground">
+          Add the regular opening and closing times for this shop.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Opening Time</label>
+            <Input
+              type="time"
+              value={formData.operating_hours_start ?? "09:00"}
+              onChange={(e) =>
+                updateFormData({
+                  operating_hours_start: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Closing Time</label>
+            <Input
+              type="time"
+              value={formData.operating_hours_end ?? "21:00"}
+              onChange={(e) =>
+                updateFormData({
+                  operating_hours_end: e.target.value,
+                })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
       {/* PIN / State / City */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.pin_code} required error={errors.pin_code}>
@@ -709,7 +742,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         onChange={(url) =>
           updateFormData({
             storefront_photo_url: url,
-            storefront_photo_status: "uploaded",
+            storefront_photo_status: url ? "uploaded" : "pending",
           })
         }
         onLocationCaptured={(coords) =>
