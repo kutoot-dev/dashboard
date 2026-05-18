@@ -644,7 +644,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-foreground">Expected Monthly Volume</label>
+        <label className="text-sm font-medium text-foreground">
+          Expected Monthly Volume <span className="text-xs text-muted-foreground">(optional)</span>
+        </label>
         <Select
           options={VOLUME_RANGES}
           value={formData.expected_monthly_volume ?? ""}
