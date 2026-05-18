@@ -249,9 +249,6 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
     if (!formData.operating_hours_start || !formData.operating_hours_end) {
       e.operating_hours = "Operating hours are required.";
     }
-    if (!formData.expected_monthly_volume) {
-      e.expected_volume = "Select expected volume range.";
-    }
     if (formData.channel === "field_executive") {
       for (const [index, item] of inventoryRows.entries()) {
         if (!item.name.trim()) {
@@ -429,7 +426,6 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
       {/* Expected Monthly Volume */}
       <FieldWithInfo
         fieldInfo={ONBOARDING_FIELDS.expected_volume}
-        required
         error={errors.expected_volume}
       >
         <div className="flex items-center gap-2">

@@ -171,9 +171,6 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!formData.state) {
       e.state = "State is required.";
     }
-    if (!isFeVisitOnly && !formData.expected_monthly_volume) {
-      e.expected_monthly_volume = "Select expected monthly volume.";
-    }
     if (formData.referral_code && !/^(ML-\d+|\d+)$/i.test(formData.referral_code.trim())) {
       e.referral_code = "If provided, referral code must be in format ML-000123 (or numeric location id).";
     }
@@ -462,7 +459,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">
-          Email <span className="text-xs text-muted-foreground">(single email)</span>
+          Email <span className="text-xs text-muted-foreground">(optional, single email)</span>
         </label>
         <Input
           placeholder="merchant@example.com"
@@ -623,7 +620,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             <label className="text-sm font-medium text-foreground">Opening Time</label>
             <Input
               type="time"
-              value={formData.operating_hours_start ?? "09:00"}
+              value={formData.operating_hours_start ?? ""}
               onChange={(e) =>
                 updateFormData({
                   operating_hours_start: e.target.value,
@@ -635,7 +632,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             <label className="text-sm font-medium text-foreground">Closing Time</label>
             <Input
               type="time"
-              value={formData.operating_hours_end ?? "21:00"}
+              value={formData.operating_hours_end ?? ""}
               onChange={(e) =>
                 updateFormData({
                   operating_hours_end: e.target.value,
@@ -647,9 +644,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-foreground">
-          Expected Monthly Volume {!isFeVisitOnly && <span className="text-error">*</span>}
-        </label>
+        <label className="text-sm font-medium text-foreground">Expected Monthly Volume</label>
         <Select
           options={VOLUME_RANGES}
           value={formData.expected_monthly_volume ?? ""}
@@ -714,7 +709,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       </FieldWithInfo>
 
       <div className="space-y-2 rounded-lg border border-border p-3">
-        <p className="text-sm font-medium text-foreground">Map Location</p>
+        <p className="text-sm font-medium text-foreground">
+          Map Location <span className="text-error">*</span>
+        </p>
         <p className="text-xs text-muted-foreground">
           Select visually from map or capture your current location.
         </p>

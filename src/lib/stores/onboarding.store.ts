@@ -93,6 +93,7 @@ interface OnboardingFormData {
   // Step 7
   terms_accepted: boolean;
   privacy_accepted: boolean;
+  resume_inventory_handover: boolean;
 
   // Visit record (FE non-interested flows)
   visit_outcome: VisitOutcome | null;
@@ -196,19 +197,21 @@ const initialFormData: OnboardingFormData = {
   qr_serial: "",
   qr_assigned: false,
   qr_photo_url: null,
-  operating_hours_start: "09:00",
-  operating_hours_end: "21:00",
+  operating_hours_start: "",
+  operating_hours_end: "",
   expected_monthly_volume: "",
   inventory_handover_items: [],
 
   terms_accepted: false,
   privacy_accepted: false,
+  resume_inventory_handover: false,
 
   visit_outcome: null,
   visit_notes: "",
   follow_up_schedules: [],
 
   website_url: "",
+  resume_inventory_handover: false,
 };
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({

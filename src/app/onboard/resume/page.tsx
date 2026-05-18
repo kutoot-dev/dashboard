@@ -27,7 +27,11 @@ const selectTileClass =
 function getActiveStepsForResume(
   channel: string | null | undefined,
   visitOutcome: string | null | undefined,
+  resumeInventoryHandover: boolean,
 ): WizardStepId[] {
+  if (resumeInventoryHandover) {
+    return ["qr_activation", "review"];
+  }
   if (channel === "merchant") {
     return ["identity", "basic_details", "commission", "kyc", "bank", "review"];
   }
@@ -56,8 +60,9 @@ function inferCompletedSteps(
   currentStep: WizardStepId | null | undefined,
   channel: string | null | undefined,
   visitOutcome: string | null | undefined,
+  resumeInventoryHandover: boolean,
 ): WizardStepId[] {
-  const activeSteps = getActiveStepsForResume(channel, visitOutcome);
+  const activeSteps = getActiveStepsForResume(channel, visitOutcome, resumeInventoryHandover);
   if (!currentStep) return [];
 
   const currentIndex = activeSteps.indexOf(currentStep);
@@ -68,6 +73,7 @@ function inferCompletedSteps(
 
 const toResumePayload = (
   app: Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"][number],
+  resumeInventoryHandover = false,
 ) => ({
   ...app,
   application_id: app.application_id,
@@ -75,7 +81,7 @@ const toResumePayload = (
   completed_steps:
     app.completed_steps && Array.isArray(app.completed_steps)
       ? app.completed_steps
-      : inferCompletedSteps(app.current_step, app.channel, app.visit_outcome),
+      : inferCompletedSteps(app.current_step, app.channel, app.visit_outcome, resumeInventoryHandover),
 });
 
 export default function ResumePage() {
@@ -174,7 +180,7 @@ export default function ResumePage() {
     });
   };
 
-  const hydrateAndGo = async (applicationId: string) => {
+  const hydrateAndGo = async (applicationId: string, resumeInventoryHandover = false) => {
     try {
       const detail = await onboardingService.getApplication(applicationId);
       const fullApp = detail.data ?? null;
@@ -182,6 +188,7 @@ export default function ResumePage() {
         loadFromApplication({
           ...(fullApp as unknown as Record<string, unknown>),
           application_id: applicationId,
+          resume_inventory_handover: resumeInventoryHandover,
           current_step: fullApp.current_step,
           completed_steps:
             Array.isArray((fullApp as { completed_steps?: unknown }).completed_steps)
@@ -190,6 +197,7 @@ export default function ResumePage() {
                   fullApp.current_step,
                   (fullApp as { channel?: string | null }).channel,
                   (fullApp as { visit_outcome?: string | null }).visit_outcome,
+                  resumeInventoryHandover,
                 ),
         } as Parameters<typeof loadFromApplication>[0]);
       }
@@ -207,11 +215,15 @@ export default function ResumePage() {
     setLoading(true);
     try {
       const res = await onboardingService.listApplications({ phone });
+      const includeFinalRes = await onboardingService.listApplications({ phone, include_final: true });
       const apps = res.data?.items || [];
-      if (Array.isArray(apps) && apps.length > 0) {
-        const app = apps[0];
-        loadFromApplication(toResumePayload(app));
-        await hydrateAndGo(app.application_id);
+      const finalApps = includeFinalRes.data?.items || [];
+      const candidateApps = apps.length > 0 ? apps : finalApps;
+      if (Array.isArray(candidateApps) && candidateApps.length > 0) {
+        const app = candidateApps[0];
+        const resumeInventoryHandover = app.stage === "approved" || app.stage === "active";
+        loadFromApplication(toResumePayload(app, resumeInventoryHandover));
+        await hydrateAndGo(app.application_id, resumeInventoryHandover);
       } else {
         setError("No application found for this number.");
       }
@@ -226,11 +238,15 @@ export default function ResumePage() {
     setLoading(true);
     try {
       const res = await onboardingService.listApplications({ exec_id: execId });
+      const finalRes = await onboardingService.listApplications({ exec_id: execId, include_final: true });
       const apps = res.data?.items || [];
-      if (Array.isArray(apps) && apps.length > 0) {
-        const app = apps[0];
-        loadFromApplication(toResumePayload(app));
-        await hydrateAndGo(app.application_id);
+      const finalApps = finalRes.data?.items || [];
+      const candidateApps = apps.length > 0 ? apps : finalApps;
+      if (Array.isArray(candidateApps) && candidateApps.length > 0) {
+        const app = candidateApps[0];
+        const resumeInventoryHandover = app.stage === "approved" || app.stage === "active";
+        loadFromApplication(toResumePayload(app, resumeInventoryHandover));
+        await hydrateAndGo(app.application_id, resumeInventoryHandover);
       } else {
         setError("No applications found for your account.");
       }

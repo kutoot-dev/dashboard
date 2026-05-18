@@ -77,9 +77,18 @@ export default function OnboardStartPage() {
           setExistsMessage(res.data.message || "An application already exists for this mobile number.");
           setExistingAppId(res.data.application_id ?? null);
           const stage = res.data.stage ?? res.data.application_status;
-          const canResume = stage === "lead" || stage === "invited" || stage === "in_progress";
+          const canResume =
+            stage === "lead" ||
+            stage === "invited" ||
+            stage === "in_progress" ||
+            stage === "approved" ||
+            stage === "active";
           setExistingActionLabel(
-            canResume ? "Resume existing application" : "View current application status",
+            canResume && (stage === "approved" || stage === "active")
+              ? "Resume inventory handover"
+              : canResume
+                ? "Resume existing application"
+                : "View current application status",
           );
           return;
         }

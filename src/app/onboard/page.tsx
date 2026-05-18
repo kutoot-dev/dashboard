@@ -30,7 +30,11 @@ import type {
 function getActiveSteps(
   channel: string | null,
   visitOutcome: string | null,
+  resumeInventoryHandover: boolean,
 ): WizardStepId[] {
+  if (resumeInventoryHandover) {
+    return ["qr_activation", "review"];
+  }
   if (channel === "merchant") {
     // Merchant self-onboarding: no visit_outcome step, no QR step
     return ["identity", "basic_details", "commission", "kyc", "bank", "review"];
@@ -184,8 +188,8 @@ export default function OnboardPage() {
 
   // Compute which steps are active for this session
   const activeStepIds = useMemo(
-    () => getActiveSteps(formData.channel, formData.visit_outcome),
-    [formData.channel, formData.visit_outcome],
+    () => getActiveSteps(formData.channel, formData.visit_outcome, formData.resume_inventory_handover),
+    [formData.channel, formData.visit_outcome, formData.resume_inventory_handover],
   );
 
   const activeStepConfig: WizardStepConfig[] = useMemo(
@@ -294,6 +298,7 @@ export default function OnboardPage() {
   // qr_activation still needs to be completed.
   const handleResume = useCallback(() => {
     if (!applicationId) return;
+    updateFormData({ resume_inventory_handover: true });
     updateApp.mutate(
       {
         id: applicationId,
@@ -310,7 +315,7 @@ export default function OnboardPage() {
         },
       },
     );
-  }, [applicationId, updateApp, setStep, pushToast]);
+  }, [applicationId, updateApp, setStep, pushToast, updateFormData]);
 
   const renderStep = () => {
     switch (currentStep) {
@@ -352,8 +357,7 @@ export default function OnboardPage() {
   );
 
   if (applicationId && lockedStage) {
-    // Approved applications are treated as final in merchant panel.
-    const canResume = false;
+    const canResume = lockedStage === "approved" || lockedStage === "active";
 
     return (
       <div className="space-y-6">

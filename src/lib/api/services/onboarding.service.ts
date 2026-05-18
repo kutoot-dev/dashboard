@@ -57,6 +57,7 @@ export async function listApplications(filters?: {
   stage?: MerchantStage;
   exec_id?: string;
   phone?: string;
+  include_final?: boolean;
 }) {
   const params = filters || {};
   const res = await apiClient.get<

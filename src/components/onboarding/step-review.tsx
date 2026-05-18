@@ -127,9 +127,12 @@ export function StepReview({ onBack }: StepReviewProps) {
         qr_serial: formData.qr_serial || undefined,
         qr_assigned: formData.qr_assigned,
         qr_photo_url: formData.qr_photo_url || undefined,
-        operating_hours_start: formData.operating_hours_start,
-        operating_hours_end: formData.operating_hours_end,
-        operating_hours: `${formData.operating_hours_start} - ${formData.operating_hours_end}`,
+        operating_hours_start: formData.operating_hours_start || undefined,
+        operating_hours_end: formData.operating_hours_end || undefined,
+        operating_hours:
+          formData.operating_hours_start && formData.operating_hours_end
+            ? `${formData.operating_hours_start} - ${formData.operating_hours_end}`
+            : undefined,
       }),
       // FE post-approval second pass (qr_activation already done) → mark active.
       // First-pass merchant/FE submissions remain "submitted" for admin review.
@@ -506,7 +509,11 @@ export function StepReview({ onBack }: StepReviewProps) {
           <Section title="Operations" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "bank")}>
             <Row
               label="Operating Hours"
-              value={`${formData.operating_hours_start} - ${formData.operating_hours_end}`}
+              value={
+                formData.operating_hours_start && formData.operating_hours_end
+                  ? `${formData.operating_hours_start} - ${formData.operating_hours_end}`
+                  : "Not provided"
+              }
             />
             <Row label="Expected Volume" value={volumeLabel} />
           </Section>
