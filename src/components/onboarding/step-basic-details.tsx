@@ -726,6 +726,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             ? "Optional for visit records. Take a photo if possible."
             : undefined
         }
+        hideUpload
       />
 
       {/* Navigation */}
