@@ -475,6 +475,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             /> */}
           </Section>
 
+          {formData.channel !== "merchant" && (
           <Section title="Field Handover" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "basic_details")}>
             <Row
               label="Referral Code"
@@ -492,6 +493,7 @@ export function StepReview({ onBack }: StepReviewProps) {
               valueClass={formData.qr_photo_url ? "text-success" : hasQrStep ? "text-error" : "text-muted-foreground"}
             />
           </Section>
+          )}
 
           {hasQrStep && formData.inventory_handover_items.length > 0 && (
             <Section title="Inventory Handover" onEdit={() => goToStep("qr_activation")}>
@@ -515,7 +517,11 @@ export function StepReview({ onBack }: StepReviewProps) {
                   : "Not provided"
               }
             />
-            <Row label="Expected Volume" value={volumeLabel} />
+            <Row
+              label="Expected Volume"
+              value={volumeLabel || "Not provided"}
+              valueClass={volumeLabel ? "" : "text-muted-foreground"}
+            />
           </Section>
         </>
       )}
