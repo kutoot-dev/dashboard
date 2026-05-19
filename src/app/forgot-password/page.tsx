@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { KutootLogo } from "@/components/branding";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { requestMerchantPasswordResetOtp, resetMerchantPasswordWithOtp } from "@/lib/api/services/auth.service";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const [username, setUsername] = useState(searchParams.get("username") ?? "");
   const [otp, setOtp] = useState("");
@@ -182,5 +183,13 @@ export default function ForgotPasswordPage() {
         </p>
       </section>
     </main>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense>
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }
