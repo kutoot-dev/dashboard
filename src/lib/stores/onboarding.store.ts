@@ -211,7 +211,6 @@ const initialFormData: OnboardingFormData = {
   follow_up_schedules: [],
 
   website_url: "",
-  resume_inventory_handover: false,
 };
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
