@@ -298,14 +298,16 @@ export default function OnboardPage() {
   // qr_activation still needs to be completed.
   const handleResume = useCallback(() => {
     if (!applicationId) return;
-    updateFormData({ resume_inventory_handover: true });
     updateApp.mutate(
       {
         id: applicationId,
-        data: { stage: "in_progress" as MerchantStage, current_step: "qr_activation" as WizardStepId },
+        data: { current_step: "qr_activation" as WizardStepId },
       },
       {
-        onSuccess: () => setStep("qr_activation"),
+        onSuccess: () => {
+          updateFormData({ resume_inventory_handover: true });
+          setStep("qr_activation");
+        },
         onError: () => {
           pushToast({
             variant: "error",
@@ -356,7 +358,9 @@ export default function OnboardPage() {
     </button>
   );
 
-  if (applicationId && lockedStage) {
+  const shouldShowLockedStatus = Boolean(applicationId && lockedStage && !formData.resume_inventory_handover);
+
+  if (shouldShowLockedStatus) {
     const canResume = lockedStage === "approved" || lockedStage === "active";
 
     return (
