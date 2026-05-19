@@ -24,6 +24,8 @@ interface StepIdentityProps {
   onNext: () => void;
 }
 
+const OTP_COUNTDOWN_SECONDS = 120;
+
 function normalizeIndianMobileInput(value: string): string {
   let digits = value.replace(/\D/g, "");
 
@@ -177,7 +179,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       if (res.data.sent) {
         setOtpSent(true);
         updateFormData({ merchant_otp_phone: otpPhone });
-        startCountdown(res.data.expires_in_seconds || 300);
+        startCountdown(OTP_COUNTDOWN_SECONDS);
         pushToast({
           variant: "success",
           title: "OTP sent",
@@ -203,7 +205,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
     try {
       const res = await sendOtp.mutateAsync(otpPhone);
       if (res.data.sent) {
-        startCountdown(res.data.expires_in_seconds || 300);
+        startCountdown(OTP_COUNTDOWN_SECONDS);
         pushToast({
           variant: "success",
           title: "New OTP sent",
