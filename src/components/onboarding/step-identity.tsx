@@ -47,6 +47,7 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
     updateFormData,
     phoneCheckResult,
     setPhoneCheckResult,
+    applicationId,
   } = useOnboardingStore();
   const pushToast = useToastStore((s) => s.push);
   const [employeeCode, setEmployeeCode] = useState(formData.exec_employee_code || "");
@@ -379,6 +380,24 @@ export function StepIdentity({ onNext }: StepIdentityProps) {
       {/* Merchant: OTP Verification */}
       {channel === "merchant" && (
         <div className="space-y-4 pt-2">
+          {applicationId && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="text-sm text-foreground">
+                You are resuming an existing application. Continue to proceed.
+              </p>
+              <div className="mt-3">
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="min-h-11"
+                  onClick={onNext}
+                >
+                  Continue
+                </Button>
+              </div>
+            </div>
+          )}
+
           {phoneCheckResult?.exists && (
             <DuplicateAlert
               status={phoneCheckResult.status as "active_merchant" | "existing_lead" | "already_submitted" | "existing_fe_visit"}
