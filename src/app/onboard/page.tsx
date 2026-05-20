@@ -125,7 +125,14 @@ export default function OnboardPage() {
     const searchParams = new URLSearchParams(window.location.search);
     const mode = searchParams.get("mode");
     const referralCode = (searchParams.get("referral_code") ?? "").trim().toUpperCase();
-    if (!applicationId && mode !== "new" && mode !== "resume") {
+    if (!applicationId && mode === "resume") {
+      const targetParams = new URLSearchParams({ from: "onboard" });
+      if (referralCode) targetParams.set("referral_code", referralCode);
+      router.replace(`/onboard/resume?${targetParams.toString()}`);
+      return;
+    }
+
+    if (!applicationId && mode !== "new") {
       const targetParams = new URLSearchParams();
       if (referralCode) targetParams.set("referral_code", referralCode);
       router.replace(

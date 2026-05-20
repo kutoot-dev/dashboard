@@ -93,6 +93,25 @@ function shouldResumeInventoryHandover(
   );
 }
 
+function mergeApplications(
+  ...lists: Array<Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"]>
+) {
+  const byId = new Map<string, Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"][number]>();
+
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const app of list) {
+      byId.set(app.application_id, app);
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => {
+    const aTime = new Date(a.updated_at).getTime();
+    const bTime = new Date(b.updated_at).getTime();
+    return bTime - aTime;
+  });
+}
+
 export default function ResumePage() {
   const router = useRouter();
   const [mode, setMode] = useState<ResumeMode>("select");
@@ -224,10 +243,12 @@ export default function ResumePage() {
     setLoading(true);
     try {
       const res = await onboardingService.listApplications({ phone });
+      const leadRes = await onboardingService.listApplications({ phone, stage: "lead" });
       const includeFinalRes = await onboardingService.listApplications({ phone, include_final: true });
       const apps = res.data?.items || [];
+      const leadApps = leadRes.data?.items || [];
       const finalApps = includeFinalRes.data?.items || [];
-      const candidateApps = apps.length > 0 ? apps : finalApps;
+      const candidateApps = mergeApplications(apps, leadApps, finalApps);
       if (Array.isArray(candidateApps) && candidateApps.length > 0) {
         const app = candidateApps[0];
         const resumeInventoryHandover = shouldResumeInventoryHandover(app);
@@ -247,10 +268,12 @@ export default function ResumePage() {
     setLoading(true);
     try {
       const res = await onboardingService.listApplications({ exec_id: execId });
+      const leadRes = await onboardingService.listApplications({ exec_id: execId, stage: "lead" });
       const finalRes = await onboardingService.listApplications({ exec_id: execId, include_final: true });
       const apps = res.data?.items || [];
+      const leadApps = leadRes.data?.items || [];
       const finalApps = finalRes.data?.items || [];
-      const candidateApps = apps.length > 0 ? apps : finalApps;
+      const candidateApps = mergeApplications(apps, leadApps, finalApps);
       if (Array.isArray(candidateApps) && candidateApps.length > 0) {
         const app = candidateApps[0];
         const resumeInventoryHandover = shouldResumeInventoryHandover(app);
