@@ -108,7 +108,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
 
   // Auto-fill city/state from PIN code (mock)
   useEffect(() => {
-    const pin = formData.pin_code;
+    const pin = formData.pin_code ?? "";
     if (pin.length === 6) {
       const pinMap: Record<string, { city: string; state: string }> = {
         "560034": { city: "Bengaluru", state: "Karnataka" },
@@ -128,6 +128,9 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
+    const ownerName = formData.owner_name ?? "";
+    const shopName = formData.shop_name ?? "";
+    const pinCode = formData.pin_code ?? "";
 
     // Phone: required for merchant / FE-interested; optional for FE visit-only flows
     if (!isFeVisitOnly) {
@@ -141,19 +144,19 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     // Owner name: required for merchant / FE-interested; optional for FE visit-only flows
     if (!isFeVisitOnly) {
       if (
-        formData.owner_name.length < 2 ||
-        !VALIDATION_RULES.owner_name.pattern.test(formData.owner_name)
+        ownerName.length < 2 ||
+        !VALIDATION_RULES.owner_name.pattern.test(ownerName)
       ) {
         e.owner_name = "Enter a valid name (letters and spaces only, min 2 chars).";
       }
     } else if (
-      formData.owner_name &&
-      !VALIDATION_RULES.owner_name.pattern.test(formData.owner_name)
+      ownerName &&
+      !VALIDATION_RULES.owner_name.pattern.test(ownerName)
     ) {
       e.owner_name = "If entered, must contain only letters and spaces.";
     }
 
-    if (formData.shop_name.length < 2) {
+    if (shopName.length < 2) {
       e.shop_name = "Shop name must be at least 2 characters.";
     }
     if (!formData.sector_id) {
@@ -162,7 +165,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     if (!formData.locality) {
       e.locality = "Enter your shop locality.";
     }
-    if (!VALIDATION_RULES.pin_code.pattern.test(formData.pin_code)) {
+    if (!VALIDATION_RULES.pin_code.pattern.test(pinCode)) {
       e.pin_code = "Enter a valid 6-digit PIN code.";
     }
     if (!formData.city) {

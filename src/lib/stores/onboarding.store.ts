@@ -263,8 +263,33 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       const keys = Object.keys(initialFormData) as (keyof OnboardingFormData)[];
       for (const key of keys) {
         if (key in app && (app as Record<string, unknown>)[key] !== undefined) {
+          const incoming = (app as Record<string, unknown>)[key];
+          const defaultValue = initialFormData[key];
+
+          // Resume payloads can contain null for text fields; coerce to safe defaults
+          // to avoid UI code calling `.length` on null.
+          if (incoming === null) {
+            if (typeof defaultValue === "string") {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (formUpdate as any)[key] = "";
+              continue;
+            }
+
+            if (typeof defaultValue === "boolean") {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (formUpdate as any)[key] = false;
+              continue;
+            }
+
+            if (Array.isArray(defaultValue)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (formUpdate as any)[key] = [];
+              continue;
+            }
+          }
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (formUpdate as any)[key] = (app as Record<string, unknown>)[key];
+          (formUpdate as any)[key] = incoming;
         }
       }
       return {
