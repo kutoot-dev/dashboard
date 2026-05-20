@@ -106,8 +106,10 @@ function mergeApplications(
   }
 
   return Array.from(byId.values()).sort((a, b) => {
-    const aTime = new Date(a.updated_at).getTime();
-    const bTime = new Date(b.updated_at).getTime();
+    const aTimeRaw = Date.parse(a?.updated_at ?? "");
+    const bTimeRaw = Date.parse(b?.updated_at ?? "");
+    const aTime = Number.isFinite(aTimeRaw) ? aTimeRaw : 0;
+    const bTime = Number.isFinite(bTimeRaw) ? bTimeRaw : 0;
     return bTime - aTime;
   });
 }
@@ -245,9 +247,9 @@ export default function ResumePage() {
       const res = await onboardingService.listApplications({ phone });
       const leadRes = await onboardingService.listApplications({ phone, stage: "lead" });
       const includeFinalRes = await onboardingService.listApplications({ phone, include_final: true });
-      const apps = res.data?.items || [];
-      const leadApps = leadRes.data?.items || [];
-      const finalApps = includeFinalRes.data?.items || [];
+      const apps = Array.isArray(res.data?.items) ? res.data.items : [];
+      const leadApps = Array.isArray(leadRes.data?.items) ? leadRes.data.items : [];
+      const finalApps = Array.isArray(includeFinalRes.data?.items) ? includeFinalRes.data.items : [];
       const candidateApps = mergeApplications(apps, leadApps, finalApps);
       if (Array.isArray(candidateApps) && candidateApps.length > 0) {
         const app = candidateApps[0];
@@ -270,9 +272,9 @@ export default function ResumePage() {
       const res = await onboardingService.listApplications({ exec_id: execId });
       const leadRes = await onboardingService.listApplications({ exec_id: execId, stage: "lead" });
       const finalRes = await onboardingService.listApplications({ exec_id: execId, include_final: true });
-      const apps = res.data?.items || [];
-      const leadApps = leadRes.data?.items || [];
-      const finalApps = finalRes.data?.items || [];
+      const apps = Array.isArray(res.data?.items) ? res.data.items : [];
+      const leadApps = Array.isArray(leadRes.data?.items) ? leadRes.data.items : [];
+      const finalApps = Array.isArray(finalRes.data?.items) ? finalRes.data.items : [];
       const candidateApps = mergeApplications(apps, leadApps, finalApps);
       if (Array.isArray(candidateApps) && candidateApps.length > 0) {
         const app = candidateApps[0];
