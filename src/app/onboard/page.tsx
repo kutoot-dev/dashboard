@@ -286,38 +286,13 @@ export default function OnboardPage() {
         });
       }
     },
-    [applicationId, completeStep, createApp, extractApiErrorMessage, formData, goNext, pushToast, updateApp],
+    [applicationId, completeStep, createApp, extractApiErrorMessage, formData, goNext, pushToast, setStep, updateApp],
   );
 
   const handleNext = useCallback(
     () => saveAndAdvance(currentStep),
     [currentStep, saveAndAdvance],
   );
-
-  // Called from ApplicationStatusScreen when FE app is approved and
-  // qr_activation still needs to be completed.
-  const handleResume = useCallback(() => {
-    if (!applicationId) return;
-    updateApp.mutate(
-      {
-        id: applicationId,
-        data: { current_step: "qr_activation" as WizardStepId },
-      },
-      {
-        onSuccess: () => {
-          updateFormData({ resume_inventory_handover: true });
-          setStep("qr_activation");
-        },
-        onError: () => {
-          pushToast({
-            variant: "error",
-            title: "Could not resume",
-            description: "Unable to resume setup. Please try again.",
-          });
-        },
-      },
-    );
-  }, [applicationId, updateApp, setStep, pushToast, updateFormData]);
 
   const renderStep = () => {
     switch (currentStep) {
@@ -360,16 +335,13 @@ export default function OnboardPage() {
 
   const shouldShowLockedStatus = Boolean(applicationId && lockedStage && !formData.resume_inventory_handover);
 
-  if (shouldShowLockedStatus) {
-    const canResume = lockedStage === "approved" || lockedStage === "active";
-
+  if (shouldShowLockedStatus && applicationId) {
     return (
       <div className="space-y-6">
         <div className="flex justify-end">{themeToggle}</div>
         <ApplicationStatusScreen
           applicationId={applicationId}
           phone={formData.phone ?? null}
-          onResume={canResume ? handleResume : undefined}
         />
       </div>
     );

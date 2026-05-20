@@ -27,12 +27,6 @@ interface ApplicationStatusScreenProps {
   /** Phone number, if known, to show in status copy. */
   phone?: string | null;
   pollMs?: number;
-  /**
-   * When provided, the approved screen shows a "Continue Setup" button
-   * instead of the final "Successfully Onboarded" message.
-   * Use this for FE flows where qr_activation still needs to be completed.
-   */
-  onResume?: () => void;
 }
 
 /**
@@ -52,7 +46,6 @@ export function ApplicationStatusScreen({
   applicationId,
   phone,
   pollMs = 15_000,
-  onResume,
 }: ApplicationStatusScreenProps) {
   const router = useRouter();
   const appQuery = useApplication(applicationId);
@@ -144,28 +137,12 @@ export function ApplicationStatusScreen({
       )}
 
       {isApproved ? (
-        onResume ? (
-          // FE post-approval: qr_activation still pending
-          <div className="space-y-3">
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Your application has been approved! Complete the final setup steps to
-              activate your merchant account.
-            </p>
-            <div className="flex justify-center">
-              <Button variant="primary" onClick={onResume} loading={false}>
-                Continue Setup
-              </Button>
-            </div>
-          </div>
-        ) : (
-          // Final approved state (merchant, or FE after qr_activation review)
-          <div className="space-y-3">
-            <p className="text-muted-foreground max-w-md mx-auto">
-              You are successfully onboarded! Your login credentials will be shared
-              through email.
-            </p>
-          </div>
-        )
+        <div className="space-y-3">
+          <p className="text-muted-foreground max-w-md mx-auto">
+            You are successfully onboarded! Your login credentials will be shared
+            through email.
+          </p>
+        </div>
       ) : isTerminal ? (
         <div className="space-y-3">
           <p className="text-muted-foreground max-w-md mx-auto">
