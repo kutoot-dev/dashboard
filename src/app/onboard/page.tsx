@@ -65,13 +65,12 @@ function getActiveSteps(
 }
 
 /**
- * Stages in which the wizard is still editable. Anything outside this set
- * bounces to the read-only `ApplicationStatusScreen`.
+ * Only fully approved post-onboarding stages should force the read-only
+ * status screen for standard merchant resumes.
  */
-const EDITABLE_STAGES: ReadonlySet<string> = new Set([
-  "lead",
-  "invited",
-  "in_progress",
+const STATUS_LOCKED_STAGES: ReadonlySet<string> = new Set([
+  "approved",
+  "active",
 ]);
 
 export default function OnboardPage() {
@@ -172,17 +171,14 @@ export default function OnboardPage() {
     };
   }, []);
 
-  // When resuming, if the application has already left an editable stage
-  // we surface the read-only status screen. Editable stages are:
-  //   lead, invited, in_progress.
-  // Anything else (visit outcomes, submitted, approved, rejected, …) locks
-  // the merchant out of the wizard.
+  // When resuming, show the read-only status screen only after final approval.
+  // Non-approved applications should continue in the onboarding wizard.
   const resumedApp = useApplication(applicationId);
   const lockedStage = useMemo(() => {
     const data = resumedApp.data as OnboardingApplication | undefined;
     const stage = data?.stage ?? (data?.status as string | undefined) ?? null;
     if (!stage) return null;
-    if (EDITABLE_STAGES.has(stage)) return null;
+    if (!STATUS_LOCKED_STAGES.has(stage)) return null;
     return stage as MerchantStage;
   }, [resumedApp.data]);
 

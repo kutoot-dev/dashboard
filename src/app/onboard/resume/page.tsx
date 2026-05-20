@@ -84,6 +84,15 @@ const toResumePayload = (
       : inferCompletedSteps(app.current_step, app.channel, app.visit_outcome, resumeInventoryHandover),
 });
 
+function shouldResumeInventoryHandover(
+  app: Awaited<ReturnType<typeof onboardingService.listApplications>>["data"]["items"][number],
+): boolean {
+  return (
+    app.channel === "field_executive" &&
+    (app.stage === "approved" || app.stage === "active")
+  );
+}
+
 export default function ResumePage() {
   const router = useRouter();
   const [mode, setMode] = useState<ResumeMode>("select");
@@ -221,7 +230,7 @@ export default function ResumePage() {
       const candidateApps = apps.length > 0 ? apps : finalApps;
       if (Array.isArray(candidateApps) && candidateApps.length > 0) {
         const app = candidateApps[0];
-        const resumeInventoryHandover = app.stage === "approved" || app.stage === "active";
+        const resumeInventoryHandover = shouldResumeInventoryHandover(app);
         loadFromApplication(toResumePayload(app, resumeInventoryHandover));
         await hydrateAndGo(app.application_id, resumeInventoryHandover);
       } else {
@@ -244,7 +253,7 @@ export default function ResumePage() {
       const candidateApps = apps.length > 0 ? apps : finalApps;
       if (Array.isArray(candidateApps) && candidateApps.length > 0) {
         const app = candidateApps[0];
-        const resumeInventoryHandover = app.stage === "approved" || app.stage === "active";
+        const resumeInventoryHandover = shouldResumeInventoryHandover(app);
         loadFromApplication(toResumePayload(app, resumeInventoryHandover));
         await hydrateAndGo(app.application_id, resumeInventoryHandover);
       } else {
