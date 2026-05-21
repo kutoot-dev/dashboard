@@ -210,7 +210,7 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
         <label className="text-sm font-medium text-foreground">Preferred Settlement Method</label>
         <Select
           options={[
-            { value: "instant", label: "Instant" },
+            { value: "instant", label: "Same Day Payment" },
             { value: "+1 days", label: "+1 days" },
             { value: "+2 days", label: "+2 days" },
           ]}
@@ -221,8 +221,9 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
           placeholder="Select method..."
         />
         {formData.preferred_settlement_method === "instant" && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-            Additional charges applicable for instant settlement.
+          <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+            1% charges applicable. Request time: 10:00 AM to 5:00 PM. Payment
+            processing within 2 hours.
           </p>
         )}
       </div>
