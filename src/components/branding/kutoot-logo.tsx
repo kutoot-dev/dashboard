@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * KutootLogo - Full horizontal logo (text + icon)
@@ -38,7 +39,7 @@ export function KutootLogo({ size = "md", className }: KutootLogoProps) {
       width={logoSize.width}
       height={logoSize.height}
       priority={size === "lg"}
-      className={`${logoSize.className} ${className || ""}`}
+      className={cn(logoSize.className, className)}
     />
   );
 }
@@ -85,7 +86,7 @@ export function KutootIcon({ size = "md", className }: KutootIconProps) {
       alt="Kutoot"
       width={iconSize.width}
       height={iconSize.height}
-      className={`${iconSize.className} ${className || ""}`}
+      className={cn(iconSize.className, className)}
     />
   );
 }

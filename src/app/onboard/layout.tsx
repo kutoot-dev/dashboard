@@ -23,10 +23,10 @@ export default function OnboardLayout({
       </div>
 
       <header className="glass-topbar sticky top-0 z-30 border-b border-border/70">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6 sm:py-3">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-5 sm:px-6 sm:py-3">
           <KutootLogo
             size="lg"
-            className="h-14 w-auto max-w-[min(100%,18rem)] sm:h-7 sm:max-w-[min(100%,11rem)]"
+            className="h-20 w-auto max-w-[min(100%,22rem)] sm:h-7 sm:max-w-[min(100%,11rem)]"
           />
           <span className="hidden text-xs font-semibold tracking-wide text-muted-foreground sm:block">
             Merchant Onboarding
