@@ -42,9 +42,6 @@ export function StepReview({ onBack }: StepReviewProps) {
     formData.channel === "field_executive" &&
     formData.visit_outcome !== "interested" &&
     formData.visit_outcome !== null;
-  const hasQrStep =
-    formData.channel === "field_executive" && formData.visit_outcome === "interested";
-
   const visitOutcomeLabel =
     VISIT_OUTCOME_OPTIONS.find((o) => o.value === formData.visit_outcome)?.label ||
     formData.visit_outcome;
@@ -134,13 +131,9 @@ export function StepReview({ onBack }: StepReviewProps) {
             ? `${formData.operating_hours_start} - ${formData.operating_hours_end}`
             : undefined,
       }),
-      // FE post-approval second pass (qr_activation already done) → mark active.
-      // First-pass merchant/FE submissions remain "submitted" for admin review.
       stage: isFeVisitOnly
         ? ((formData.visit_outcome ?? "revisit") as string)
-        : completedSteps.includes("qr_activation")
-          ? "active"
-          : "submitted",
+        : "submitted",
       status: (isFeVisitOnly ? "visit_record" : "pending_review") as ApplicationStatus,
       current_step: "review" as WizardStepId,
       website_url: formData.website_url, // honeypot
@@ -475,40 +468,17 @@ export function StepReview({ onBack }: StepReviewProps) {
             /> */}
           </Section>
 
-          {formData.channel !== "merchant" && (
-          <Section title="Field Handover" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "basic_details")}>
-            <Row
-              label="Referral Code"
-              value={formData.referral_code || "Not provided"}
-              valueClass={formData.referral_code ? "" : "text-muted-foreground"}
-            />
-            <Row
-              label="QR Serial"
-              value={formData.qr_serial || (hasQrStep ? "Missing" : "Not required")}
-              valueClass={formData.qr_serial ? "text-success" : hasQrStep ? "text-error" : "text-muted-foreground"}
-            />
-            <Row
-              label="QR Placement Photo"
-              value={formData.qr_photo_url ? "Captured" : hasQrStep ? "Missing" : "Not required"}
-              valueClass={formData.qr_photo_url ? "text-success" : hasQrStep ? "text-error" : "text-muted-foreground"}
-            />
-          </Section>
-          )}
-
-          {hasQrStep && formData.inventory_handover_items.length > 0 && (
-            <Section title="Inventory Handover" onEdit={() => goToStep("qr_activation")}>
-              {formData.inventory_handover_items.map((item, index) => (
-                <div key={item.id} className="col-span-2 rounded-md border border-border p-3 text-sm">
-                  <p className="text-xs text-muted-foreground">Item {index + 1}</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">
-                    Issued Quantity: {item.used_quantity}
-                  </p>
-                </div>
-              ))}
+          {formData.channel === "field_executive" && (
+            <Section title="Referral" onEdit={() => goToStep("basic_details")}>
+              <Row
+                label="Referral Code"
+                value={formData.referral_code || "Not provided"}
+                valueClass={formData.referral_code ? "" : "text-muted-foreground"}
+              />
             </Section>
           )}
 
-          <Section title="Operations" onEdit={() => goToStep(hasQrStep ? "qr_activation" : "bank")}>
+          <Section title="Operations" onEdit={() => goToStep("bank")}>
             <Row
               label="Operating Hours"
               value={

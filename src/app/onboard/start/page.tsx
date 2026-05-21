@@ -84,11 +84,11 @@ export default function OnboardStartPage() {
             stage === "approved" ||
             stage === "active";
           setExistingActionLabel(
-            canResume && (stage === "approved" || stage === "active")
-              ? "Resume inventory handover"
-              : canResume
-                ? "Resume existing application"
-                : "View current application status",
+            canResume
+              ? stage === "approved" || stage === "active"
+                ? "View application status"
+                : "Resume existing application"
+              : "View current application status",
           );
           return;
         }

@@ -17,6 +17,7 @@ import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useApplication, useUpdateApplication, useCreateApplication } from "@/lib/hooks";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { ApiError } from "@/lib/api/client";
+import { getActiveOnboardingSteps } from "@/lib/onboarding/get-active-steps";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
 import type {
   WizardStepId,
@@ -24,45 +25,6 @@ import type {
   OnboardingApplication,
   WizardStepConfig,
 } from "@/lib/types";
-
-// ── Compute active steps based on channel + visit outcome ─────────
-
-function getActiveSteps(
-  channel: string | null,
-  visitOutcome: string | null,
-  resumeInventoryHandover: boolean,
-): WizardStepId[] {
-  if (resumeInventoryHandover) {
-    return ["qr_activation", "review"];
-  }
-  if (channel === "merchant") {
-    // Merchant self-onboarding: no visit_outcome step, no QR step
-    return ["identity", "basic_details", "commission", "kyc", "bank", "review"];
-  }
-  if (channel === "field_executive") {
-    if (visitOutcome === "interested") {
-      // Full field-executive onboarding flow (includes QR activation)
-      return [
-        "identity",
-        "visit_outcome",
-        "basic_details",
-        "commission",
-        "kyc",
-        "bank",
-        "qr_activation",
-        "review",
-      ];
-    }
-    if (visitOutcome === null) {
-      // FE logged in but hasn't chosen outcome yet
-      return ["identity", "visit_outcome"];
-    }
-    // FE visit-only (any non-interested outcome) — minimal form
-    return ["identity", "visit_outcome", "basic_details", "review"];
-  }
-  // Channel not yet selected — show just identity
-  return ["identity"];
-}
 
 /**
  * Only fully approved post-onboarding stages should force the read-only
@@ -191,9 +153,19 @@ export default function OnboardPage() {
 
   // Compute which steps are active for this session
   const activeStepIds = useMemo(
-    () => getActiveSteps(formData.channel, formData.visit_outcome, formData.resume_inventory_handover),
-    [formData.channel, formData.visit_outcome, formData.resume_inventory_handover],
+    () => getActiveOnboardingSteps(formData.channel, formData.visit_outcome),
+    [formData.channel, formData.visit_outcome],
   );
+
+  useEffect(() => {
+    if (!activeStepIds.includes(currentStep)) {
+      const fallback =
+        activeStepIds.includes("review")
+          ? "review"
+          : activeStepIds[activeStepIds.length - 1] ?? "identity";
+      setStep(fallback);
+    }
+  }, [activeStepIds, currentStep, setStep]);
 
   const activeStepConfig: WizardStepConfig[] = useMemo(
     () =>
@@ -243,7 +215,6 @@ export default function OnboardPage() {
       }
 
       // FE interested: completing bank is a mid-point submission for admin review.
-      // The wizard will re-open after approval to continue with qr_activation.
       const isFeBank =
         fromStep === "bank" &&
         formData.channel === "field_executive" &&
@@ -336,7 +307,7 @@ export default function OnboardPage() {
     </button>
   );
 
-  const shouldShowLockedStatus = Boolean(applicationId && lockedStage && !formData.resume_inventory_handover);
+  const shouldShowLockedStatus = Boolean(applicationId && lockedStage);
 
   if (shouldShowLockedStatus && applicationId) {
     return (
