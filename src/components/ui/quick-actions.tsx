@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -20,6 +21,8 @@ interface QuickActionsProps {
 export function QuickActions({ className, compact = true }: QuickActionsProps) {
   const router = useRouter();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const isDemoAccount = Boolean(user?.is_test);
 
   const [showTxnModal, setShowTxnModal] = useState(false);
 
@@ -59,66 +62,70 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
         </svg>
         {compact && <span className="font-mono">Add Deals</span>}
       </button>
-      <button
-        id="quick-action-add-txn"
-        type="button"
-        onClick={() => setShowTxnModal(true)}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-secondary/35 bg-secondary/16 px-2.5 text-[11px] font-semibold text-foreground shadow-[0_8px_18px_rgba(8,13,34,0.24)] transition-all hover:-translate-y-0.5 hover:border-secondary/55 hover:bg-secondary/24"
-      >
-        <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 text-secondary">
-          <path
-            fill="currentColor"
-            d="M19 2H5a2 2 0 0 0-2 2v18l3-2 3 2 3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2Zm-2 13H7v-2h10Zm0-4H7V9h10Zm0-4H7V5h10Z"
-          />
-        </svg>
-        {compact && <span className="font-mono">Add Txn</span>}
-      </button>
+      {isDemoAccount && (
+        <>
+          <button
+            id="quick-action-add-txn"
+            type="button"
+            onClick={() => setShowTxnModal(true)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-secondary/35 bg-secondary/16 px-2.5 text-[11px] font-semibold text-foreground shadow-[0_8px_18px_rgba(8,13,34,0.24)] transition-all hover:-translate-y-0.5 hover:border-secondary/55 hover:bg-secondary/24"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 text-secondary">
+              <path
+                fill="currentColor"
+                d="M19 2H5a2 2 0 0 0-2 2v18l3-2 3 2 3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2Zm-2 13H7v-2h10Zm0-4H7V9h10Zm0-4H7V5h10Z"
+              />
+            </svg>
+            {compact && <span className="font-mono">Add Txn</span>}
+          </button>
 
-      <Modal isOpen={showTxnModal} onClose={() => setShowTxnModal(false)} title="Add Transaction">
-        <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            Create a simulated transaction on this demo merchant. It drives the next
-            score tick, refreshes the latest-5 redemptions card, and broadcasts a
-            sound + toast if real-time notifications are available.
-          </p>
-          <Input
-            label="Bill Amount (₹) — leave blank for random"
-            type="number"
-            min="1"
-            step="1"
-            value={txnBill}
-            onChange={(e) => setTxnBill(e.target.value)}
-            placeholder="e.g. 499"
-          />
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Coupon</label>
-            <div className="flex gap-2">
-              {[
-                { v: null, l: "Random" },
-                { v: true, l: "Use coupon" },
-                { v: false, l: "No coupon" },
-              ].map((opt) => (
-                <button
-                  key={String(opt.v)}
-                  type="button"
-                  onClick={() => setTxnUseCoupon(opt.v)}
-                  className={cn(
-                    "rounded-full border px-3 py-1 font-mono text-xs transition-all",
-                    txnUseCoupon === opt.v
-                      ? "border-gain/50 bg-gain/10 text-gain"
-                      : "border-glass-border bg-glass-bg text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {opt.l}
-                </button>
-              ))}
+          <Modal isOpen={showTxnModal} onClose={() => setShowTxnModal(false)} title="Add Transaction">
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Create a simulated transaction on this demo merchant. It drives the next
+                score tick, refreshes the latest-5 redemptions card, and broadcasts a
+                sound + toast if real-time notifications are available.
+              </p>
+              <Input
+                label="Bill Amount (₹) — leave blank for random"
+                type="number"
+                min="1"
+                step="1"
+                value={txnBill}
+                onChange={(e) => setTxnBill(e.target.value)}
+                placeholder="e.g. 499"
+              />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Coupon</label>
+                <div className="flex gap-2">
+                  {[
+                    { v: null, l: "Random" },
+                    { v: true, l: "Use coupon" },
+                    { v: false, l: "No coupon" },
+                  ].map((opt) => (
+                    <button
+                      key={String(opt.v)}
+                      type="button"
+                      onClick={() => setTxnUseCoupon(opt.v)}
+                      className={cn(
+                        "rounded-full border px-3 py-1 font-mono text-xs transition-all",
+                        txnUseCoupon === opt.v
+                          ? "border-gain/50 bg-gain/10 text-gain"
+                          : "border-glass-border bg-glass-bg text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={() => submitTxn()} disabled={txnSubmitting} className="w-full">
+                {txnSubmitting ? "Posting…" : "Post Transaction"}
+              </Button>
             </div>
-          </div>
-          <Button onClick={() => submitTxn()} disabled={txnSubmitting} className="w-full">
-            {txnSubmitting ? "Posting…" : "Post Transaction"}
-          </Button>
-        </div>
-      </Modal>
+          </Modal>
+        </>
+      )}
     </div>
   );
 }

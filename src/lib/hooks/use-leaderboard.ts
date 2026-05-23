@@ -6,14 +6,9 @@ import {
 } from "@/lib/api/services/leaderboard.service";
 
 export function useLeaderboard(filters: LeaderboardFilters = {}) {
-  const mergedFilters: LeaderboardFilters = {
-    min_successful_transactions: 10,
-    ...filters,
-  };
-
   return useQuery({
-    queryKey: ["leaderboard", mergedFilters],
-    queryFn: () => getLeaderboard(mergedFilters),
+    queryKey: ["leaderboard", filters],
+    queryFn: () => getLeaderboard(filters),
     select: (res) => res.data,
   });
 }

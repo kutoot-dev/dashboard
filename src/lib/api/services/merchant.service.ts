@@ -43,6 +43,23 @@ export interface CreateDealPayload {
   expires_at?: string | null;
 }
 
+export interface OnboardingProfileField {
+  label: string;
+  value: string;
+  type: "text" | "url";
+}
+
+export interface OnboardingProfileSection {
+  id: string;
+  title: string;
+  description: string | null;
+  fields: OnboardingProfileField[];
+}
+
+export interface OnboardingProfile {
+  sections: OnboardingProfileSection[];
+}
+
 export interface StoreProfile {
   id: number;
   name: string;
@@ -176,6 +193,13 @@ export async function updateStoreProfile(branchId: string, payload: UpdateStoreP
   const res = await apiClient.patch<ApiResponse<StoreProfile>>(
     `/merchant/${branchId}/store`,
     payload,
+  );
+  return res.data;
+}
+
+export async function getOnboardingProfile(branchId: string) {
+  const res = await apiClient.get<ApiResponse<OnboardingProfile>>(
+    `/merchant/${branchId}/store/onboarding-profile`,
   );
   return res.data;
 }

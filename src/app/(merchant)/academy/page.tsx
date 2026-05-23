@@ -7,16 +7,18 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { DetailPanelSkeleton, FeedListSkeleton } from "@/components/ui/loading-skeletons";
+import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 
 const CATEGORY_OPTIONS = [
   { value: "all", label: "All categories" },
-  { value: "scoring", label: "Scoring" },
-  { value: "discounts", label: "Discounts" },
-  { value: "commission", label: "Commission" },
-  { value: "ohlc", label: "OHLC" },
-  { value: "ranking", label: "Ranking" },
-  { value: "general", label: "General" },
+  { value: "user", label: "User" },
+  { value: "merchant", label: "Merchant" },
 ];
+
+function categoryLabel(category: string) {
+  return CATEGORY_OPTIONS.find((option) => option.value === category)?.label ?? category;
+}
 
 const DIFFICULTY_OPTIONS = [
   { value: "all", label: "All levels" },
@@ -59,6 +61,8 @@ export default function AcademyPage() {
   });
 
   const selectedLesson = detailQuery.data?.success ? detailQuery.data.data : null;
+  const showLessonsSkeleton = useQuerySkeleton(lessonsQuery);
+  const showDetailSkeleton = useQuerySkeleton(detailQuery);
 
   return (
     <div className="space-y-6">
@@ -79,7 +83,10 @@ export default function AcademyPage() {
           </div>
 
           <div className="space-y-2">
-            {lessons.map((lesson) => (
+            {showLessonsSkeleton && <FeedListSkeleton count={6} />}
+
+            {!showLessonsSkeleton &&
+              lessons.map((lesson) => (
               <button
                 key={lesson.id}
                 type="button"
@@ -91,13 +98,13 @@ export default function AcademyPage() {
                   <Badge variant={difficultyVariant(lesson.difficulty)}>{lesson.difficulty}</Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span>{lesson.category}</span>
+                  <span>{categoryLabel(lesson.category)}</span>
                   <span>{lesson.read_time_minutes} min read</span>
                 </div>
               </button>
             ))}
 
-            {!lessonsQuery.isLoading && lessons.length === 0 && (
+            {!showLessonsSkeleton && lessons.length === 0 && (
               <p className="py-8 text-center text-sm text-muted-foreground">No lessons found for this filter.</p>
             )}
           </div>
@@ -106,16 +113,18 @@ export default function AcademyPage() {
         <Card className="space-y-3">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Lesson detail</p>
 
-          {!selectedLesson && (
+          {showDetailSkeleton && <DetailPanelSkeleton />}
+
+          {!showDetailSkeleton && !selectedLesson && (
             <p className="py-10 text-center text-sm text-muted-foreground">Select a lesson to open full content.</p>
           )}
 
-          {selectedLesson && (
+          {!showDetailSkeleton && selectedLesson && (
             <>
               <div className="space-y-1 border-b border-border pb-3">
                 <h2 className="text-lg font-semibold text-foreground">{selectedLesson.title}</h2>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <span>{selectedLesson.category}</span>
+                  <span>{categoryLabel(selectedLesson.category)}</span>
                   <span>•</span>
                   <span>{selectedLesson.read_time_minutes} min</span>
                   <span>•</span>

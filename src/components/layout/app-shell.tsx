@@ -22,7 +22,7 @@ export function AppShell({ children }: AppShellProps) {
       </div>
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:p-6 md:pb-6">
           {children}
         </main>
       </div>

@@ -49,7 +49,7 @@ export function useBranchPayouts(branchId: string) {
     queryKey: ["branchPayouts", branchId],
     queryFn: () => getBranchPayouts(branchId),
     enabled: !!branchId,
-    select: (res) => res.data,
+    select: (res) => (res.success ? res.data : null),
   });
 }
 

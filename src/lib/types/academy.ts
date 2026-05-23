@@ -2,13 +2,7 @@
 
 export type LessonDifficulty = "beginner" | "intermediate" | "advanced";
 
-export type LessonCategory =
-  | "scoring"
-  | "discounts"
-  | "commission"
-  | "ohlc"
-  | "ranking"
-  | "general";
+export type LessonCategory = "user" | "merchant";
 
 export interface AcademyLessonSummary {
   id: number;

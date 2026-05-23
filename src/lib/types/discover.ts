@@ -8,6 +8,9 @@ export interface DiscoverPost {
   is_pinned: boolean;
   likes_count: number;
   views_count: number;
+  comments_count: number;
+  cover_url: string | null;
+  is_liked: boolean;
   author: string;
   published_at: string;
   created_at: string;

@@ -10,6 +10,9 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/utils/format";
+import { TableRowsSkeleton } from "@/components/ui/loading-skeletons";
+import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
+import { DEFAULT_FILTER_DATE_RANGE } from "@/lib/utils/date-range";
 
 export default function VisitorsPage() {
   const { user } = useAuth();
@@ -17,7 +20,7 @@ export default function VisitorsPage() {
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [range, setRange] = useState({ start: "", end: "" });
+  const [range, setRange] = useState(DEFAULT_FILTER_DATE_RANGE);
 
   const filters = useMemo(() => {
     const next: {
@@ -48,6 +51,7 @@ export default function VisitorsPage() {
   const rows = visitorsQuery.data?.success ? visitorsQuery.data.data.rows : [];
   const total = visitorsQuery.data?.success ? visitorsQuery.data.data.total : 0;
   const pages = visitorsQuery.data?.success ? visitorsQuery.data.data.pages : 1;
+  const showSkeleton = useQuerySkeleton(visitorsQuery);
 
   return (
     <div className="space-y-6">
@@ -56,27 +60,27 @@ export default function VisitorsPage() {
         subtitle="Track repeat customer footfall, spend, and redemption behavior."
       />
 
-      <Card className="space-y-3">
-        <div className="grid gap-3 md:grid-cols-3">
-          <Input
-            label="Search visitor"
-            placeholder="Name or phone"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-          <div className="md:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Date range</label>
-            <DateRangePicker
-              value={range}
-              onChange={(value) => {
-                setRange(value);
+      <Card className="space-y-3 overflow-visible">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="min-w-0 w-full flex-1 sm:min-w-[12rem]">
+            <Input
+              label="Search visitor"
+              placeholder="Name or phone"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
                 setPage(1);
               }}
             />
           </div>
+          <DateRangePicker
+            label="Date range"
+            value={range}
+            onChange={(value) => {
+              setRange(value);
+              setPage(1);
+            }}
+          />
         </div>
       </Card>
 
@@ -86,6 +90,9 @@ export default function VisitorsPage() {
           <p className="text-xs text-muted-foreground">Page {page} of {Math.max(1, pages)}</p>
         </div>
 
+        {showSkeleton ? (
+          <TableRowsSkeleton rows={8} columns={6} minWidth="min-w-[900px]" />
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
@@ -116,7 +123,7 @@ export default function VisitorsPage() {
                 </tr>
               ))}
 
-              {!visitorsQuery.isLoading && rows.length === 0 && (
+              {rows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-2 py-8 text-center text-sm text-muted-foreground">
                     No visitors found for this filter.
@@ -126,6 +133,7 @@ export default function VisitorsPage() {
             </tbody>
           </table>
         </div>
+        )}
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>

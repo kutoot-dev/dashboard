@@ -14,6 +14,7 @@ interface MerchantSellerPayload {
   shopName?: string;
   ownerName?: string;
   email?: string;
+  is_test?: boolean;
   status?: string;
 }
 
@@ -98,6 +99,7 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
     email: payload.email ?? "",
     role: "merchant",
     branch_id: branchId,
+    is_test: Boolean(payload.is_test),
   };
 }
 

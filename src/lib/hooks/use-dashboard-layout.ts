@@ -12,16 +12,26 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUiPrefs, putUiPrefs, type MerchantUiPrefs } from "@/lib/api/services/merchant.service";
 
 export const DASHBOARD_SECTION_IDS = [
-  "boost-commission",
   "stats-strip",
-  "kbi-chart",
   "score-history",
+  "improve",
+  "referral",
+  "boost-commission",
   "redemptions",
   "volume",
-  "improve",
 ] as const;
 
 export type DashboardSectionId = (typeof DASHBOARD_SECTION_IDS)[number];
+
+export const DASHBOARD_TAB_LABELS: Record<DashboardSectionId, string> = {
+  "stats-strip": "Today",
+  "score-history": "Score trend",
+  improve: "Improve",
+  referral: "Referral",
+  "boost-commission": "Growth boost",
+  redemptions: "Redemptions",
+  volume: "Activity",
+};
 
 const DEFAULT_ORDER: DashboardSectionId[] = [...DASHBOARD_SECTION_IDS];
 

@@ -21,16 +21,19 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { FilterChip, type FilterChipTone } from "@/components/ui/filter-chip";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import { CardGridSkeleton, StatCardsSkeleton } from "@/components/ui/loading-skeletons";
+import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "paused", label: "Paused" },
-  { value: "archived", label: "Archived" },
-  { value: "approved", label: "Approved" },
-  { value: "pending", label: "Pending" },
+const STATUS_FILTERS: Array<{ value: string; label: string; tone: FilterChipTone }> = [
+  { value: "all", label: "All", tone: "accent" },
+  { value: "active", label: "Active", tone: "gain" },
+  { value: "paused", label: "Paused", tone: "warning" },
+  { value: "archived", label: "Archived", tone: "neutral" },
+  { value: "approved", label: "Approved", tone: "gain" },
+  { value: "pending", label: "Pending", tone: "gold" },
 ];
 
 const DEAL_PRESETS: Array<{
@@ -110,8 +113,8 @@ const METRIC_PRESET_MAP: Record<string, string[]> = {
 };
 
 function lifecycleBadgeVariant(status: Deal["lifecycle_status"]) {
-  if (status === "archived") return "warning" as const;
-  if (status === "paused") return "neutral" as const;
+  if (status === "archived") return "neutral" as const;
+  if (status === "paused") return "warning" as const;
   return "gain" as const;
 }
 
@@ -145,6 +148,31 @@ function formatDealDate(value: string | null | undefined) {
   const year = date.getFullYear();
 
   return `${day}-${month}-${year}`;
+}
+
+function formatDiscountHero(deal: Pick<Deal, "discount_type" | "discount_value">) {
+  if (deal.discount_type === "percentage") return `${deal.discount_value}%`;
+  if (typeof deal.discount_value === "number" && !Number.isNaN(deal.discount_value)) {
+    return `₹${deal.discount_value}`;
+  }
+  return "--";
+}
+
+function DealTermChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative z-[1] inline-flex rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[11px] text-white/78">
+      {children}
+    </span>
+  );
+}
+
+function DealStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="relative z-[1] rounded-lg border border-white/10 bg-white/6 px-2.5 py-2">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-white/55">{label}</p>
+      <p className="mt-0.5 font-tabular text-sm font-semibold text-white">{value}</p>
+    </div>
+  );
 }
 
 export default function DealsPage() {
@@ -228,6 +256,7 @@ export default function DealsPage() {
   }
 
   const rows = dealsQuery.data?.success ? dealsQuery.data.data.deals : [];
+  const showDealsSkeleton = useQuerySkeleton(dealsQuery);
   const totalDeals = rows.length;
   const activeDeals = rows.filter((deal) => (deal.lifecycle_status ?? (deal.archived_at ? "archived" : deal.is_active ? "active" : "paused")) === "active").length;
   const pausedDeals = rows.filter((deal) => (deal.lifecycle_status ?? (deal.archived_at ? "archived" : deal.is_active ? "active" : "paused")) === "paused").length;
@@ -245,15 +274,21 @@ export default function DealsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Deals" subtitle="Create, monitor, and optimize offers with clear business impact.">
-        <div className="w-full max-w-full rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-left sm:w-auto">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-foreground">Merchant Tip</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Keep 2-3 active deals at a time and rotate low-performing ones every week.
+      <PageHeader
+        title="Deals"
+        subtitle="Create offers in one tap, track performance, and keep only your best deals live."
+      >
+        <div className="w-full max-w-full rounded-xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card to-secondary/10 px-3 py-2.5 text-left sm:w-auto sm:max-w-xs">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-foreground">Tip</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Run 2–3 active deals. Pause weak ones weekly and try a recommended preset.
           </p>
         </div>
       </PageHeader>
 
+      {showDealsSkeleton ? (
+        <StatCardsSkeleton count={6} className="grid-cols-2 md:grid-cols-3 xl:grid-cols-6" />
+      ) : (
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Card className="border border-gain/35 bg-gain/12">
           <p className="text-[10px] uppercase tracking-wide text-gain">Active</p>
@@ -288,6 +323,7 @@ export default function DealsPage() {
           </p>
         </Card>
       </div>
+      )}
 
       {showRecommended && (
         <div id="recommended-presets">
@@ -315,12 +351,17 @@ export default function DealsPage() {
                 type="button"
                 onClick={() => createFromPreset(preset)}
                 disabled={createMutation.isPending}
-                className="rounded-xl border border-primary/25 bg-card p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+                className="deal-preset-dark p-4 text-left disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <p className="font-semibold text-foreground">{preset.label}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{preset.hint}</p>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {createMutation.isPending ? "Creating..." : "Create this deal instantly"}
+                <div className="relative z-[1] flex items-start justify-between gap-2">
+                  <p className="font-semibold text-white">{preset.label}</p>
+                  <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/80">
+                    Tap to add
+                  </span>
+                </div>
+                <p className="relative z-[1] mt-1 text-sm text-white/70">{preset.hint}</p>
+                <p className="relative z-[1] mt-3 text-xs text-white/55">
+                  {createMutation.isPending ? "Creating…" : "One-click create — edit anytime after"}
                 </p>
               </button>
             ))}
@@ -332,96 +373,122 @@ export default function DealsPage() {
       <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Quick create presets</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Quick create</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Launch proven deal formats in one click. You can edit them later anytime.
+              Scroll presets — tap any card to publish instantly.
             </p>
           </div>
-          <Badge variant="neutral">10 templates</Badge>
+          <Badge variant="neutral">{DEAL_PRESETS.length} templates</Badge>
         </div>
-        <div className="flex max-w-full flex-wrap gap-2">
+        <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory">
           {DEAL_PRESETS.map((preset) => (
-            <Button
+            <button
               key={preset.id}
-              size="sm"
-              variant="secondary"
-              loading={createMutation.isPending}
+              type="button"
+              disabled={createMutation.isPending}
               onClick={() => createFromPreset(preset)}
-              className="h-auto min-h-9 px-3 py-1.5 text-left"
+              className="deal-preset-dark w-[min(100%,220px)] shrink-0 snap-start p-3.5 text-left disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <span className="flex flex-col leading-tight">
-                <span className="font-mono text-[11px]">{preset.label}</span>
-                <span className="text-[10px] text-muted-foreground">{preset.hint}</span>
-              </span>
-            </Button>
+              <p className="relative z-[1] text-sm font-semibold text-white">{preset.label}</p>
+              <p className="relative z-[1] mt-1 text-xs text-white/65">{preset.hint}</p>
+            </button>
           ))}
         </div>
       </Card>
 
-      <Card>
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Lifecycle</p>
-          <div className="w-44">
-            <Select options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+      <Card className="space-y-4">
+        <div className="space-y-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Your deals</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">
+              {totalDeals} {totalDeals === 1 ? "offer" : "offers"}
+              {status !== "all" ? ` · ${status}` : ""}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Filter by status, then edit or pause from each card.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Status filter</p>
+            <div
+              className="-mx-0.5 flex gap-2 overflow-x-auto overflow-y-visible scroll-px-1 py-1.5 scrollbar-hide sm:flex-wrap sm:overflow-visible"
+              role="tablist"
+              aria-label="Deal status filters"
+            >
+              {STATUS_FILTERS.map((option) => (
+                <FilterChip
+                  key={option.value}
+                  label={option.label}
+                  tone={option.tone}
+                  selected={status === option.value}
+                  onSelect={() => setStatus(option.value)}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
-        {dealsQuery.isLoading && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-56 animate-pulse rounded-xl border border-border/60 bg-muted/20" />
-            ))}
-          </div>
-        )}
+        {showDealsSkeleton && <CardGridSkeleton count={6} />}
 
-        {!dealsQuery.isLoading && rows.length > 0 && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {!showDealsSkeleton && rows.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {rows.map((deal) => {
               const lifecycle = deal.lifecycle_status ?? (deal.archived_at ? "archived" : deal.is_active ? "active" : "paused");
+              const discountHero = formatDiscountHero(deal);
 
               return (
-                <div
+                <article
                   key={deal.id}
-                  className="group flex h-full flex-col rounded-xl border border-border/70 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+                  className="deal-card-dark group flex h-full flex-col p-4 transition-transform duration-200 hover:-translate-y-0.5"
                 >
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="font-semibold text-foreground">{deal.title || `Deal #${deal.id}`}</p>
-                      <p className="text-xs text-muted-foreground">Code: {deal.code || "AUTO"}</p>
-                    </div>
-                    <Badge variant={lifecycleBadgeVariant(lifecycle)}>{lifecycle.toUpperCase()}</Badge>
-                  </div>
-
-                  <div className="mb-3 rounded-lg border border-border/60 bg-muted/20 p-2">
-                    <p className="font-mono text-sm text-foreground">
-                      {deal.discount_type === "percentage" ? `${deal.discount_value}% OFF` : `${moneyOrDash(deal.discount_value)} OFF`}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Min order {moneyOrDash(deal.min_order_value)} | Max discount {moneyOrDash(deal.max_discount_amount)}
-                    </p>
-                  </div>
-
-                  {(deal.starts_at || deal.expires_at) && (
-                    <div className="mb-3 rounded-lg border border-border/60 bg-background/30 p-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Offer duration</p>
-                      <p className="mt-1 text-xs text-foreground">
-                        Starts {deal.starts_at ? formatDealDate(deal.starts_at) : "Immediately"}
-                      </p>
-                      <p className="text-xs text-foreground">
-                        Ends {deal.expires_at ? formatDealDate(deal.expires_at) : "No expiry"}
+                  <div className="relative z-[1] mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate font-semibold text-white">{deal.title || `Deal #${deal.id}`}</p>
+                      <p className="text-xs text-white/60">
+                        Code <span className="font-mono text-white/85">{deal.code || "AUTO"}</span>
                       </p>
                     </div>
-                  )}
+                    <Badge
+                      variant={lifecycleBadgeVariant(lifecycle)}
+                      className="shrink-0 text-[10px] capitalize"
+                    >
+                      {lifecycle}
+                    </Badge>
+                  </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                    <p className="text-xs text-muted-foreground">
-                      Created {formatDealDate(deal.created_at)}
+                  <div className="relative z-[1] mb-3 flex items-end gap-2">
+                    <p className="font-display text-4xl font-bold leading-none tracking-tight text-white">
+                      {discountHero}
                     </p>
+                    <p className="pb-1 text-sm font-medium uppercase tracking-wide text-white/70">off</p>
+                  </div>
+
+                  <div className="relative z-[1] mb-3 flex flex-wrap gap-1.5">
+                    <DealTermChip>Min {moneyOrDash(deal.min_order_value)}</DealTermChip>
+                    <DealTermChip>Cap {moneyOrDash(deal.max_discount_amount)}</DealTermChip>
+                    {(deal.starts_at || deal.expires_at) && (
+                      <DealTermChip>
+                        {deal.starts_at ? formatDealDate(deal.starts_at) : "Now"} →{" "}
+                        {deal.expires_at ? formatDealDate(deal.expires_at) : "No end"}
+                      </DealTermChip>
+                    )}
+                  </div>
+
+                  <div className="relative z-[1] mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <DealStat label="Gross" value={formatCompactMoney(deal.total_amount)} />
+                    <DealStat label="Discount" value={formatCompactMoney(deal.discount_amount)} />
+                    <DealStat label="Net sales" value={formatCompactMoney(deal.net_sales)} />
+                    <DealStat label="Visits" value={String(deal.visit_count ?? 0)} />
+                  </div>
+
+                  <div className="relative z-[1] mt-auto space-y-2 border-t border-white/10 pt-3">
+                    <p className="text-[11px] text-white/50">Created {formatDealDate(deal.created_at)}</p>
                     <div className="flex flex-wrap gap-2">
                       {lifecycle !== "archived" && (
                         <Button
                           variant="outline"
                           size="sm"
+                          className="border-white/25 bg-white/10 text-white hover:bg-white/20"
                           onClick={() => setEditingDeal(deal)}
                         >
                           Edit
@@ -431,6 +498,7 @@ export default function DealsPage() {
                         <Button
                           variant="secondary"
                           size="sm"
+                          className="bg-white/15 text-white hover:bg-white/25"
                           onClick={() => actionMutation.mutate({ action: "pause", dealId: deal.id })}
                           loading={actionMutation.isPending}
                         >
@@ -441,6 +509,7 @@ export default function DealsPage() {
                         <Button
                           variant="secondary"
                           size="sm"
+                          className="bg-white/15 text-white hover:bg-white/25"
                           onClick={() => actionMutation.mutate({ action: "resume", dealId: deal.id })}
                           loading={actionMutation.isPending}
                         >
@@ -459,37 +528,18 @@ export default function DealsPage() {
                       )}
                     </div>
                   </div>
-
-                  <div className="mt-3 border-t border-border/60 pt-3">
-                    <p className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Performance Snapshot</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-lg border border-border/60 bg-background/40 p-2">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total amount</p>
-                        <p className="text-sm font-semibold text-foreground">{formatCompactMoney(deal.total_amount)}</p>
-                      </div>
-                      <div className="rounded-lg border border-border/60 bg-background/40 p-2">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Discount amount</p>
-                        <p className="text-sm font-semibold text-foreground">{formatCompactMoney(deal.discount_amount)}</p>
-                      </div>
-                      <div className="rounded-lg border border-border/60 bg-background/40 p-2">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Net sales</p>
-                        <p className="text-sm font-semibold text-foreground">{formatCompactMoney(deal.net_sales)}</p>
-                      </div>
-                      <div className="rounded-lg border border-border/60 bg-background/40 p-2">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Coupon visits</p>
-                        <p className="text-sm font-semibold text-foreground">{deal.visit_count ?? 0}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )}
 
-        {!dealsQuery.isLoading && rows.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border/80 px-4 py-8 text-center text-sm text-muted-foreground">
-            No deals found for this filter.
+        {!showDealsSkeleton && rows.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-10 text-center">
+            <p className="text-sm font-medium text-foreground">No deals in this view</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Try another status filter or create a preset above.
+            </p>
           </div>
         )}
       </Card>

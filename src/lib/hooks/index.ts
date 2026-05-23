@@ -11,7 +11,6 @@ export {
   useLiveLeaderboard,
   useCountdown,
 } from "./use-live-data";
-export { useKMI } from "./use-kmi";
 export {
   useApplication,
   useApplicationList,
@@ -28,3 +27,4 @@ export {
   useVerifyBank,
 } from "./use-onboarding";
 export { useStates, useCities, useMerchantCategories } from "./use-geo";
+export { useQuerySkeleton } from "./use-query-skeleton";

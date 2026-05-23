@@ -1,219 +1,235 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addPostComment, getDiscoverPost, getDiscoverPosts, togglePostLike } from "@/lib/api/services/discover.service";
-import { ApiError } from "@/lib/api/client";
-import { useToastStore } from "@/lib/stores/toast.store";
+
+
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useInfiniteQuery } from "@tanstack/react-query";
+
+import { getDiscoverPosts } from "@/lib/api/services/discover.service";
+
 import { PageHeader } from "@/components/layout/page-header";
-import { Card } from "@/components/ui/card";
+
 import { Select } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
+import { DiscoverPostCard } from "@/components/discover/discover-post-card";
+
+import { DiscoverFeedSkeleton } from "@/components/discover/discover-feed-skeleton";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
+
 
 const CATEGORY_OPTIONS = [
-  { value: "all", label: "All categories" },
+
+  { value: "all", label: "All" },
+
   { value: "discover", label: "Discover" },
+
   { value: "academy", label: "Academy" },
+
 ];
 
+
+
+const PAGE_SIZE = 10;
+
+
+
 export default function DiscoverPage() {
+
   const [category, setCategory] = useState("all");
-  const [page, setPage] = useState(1);
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
-  const [commentBody, setCommentBody] = useState("");
 
-  const qc = useQueryClient();
-  const pushToast = useToastStore((s) => s.push);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const params = useMemo(() => {
-    return {
-      page,
-      limit: 12,
-      category: category === "all" ? undefined : category,
-    };
-  }, [category, page]);
 
-  const postsQuery = useQuery({
-    queryKey: ["discover-posts", params],
-    queryFn: () => getDiscoverPosts(params),
+
+  const postsQuery = useInfiniteQuery({
+
+    queryKey: ["discover-posts", category],
+
+    queryFn: ({ pageParam }) =>
+
+      getDiscoverPosts({
+
+        page: pageParam,
+
+        limit: PAGE_SIZE,
+
+        category: category === "all" ? undefined : category,
+
+      }),
+
+    initialPageParam: 1,
+
+    getNextPageParam: (lastPage) => {
+
+      if (!lastPage.success) return undefined;
+
+      const { page, total_pages } = lastPage.data.pagination;
+
+      return page < total_pages ? page + 1 : undefined;
+
+    },
+
     retry: false,
+
   });
 
-  const detailQuery = useQuery({
-    queryKey: ["discover-post", selectedPostId],
-    queryFn: () => getDiscoverPost(selectedPostId as number),
-    enabled: typeof selectedPostId === "number",
-    retry: false,
-  });
 
-  const likeMutation = useMutation({
-    mutationFn: (postId: number) => togglePostLike(postId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["discover-posts"] });
-      if (selectedPostId) {
-        qc.invalidateQueries({ queryKey: ["discover-post", selectedPostId] });
-      }
-    },
-    onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "Unable to update like";
-      pushToast({ title: "Like failed", description: message, variant: "error" });
-    },
-  });
 
-  const commentMutation = useMutation({
-    mutationFn: (input: { postId: number; body: string }) => addPostComment(input.postId, input.body),
-    onSuccess: () => {
-      setCommentBody("");
-      if (selectedPostId) {
-        qc.invalidateQueries({ queryKey: ["discover-post", selectedPostId] });
-      }
-      pushToast({ title: "Comment posted", variant: "success" });
-    },
-    onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "Unable to post comment";
-      pushToast({ title: "Comment failed", description: message, variant: "error" });
-    },
-  });
+  const posts = useMemo(
 
-  const posts = postsQuery.data?.success ? postsQuery.data.data.items : [];
-  const pagination = postsQuery.data?.success ? postsQuery.data.data.pagination : null;
-  const selected = detailQuery.data?.success ? detailQuery.data.data : null;
+    () => postsQuery.data?.pages.flatMap((page) => (page.success ? page.data.items : [])) ?? [],
 
-  function submitComment(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!selectedPostId || !commentBody.trim()) return;
-    commentMutation.mutate({ postId: selectedPostId, body: commentBody.trim() });
-  }
+    [postsQuery.data],
+
+  );
+
+
+
+  const showInitialSkeleton = postsQuery.isPending || (postsQuery.isFetching && postsQuery.data == null);
+
+
+
+  useEffect(() => {
+
+    const el = loadMoreRef.current;
+
+    if (!el) return;
+
+
+
+    const observer = new IntersectionObserver(
+
+      (entries) => {
+
+        if (entries[0]?.isIntersecting && postsQuery.hasNextPage && !postsQuery.isFetchingNextPage) {
+
+          void postsQuery.fetchNextPage();
+
+        }
+
+      },
+
+      { rootMargin: "240px" },
+
+    );
+
+
+
+    observer.observe(el);
+
+    return () => observer.disconnect();
+
+  }, [postsQuery.hasNextPage, postsQuery.isFetchingNextPage, postsQuery.fetchNextPage]);
+
+
 
   return (
+
     <div className="space-y-6">
-      <PageHeader title="Discover" subtitle="Community posts, comments, and merchant engagement feed." />
 
-      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <Card className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Feed</p>
-            <div className="w-44">
-              <Select
-                options={CATEGORY_OPTIONS}
-                value={category}
-                onChange={(value) => {
-                  setCategory(value);
-                  setPage(1);
-                }}
-              />
-            </div>
+      <PageHeader title="Discover" subtitle="Updates, tips, and conversations from the Kutoot community." />
+
+
+
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card-solid px-4 py-3 shadow-sm">
+
+          <p className="text-sm font-medium text-foreground">Feed</p>
+
+          <div className="w-40">
+
+            <Select
+
+              options={CATEGORY_OPTIONS}
+
+              value={category}
+
+              onChange={setCategory}
+
+            />
+
           </div>
 
-          <div className="space-y-2">
-            {posts.map((post) => (
-              <button
-                key={post.id}
-                type="button"
-                onClick={() => setSelectedPostId(post.id)}
-                className="w-full rounded-lg border border-border/70 bg-card/60 p-3 text-left transition-colors hover:bg-card-hover"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-foreground">{post.title}</p>
-                  {post.is_pinned && (
-                    <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-mono text-accent">PINNED</span>
-                  )}
-                </div>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{post.body}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                  <span>By {post.author}</span>
-                  <span>{new Date(post.published_at || post.created_at).toLocaleDateString("en-IN")}</span>
-                  <span>{post.views_count} views</span>
-                  <span>{post.likes_count} likes</span>
-                </div>
-              </button>
-            ))}
+        </div>
 
-            {!postsQuery.isLoading && posts.length === 0 && (
-              <p className="py-8 text-center text-sm text-muted-foreground">No posts found for this filter.</p>
-            )}
-          </div>
 
-          <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Previous
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page >= (pagination?.total_pages ?? 1)}
-              onClick={() => setPage((p) => Math.min(pagination?.total_pages ?? 1, p + 1))}
-            >
-              Next
-            </Button>
-          </div>
-        </Card>
 
-        <Card className="space-y-3">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Post details</p>
+        {showInitialSkeleton && <DiscoverFeedSkeleton count={3} />}
 
-          {!selected && (
-            <p className="py-10 text-center text-sm text-muted-foreground">Select a post to view full discussion.</p>
-          )}
 
-          {selected && (
-            <>
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">{selected.title}</h2>
-                <p className="text-sm text-muted-foreground">By {selected.author}</p>
-              </div>
 
-              <p className="whitespace-pre-wrap text-sm text-foreground">{selected.body}</p>
+        {!showInitialSkeleton && posts.length === 0 && (
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => likeMutation.mutate(selected.id)}
-                  loading={likeMutation.isPending}
-                >
-                  {selected.likes_count} Like
-                </Button>
-              </div>
+          <p className="rounded-2xl border border-dashed border-border/80 py-16 text-center text-sm text-muted-foreground">
 
-              <div className="space-y-2 border-t border-border pt-3">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Comments ({selected.comments.length})
-                </p>
+            No posts yet. Check back soon for updates from Kutoot.
 
-                {selected.comments.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No comments yet.</p>
-                )}
+          </p>
 
-                {selected.comments.map((comment) => (
-                  <div key={comment.id} className="rounded-md border border-border/70 p-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-medium text-foreground">{comment.author}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {new Date(comment.created_at).toLocaleString("en-IN")}
-                      </p>
-                    </div>
-                    <p className="mt-1 text-sm text-foreground">{comment.body}</p>
+        )}
+
+
+
+        {!showInitialSkeleton &&
+
+          posts.map((post) => (
+
+            <DiscoverPostCard key={post.id} post={post} />
+
+          ))}
+
+
+
+        {!showInitialSkeleton && posts.length > 0 && (
+
+          <div ref={loadMoreRef} className="flex flex-col items-center gap-3 pb-6 pt-1">
+
+            {postsQuery.isFetchingNextPage && (
+
+              <div className="w-full overflow-hidden rounded-2xl border border-border/80 bg-card-solid p-4 shadow-sm">
+
+                <div className="flex gap-3">
+
+                  <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
+
+                  <div className="flex-1 space-y-2">
+
+                    <Skeleton className="h-4 w-32" />
+
+                    <Skeleton className="h-3 w-20" />
+
                   </div>
-                ))}
 
-                <form className="space-y-2" onSubmit={submitComment}>
-                  <Input
-                    label="Add comment"
-                    value={commentBody}
-                    onChange={(e) => setCommentBody(e.target.value)}
-                    placeholder="Write a comment"
-                  />
-                  <Button type="submit" size="sm" loading={commentMutation.isPending} disabled={!commentBody.trim()}>
-                    Post comment
-                  </Button>
-                </form>
+                </div>
+
+                <Skeleton className="mt-4 h-5 w-3/4" />
+
+                <Skeleton className="mt-3 h-24 w-full rounded-xl" />
+
               </div>
-            </>
-          )}
-        </Card>
+
+            )}
+
+            {!postsQuery.hasNextPage && !postsQuery.isFetchingNextPage && (
+
+              <p className="text-xs text-muted-foreground">You&apos;re all caught up</p>
+
+            )}
+
+          </div>
+
+        )}
+
       </div>
+
     </div>
+
   );
+
 }
+
+

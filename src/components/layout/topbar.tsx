@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { KutootIcon } from "@/components/branding";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { QuickActions } from "@/components/ui/quick-actions";
 
 export function Topbar() {
   const { user, logout } = useAuth();
+  const isDemoStore = Boolean(user?.is_test);
   const { resolvedTheme, setTheme } = useTheme();
   const [now, setNow] = useState(new Date());
   const mounted = useSyncExternalStore(
@@ -44,15 +46,24 @@ export function Topbar() {
           {mounted ? (resolvedTheme === "dark" ? "Light Mode" : "Dark Mode") : "Theme"}
         </button>
         <div className="hidden rounded-xl border border-border/80 bg-card/70 px-3 py-2 text-right shadow-[0_10px_24px_rgba(8,13,34,0.22)] md:block">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Live Stamp</p>
           <p className="font-tabular text-xs text-foreground">
             {liveDate}
           </p>
         </div>
         {user && (
           <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-card/75 px-2 py-1.5 shadow-[0_10px_24px_rgba(8,13,34,0.22)]">
-            <div className="gradient-brand flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-accent-foreground">
-              {user.name.charAt(0).toUpperCase()}
+            <div
+              className={
+                isDemoStore
+                  ? "flex h-7 w-7 items-center justify-center rounded-full bg-card-solid p-0.5 ring-1 ring-border/70"
+                  : "gradient-brand flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-accent-foreground"
+              }
+            >
+              {isDemoStore ? (
+                <KutootIcon size="sm" className="h-full w-full object-contain" />
+              ) : (
+                user.name.charAt(0).toUpperCase()
+              )}
             </div>
             <span className="hidden text-xs text-foreground md:inline">{user.name}</span>
             <button

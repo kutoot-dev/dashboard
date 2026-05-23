@@ -37,6 +37,17 @@ export interface PaginatedData<T> {
   pagination: PaginationMeta;
 }
 
+export type LeaderboardScoringParameter =
+  | "all"
+  | "gmv_score"
+  | "commission_score"
+  | "platform_capture_score"
+  | "user_growth_score"
+  | "repeat_rate_score"
+  | "discount_aggression_score"
+  | "referral_score"
+  | "fairness_score";
+
 /** Common filter parameters for leaderboard endpoint */
 export interface LeaderboardFilters {
   page?: number;
@@ -45,17 +56,19 @@ export interface LeaderboardFilters {
   state?: string;
   start_date?: string;
   end_date?: string;
-  min_successful_transactions?: number;
+  parameter?: LeaderboardScoringParameter;
   sort_by?: string;
 }
 
-export interface LeaderboardEligibility {
-  minimum_successful_transactions: number;
-  counted_statuses: string[];
+export interface LeaderboardFiltersMeta {
+  snapshot_date?: string;
+  selected_parameter: LeaderboardScoringParameter;
+  selected_parameters: string[];
+  available_parameters: string[];
 }
 
 export interface LeaderboardData extends PaginatedData<LeaderboardEntry> {
-  eligibility?: LeaderboardEligibility;
+  filters?: LeaderboardFiltersMeta;
 }
 
 /** Leaderboard entry as returned by the API */
@@ -66,7 +79,8 @@ export interface LeaderboardEntry {
   business_name: string;
   period_date?: string;
   successful_transactions?: number;
-  meets_minimum_transactions?: boolean;
+  parameter_score?: number;
+  selected_parameter?: LeaderboardScoringParameter;
   city_name: string;
   state: string;
   sector_name: string;
@@ -85,6 +99,14 @@ export interface LeaderboardEntry {
     max_discount: number;
   }[];
   sub_scores: {
+    gmv_score?: number;
+    commission_score?: number;
+    platform_capture_score?: number;
+    user_growth_score?: number;
+    repeat_rate_score?: number;
+    discount_aggression_score?: number;
+    referral_score?: number;
+    fairness_score?: number;
     shop_activity: number;
     business_efficiency: number;
     location_advantage: number;

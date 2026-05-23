@@ -128,6 +128,7 @@ export function ScorePie({
               isAnimationActive
               onMouseEnter={(_, i) => setActiveKey(slices[i]?.key ?? null)}
               onMouseLeave={() => setActiveKey(null)}
+              onClick={(_, i) => setActiveKey(slices[i]?.key ?? null)}
             >
               {slices.map((s, idx) => (
                 <Cell

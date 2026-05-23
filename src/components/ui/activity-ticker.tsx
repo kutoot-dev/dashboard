@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMerchantNewsFeed } from "@/lib/api/services/merchant.service";
 import { cn } from "@/lib/utils/cn";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 
 export interface ActivityItem {
   id: string;
@@ -35,7 +37,7 @@ function timeAgo(ts: string): string {
 export function ActivityTicker({ className }: { className?: string }) {
   const [hours, setHours] = useState(24);
 
-  const { data } = useQuery({
+  const feedQuery = useQuery({
     queryKey: ["merchant-news-feed", hours],
     queryFn: async () => {
       const res = await getMerchantNewsFeed({ hours, limit: 50 });
@@ -45,6 +47,8 @@ export function ActivityTicker({ className }: { className?: string }) {
     retry: false,
   });
 
+  const data = feedQuery.data;
+  const showSkeleton = useQuerySkeleton(feedQuery);
   const backendItems = data?.rows ?? [];
   const effectiveHours = data?.hours ?? hours;
 
@@ -118,12 +122,27 @@ export function ActivityTicker({ className }: { className?: string }) {
         className="h-[200px] overflow-hidden scrollbar-hide"
       >
         <div className="space-y-1.5">
-          {items.length === 0 && (
+          {showSkeleton &&
+            Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={`sk-${i}`}
+                className="flex items-start gap-2 rounded-lg border border-glass-border bg-glass-bg/50 px-2.5 py-2"
+              >
+                <Skeleton variant="circle" className="h-4 w-4 shrink-0" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-2 w-2/5" />
+                </div>
+              </div>
+            ))}
+
+          {!showSkeleton && items.length === 0 && (
             <p className="rounded-lg border border-glass-border bg-glass-bg/40 px-2.5 py-2 text-[11px] text-muted-foreground">
               No merchant activity in this window.
             </p>
           )}
-          {items.map((item) => {
+          {!showSkeleton &&
+            items.map((item) => {
             const color = EVENT_COLOR_MAP[item.event] ?? "text-foreground";
             return (
               <div

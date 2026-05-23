@@ -405,18 +405,18 @@ export function ScoreTrendCard({
   );
 
   return (
-    <Card className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <Card className="space-y-4 border border-primary/22 bg-card/72 p-4 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Composite Score · Today (24h, IST)
+            Composite score · Today (24h, IST)
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Same composite as the breakdown card. The line traces every minute change recorded today
-            from 00:00 to 23:59 IST.
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Same composite as the breakdown card. Traces minute-by-minute changes from 00:00 to
+            23:59 IST.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Badge variant="neutral">Now {headerComposite.toFixed(2)}</Badge>
           <Badge variant={isUp ? "gain" : "loss"}>
             {isUp ? "+" : ""}
@@ -425,7 +425,7 @@ export function ScoreTrendCard({
         </div>
       </div>
 
-      <div style={{ width: "100%", height: 260, minWidth: 0, minHeight: 0 }}>
+      <div className="h-[200px] w-full min-w-0 sm:h-[260px]">
         {isLoading && series.length === 0 ? (
           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
             Loading composite score history…
@@ -435,38 +435,38 @@ export function ScoreTrendCard({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-muted-foreground">Zoom:</span>
-        <button
-          type="button"
-          onClick={() => applyZoomWindow(15)}
-          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
-        >
-          15m
-        </button>
-        <button
-          type="button"
-          onClick={() => applyZoomWindow(60)}
-          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
-        >
-          1h
-        </button>
-        <button
-          type="button"
-          onClick={() => applyZoomWindow(360)}
-          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
-        >
-          6h
-        </button>
-        <button
-          type="button"
-          onClick={resetZoom}
-          className="rounded border border-border bg-background px-2 py-1 hover:bg-muted"
-        >
-          24h Reset
-        </button>
-        <span className="ml-auto text-muted-foreground">
-          Drag to zoom, wheel or pinch to zoom, drag horizontally to pan.
+      <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+          <span className="shrink-0 text-muted-foreground">Zoom</span>
+          {(
+            [
+              { label: "15m", minutes: 15 },
+              { label: "1h", minutes: 60 },
+              { label: "6h", minutes: 360 },
+            ] as const
+          ).map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => applyZoomWindow(preset.minutes)}
+              className="shrink-0 min-h-9 rounded-lg border border-border bg-background px-3 py-1.5 touch-manipulation hover:bg-muted active:bg-muted/80"
+            >
+              {preset.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={resetZoom}
+            className="shrink-0 min-h-9 rounded-lg border border-border bg-background px-3 py-1.5 touch-manipulation hover:bg-muted active:bg-muted/80"
+          >
+            24h
+          </button>
+        </div>
+        <span className="text-muted-foreground sm:ml-auto sm:text-right">
+          <span className="hidden sm:inline">
+            Drag to zoom, wheel or pinch to zoom, drag horizontally to pan.
+          </span>
+          <span className="sm:hidden">Pinch or drag the chart to explore.</span>
         </span>
       </div>
 

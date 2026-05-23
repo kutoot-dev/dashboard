@@ -1,36 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { getStoreProfile, updateStoreProfile, type UpdateStorePayload } from "@/lib/api/services/merchant.service";
-import { ApiError } from "@/lib/api/client";
+import { useQuery } from "@tanstack/react-query";
+import { getOnboardingProfile, getStoreProfile } from "@/lib/api/services/merchant.service";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useToastStore } from "@/lib/stores/toast.store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { ProfileRowsSkeleton } from "@/components/ui/loading-skeletons";
+import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
+import { OnboardingProfileSections } from "@/components/settings/onboarding-profile-sections";
 
-interface EditableStoreForm {
-  store_email: string;
-  owner_name: string;
-  owner_mobile_whatsapp: string;
-  operating_hours_start: string;
-  operating_hours_end: string;
+function formatTime(value: string | null | undefined): string {
+  if (!value) return "--";
+  return value.length >= 5 ? value.slice(0, 5) : value;
 }
 
 export default function StorePage() {
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "";
-  const pushToast = useToastStore((s) => s.push);
-
-  const [form, setForm] = useState<EditableStoreForm>({
-    store_email: "",
-    owner_name: "",
-    owner_mobile_whatsapp: "",
-    operating_hours_start: "",
-    operating_hours_end: "",
-  });
 
   const storeQuery = useQuery({
     queryKey: ["store-profile", branchId],
@@ -39,134 +25,126 @@ export default function StorePage() {
     retry: false,
   });
 
-  useEffect(() => {
-    if (!storeQuery.data?.success) return;
-
-    const profile = storeQuery.data.data;
-    setForm({
-      store_email: profile.store_email ?? "",
-      owner_name: profile.owner_name ?? "",
-      owner_mobile_whatsapp: profile.owner_mobile_whatsapp ?? "",
-      operating_hours_start: profile.operating_hours_start ?? "",
-      operating_hours_end: profile.operating_hours_end ?? "",
-    });
-  }, [storeQuery.data]);
-
-  const updateMutation = useMutation({
-    mutationFn: (payload: UpdateStorePayload) => updateStoreProfile(branchId, payload),
-    onSuccess: () => {
-      storeQuery.refetch();
-      pushToast({ title: "Store profile updated", variant: "success" });
-    },
-    onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "Unable to update store profile";
-      pushToast({ title: "Update failed", description: message, variant: "error" });
-    },
+  const onboardingQuery = useQuery({
+    queryKey: ["store-onboarding-profile", branchId],
+    queryFn: () => getOnboardingProfile(branchId),
+    enabled: Boolean(branchId),
+    retry: false,
   });
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    updateMutation.mutate({
-      store_email: form.store_email || undefined,
-      owner_name: form.owner_name || undefined,
-      owner_mobile_whatsapp: form.owner_mobile_whatsapp || undefined,
-      operating_hours_start: form.operating_hours_start || undefined,
-      operating_hours_end: form.operating_hours_end || undefined,
-    });
-  }
-
   const profile = storeQuery.data?.success ? storeQuery.data.data : null;
+  const onboardingSections =
+    onboardingQuery.data?.success ? onboardingQuery.data.data.sections : [];
+  const showSkeleton = useQuerySkeleton(storeQuery);
+  const showOnboardingSkeleton = useQuerySkeleton(onboardingQuery);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        title="Store Settings"
-        subtitle="Manage branch profile details used across merchant listings and invoices."
+        title="Settings"
+        subtitle="Review your store contact details and onboarding submission."
       />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="space-y-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Editable details</p>
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Store details</h2>
+          <p className="text-sm text-muted-foreground">
+            Contact and operating hours on file for your branch. This is read-only.
+          </p>
+        </div>
 
-          <form className="space-y-3" onSubmit={handleSubmit}>
-            <Input
-              label="Store email"
-              type="email"
-              value={form.store_email}
-              onChange={(e) => setForm((prev) => ({ ...prev, store_email: e.target.value }))}
-            />
-            <Input
-              label="Owner name"
-              value={form.owner_name}
-              onChange={(e) => setForm((prev) => ({ ...prev, owner_name: e.target.value }))}
-            />
-            <Input
-              label="Owner WhatsApp mobile"
-              value={form.owner_mobile_whatsapp}
-              onChange={(e) => setForm((prev) => ({ ...prev, owner_mobile_whatsapp: e.target.value }))}
-            />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="space-y-3 md:col-span-2 lg:col-span-1">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Profile
+            </p>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <Input
-                label="Operating start"
-                type="time"
-                value={form.operating_hours_start}
-                onChange={(e) => setForm((prev) => ({ ...prev, operating_hours_start: e.target.value }))}
-              />
-              <Input
-                label="Operating end"
-                type="time"
-                value={form.operating_hours_end}
-                onChange={(e) => setForm((prev) => ({ ...prev, operating_hours_end: e.target.value }))}
-              />
-            </div>
+            {showSkeleton && <ProfileRowsSkeleton rows={5} />}
 
-            <Button type="submit" className="w-full" loading={updateMutation.isPending}>
-              Save profile
-            </Button>
-          </form>
-        </Card>
+            {!showSkeleton && profile && (
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Store email</span>
+                  <span className="font-medium text-foreground">{profile.store_email || "--"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Owner name</span>
+                  <span className="font-medium text-foreground">{profile.owner_name || "--"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Owner WhatsApp mobile</span>
+                  <span className="font-medium text-foreground">
+                    {profile.owner_mobile_whatsapp || "--"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Operating start</span>
+                  <span className="font-medium text-foreground">
+                    {formatTime(profile.operating_hours_start)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Operating end</span>
+                  <span className="font-medium text-foreground">
+                    {formatTime(profile.operating_hours_end)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </Card>
 
-        <Card className="space-y-3">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Read-only compliance data</p>
+          <Card className="space-y-3 md:col-span-2 lg:col-span-1">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Quick reference
+            </p>
 
-          {!profile && storeQuery.isLoading && (
-            <p className="text-sm text-muted-foreground">Loading profile...</p>
-          )}
+            {showSkeleton && <ProfileRowsSkeleton rows={6} />}
 
-          {profile && (
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Store name</span>
-                <span className="font-medium text-foreground">{profile.name || "--"}</span>
+            {!showSkeleton && profile && (
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Store name</span>
+                  <span className="font-medium text-foreground">{profile.name || "--"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Category</span>
+                  <span className="font-medium text-foreground">{profile.category || "--"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Commission</span>
+                  <span className="font-medium text-foreground">
+                    {profile.commission_percentage != null
+                      ? `${profile.commission_percentage}%`
+                      : "--"}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Address</span>
-                <span className="text-right font-medium text-foreground">{profile.address || "--"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">City / State</span>
-                <span className="font-medium text-foreground">
-                  {[profile.city, profile.state].filter(Boolean).join(", ") || "--"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">PIN code</span>
-                <span className="font-medium text-foreground">{profile.pin_code || "--"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">GST number</span>
-                <span className="font-medium text-foreground">{profile.gst_number || "--"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">PAN number</span>
-                <span className="font-medium text-foreground">{profile.pan_number || "--"}</span>
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
+            )}
+          </Card>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Onboarding profile</h2>
+          <p className="text-sm text-muted-foreground">
+            Everything collected when your store was onboarded. This is read-only.
+          </p>
+        </div>
+
+        {showOnboardingSkeleton ? (
+          <div className="space-y-4">
+            <ProfileRowsSkeleton rows={8} />
+            <ProfileRowsSkeleton rows={8} />
+          </div>
+        ) : onboardingQuery.isError ? (
+          <Card className="p-4 text-sm text-muted-foreground">
+            Unable to load onboarding details right now. Please refresh the page.
+          </Card>
+        ) : (
+          <OnboardingProfileSections sections={onboardingSections} />
+        )}
+      </section>
     </div>
   );
 }

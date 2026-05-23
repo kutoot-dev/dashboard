@@ -63,25 +63,35 @@ export async function getBranchVolume(id: string) {
   return res.data;
 }
 
-/** Branch payout history item */
-export interface BranchPayout {
+/** Single day bonus payout from the payout engine */
+export interface BranchPayoutHistoryItem {
   payout_id: string;
   period_id: string;
-  period_label: string;
-  pool_amount: number;
-  allocated_amount: number;
-  status: string;
-  paid_at: string | null;
-  score: number | null;
+  date: string;
+  daily_pool: number;
+  your_share: number;
   rank: number | null;
+  status: string;
+}
+
+/** Bonus payout API payload */
+export interface BranchPayoutsData {
+  total_bonus_received: number;
+  latest: {
+    date: string;
+    rank: number | null;
+    daily_pool: number;
+    your_share: number;
+  } | null;
+  history: BranchPayoutHistoryItem[];
 }
 
 /**
- * Get the branch's payout history.
+ * Get the branch's bonus payout summary and history.
  * @endpoint GET /api/branches/:id/payouts
  */
 export async function getBranchPayouts(id: string) {
-  const res = await apiClient.get<ApiResponse<BranchPayout[]>>(
+  const res = await apiClient.get<ApiResponse<BranchPayoutsData>>(
     `/branches/${id}/payouts`,
   );
   return res.data;

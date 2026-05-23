@@ -59,6 +59,42 @@ export const SUB_SCORE_DESCRIPTIONS: Record<string, string> = {
     "Penalises customer concentration — if most of your GMV comes from one person, this score drops. Broad reach is rewarded.",
 };
 
+/**
+ * Plain-language explanations for the leaderboard (readable by young students).
+ */
+export const LEADERBOARD_PARAMETER_EXPLANATIONS: Record<string, string> = {
+  all:
+    "Your overall score mixes all 8 parts below—like points in a school report card. We add them up with fair weights. Higher total = higher rank on this list.",
+  gmv_score:
+    "How much money your shop sold today. We compare you with other shops. More sales than most shops = higher rank for this filter.",
+  commission_score:
+    "You give Kutoot a small share of each sale (commission). Sharing fairly and growing sales over time gives you more points here.",
+  platform_capture_score:
+    "After discounts and fees, how much useful money is left from each sale. Good sales that are not too discounted score higher.",
+  user_growth_score:
+    "How many brand-new customers bought from you today. More new faces = higher score on this filter.",
+  repeat_rate_score:
+    "How many customers came back to buy again. Happy regulars who return push your score up.",
+  discount_aggression_score:
+    "Big discounts all day can lower this score. Smart, smaller deals that still bring customers score better.",
+  referral_score:
+    "Points when you invite another shop to join Kutoot and they start using it. More good referrals = higher score.",
+  fairness_score:
+    "We like many different customers, not just one person buying everything. Many happy customers = better score.",
+};
+
+export const LEADERBOARD_COLUMN_EXPLANATIONS: Record<string, string> = {
+  rank: "Your place on the list today for the filter you picked. #1 means you are at the top for that score.",
+  business: "Shop name and where it is (city and state).",
+  sector: "What kind of shop this is, like restaurant, café, or retail.",
+  score:
+    "The number used to sort the list for the filter you chose. Bigger number = better rank for that filter.",
+  change:
+    "Whether your rank moved up or down compared to the last update. Up is good, down means others passed you.",
+  successful_tx:
+    "How many bills were paid successfully today (paid or completed—not cancelled or failed).",
+};
+
 /** Display order for parameter meters */
 export const SUB_SCORE_ORDER: string[] = [
   "gmv_score",

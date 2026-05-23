@@ -9,6 +9,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getMerchantDashboard } from "@/lib/api/services/merchant.service";
 import { IMPROVEMENT_TIPS, SUB_SCORE_DESCRIPTIONS } from "@/lib/constants/scoring";
 import { useToastStore } from "@/lib/stores/toast.store";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 
 export default function MerchantReferralPage() {
   const router = useRouter();
@@ -16,7 +18,7 @@ export default function MerchantReferralPage() {
   const pushToast = useToastStore((s) => s.push);
   const branchId = user?.branch_id ?? "";
 
-  const { data, isLoading } = useQuery({
+  const dashboardQuery = useQuery({
     queryKey: ["merchant-dashboard"],
     queryFn: getMerchantDashboard,
     refetchInterval: 30_000,
@@ -24,7 +26,8 @@ export default function MerchantReferralPage() {
     enabled: Boolean(branchId),
   });
 
-  const dashboard = data?.success ? data.data : null;
+  const showSkeleton = useQuerySkeleton(dashboardQuery);
+  const dashboard = dashboardQuery.data?.success ? dashboardQuery.data.data : null;
   const referralCode = dashboard?.merchant_referral_code ?? "--";
   const referralShareUrl = dashboard?.referral_share_url ?? null;
 
@@ -73,7 +76,11 @@ export default function MerchantReferralPage() {
         <Card className="space-y-4 border border-primary/25 bg-card/75 p-5">
           <div>
             <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Shareable code</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{isLoading ? "Loading..." : referralCode}</p>
+            {showSkeleton ? (
+              <Skeleton className="mt-2 h-9 w-48" />
+            ) : (
+              <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{referralCode}</p>
+            )}
             <p className="mt-2 text-sm text-muted-foreground">
               Use this code when inviting other merchants so your referral activity is attached to your branch.
             </p>
@@ -81,7 +88,11 @@ export default function MerchantReferralPage() {
 
           <div className="rounded-xl border border-border/70 bg-background/35 p-4">
             <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Referral link</p>
-            <p className="mt-2 break-all text-sm text-foreground">{referralShareUrl ?? "--"}</p>
+            {showSkeleton ? (
+              <Skeleton className="mt-2 h-4 w-full max-w-md" />
+            ) : (
+              <p className="mt-2 break-all text-sm text-foreground">{referralShareUrl ?? "--"}</p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"

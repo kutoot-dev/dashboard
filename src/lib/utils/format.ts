@@ -63,6 +63,16 @@ export function formatCompact(num?: number | null): string {
   return num.toString();
 }
 
+/** Relative time for feeds (e.g., "2h ago", "just now") */
+export function formatTimeAgo(ts: string | Date): string {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (diff < 1) return "just now";
+  if (diff < 60) return `${diff}m ago`;
+  if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+  if (diff < 10080) return `${Math.floor(diff / 1440)}d ago`;
+  return formatDate(ts);
+}
+
 /** Format date as "DD MMM YYYY" (e.g., "15 Mar 2026") */
 export function formatDate(date: string | Date): string {
   return new Intl.DateTimeFormat("en-IN", {

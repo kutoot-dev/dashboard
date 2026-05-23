@@ -101,7 +101,7 @@ export const BRANCH_NAV = {
   MY_SHOP: "My Branch",
   RANKINGS: "Rankings",
   MY_PERFORMANCE: "My Performance",
-  REWARDS: "Rewards",
+  REWARDS: "Bonus Payout",
 } as const;
 
 // ── Branch Dashboard ──────────────────────────────────────────────────
@@ -206,22 +206,25 @@ export const ANALYSIS = {
 // ── Payouts ───────────────────────────────────────────────────────────
 
 export const PAYOUTS = {
-  TITLE_BRANCH: "Rewards",
-  SUBTITLE_BRANCH: "Your reward history and daily pool",
-  TITLE_HO: "Payouts",
-  SUBTITLE_HO: "Aggregated payout summary across branches",
+  TITLE_BRANCH: "Bonus Payout",
+  SUBTITLE_BRANCH: "Daily merchant bonus pool shared by rank across all branches",
+  TITLE_HO: "Bonus Payout",
+  SUBTITLE_HO: "Aggregated bonus payout summary across branches",
 
-  TOTAL_EARNED: "Total Earned",
-  PERIODS_REWARDED: "Periods rewarded",
-  CURRENT_RANK: "Current rank",
-  CURRENT_SCORE: "Current score",
+  TOTAL_BONUS_RECEIVED: "Total bonus received",
+  LATEST_DAY_SHARE: "Latest day's share",
+  LATEST_DAY_HELPER: "Rank and pool at day close",
+  LATEST_RANK: "Rank",
+  LATEST_POOL: "Bonus pool that day",
+  LATEST_SHARE: "Your share",
 
-  REWARD_HISTORY: "Reward History",
-  COL_PERIOD: "Period",
-  COL_SCORE: "Score",
+  HISTORY: "Bonus payout history",
+  COL_DATE: "Date",
   COL_RANK: "Rank",
-  COL_REWARD: "Reward",
+  COL_DAILY_POOL: "Bonus pool",
+  COL_YOUR_SHARE: "Your share",
   COL_STATUS: "Status",
+  EMPTY: "No bonus payout records yet.",
 } as const;
 
 // ── Achievements ──────────────────────────────────────────────────────

@@ -10,7 +10,10 @@ import {
   exportTransactionsCsv,
   getGstSummary,
   getTransactions,
+  getTransactionsSummary,
 } from "@/lib/api/services/merchant.service";
+import { TransactionsTrendChart, type TransactionChartMetric } from "@/components/charts";
+import { buildDailyTransactionSeries } from "@/lib/utils/transactions-chart";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useToastStore } from "@/lib/stores/toast.store";
@@ -19,17 +22,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { formatINR, formatINRDecimal } from "@/lib/utils/format";
+import { StatCardsSkeleton, TableRowsSkeleton } from "@/components/ui/loading-skeletons";
+import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
+import { DEFAULT_FILTER_DATE_RANGE } from "@/lib/utils/date-range";
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "All statuses" },
+const STATUS_FILTERS = [
+  { value: "all", label: "All" },
   { value: "paid", label: "Paid" },
   { value: "completed", label: "Completed" },
   { value: "pending", label: "Pending" },
   { value: "failed", label: "Failed" },
   { value: "cancelled", label: "Cancelled" },
-];
+] as const;
 
 function parseFileName(response: AxiosResponse<Blob>, fallback: string): string {
   const disposition = response.headers?.["content-disposition"] as string | undefined;
@@ -67,8 +73,9 @@ export default function TransactionsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
-  const [range, setRange] = useState({ start: "", end: "" });
+  const [range, setRange] = useState(DEFAULT_FILTER_DATE_RANGE);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<number | null>(null);
+  const [chartMetric, setChartMetric] = useState<TransactionChartMetric>("amount");
 
   const filters = useMemo(() => {
     const next: {
@@ -93,6 +100,23 @@ export default function TransactionsPage() {
   const transactionsQuery = useQuery({
     queryKey: ["transactions", branchId, filters],
     queryFn: () => getTransactions(branchId, filters),
+    enabled: Boolean(branchId),
+    retry: false,
+  });
+
+  const summaryFilters = useMemo(
+    () => ({
+      from: filters.from,
+      to: filters.to,
+      status: filters.status,
+      search: filters.search,
+    }),
+    [filters.from, filters.search, filters.status, filters.to],
+  );
+
+  const transactionsSummaryQuery = useQuery({
+    queryKey: ["transactions-summary", branchId, summaryFilters],
+    queryFn: () => getTransactionsSummary(branchId, summaryFilters),
     enabled: Boolean(branchId),
     retry: false,
   });
@@ -191,6 +215,27 @@ export default function TransactionsPage() {
   const rows = transactionsQuery.data?.success ? transactionsQuery.data.data.rows : [];
   const total = transactionsQuery.data?.success ? transactionsQuery.data.data.total : 0;
   const pages = transactionsQuery.data?.success ? transactionsQuery.data.data.pages : 1;
+  const showGstSkeleton = useQuerySkeleton(gstSummaryQuery);
+  const showTransactionsSkeleton = useQuerySkeleton(transactionsQuery);
+  const showChartSkeleton = useQuerySkeleton(transactionsSummaryQuery);
+
+  const chartData = useMemo(() => {
+    const rows = transactionsSummaryQuery.data?.success ? transactionsSummaryQuery.data.data.rows : [];
+    return buildDailyTransactionSeries(rows, range.start, range.end);
+  }, [range.end, range.start, transactionsSummaryQuery.data]);
+
+  const chartTotals = useMemo(
+    () =>
+      chartData.reduce(
+        (acc, point) => {
+          acc.count += point.count;
+          acc.amount += point.amount;
+          return acc;
+        },
+        { count: 0, amount: 0 },
+      ),
+    [chartData],
+  );
   const gstRows = useMemo(
     () => (gstSummaryQuery.data?.success ? gstSummaryQuery.data.data.rows : []),
     [gstSummaryQuery.data],
@@ -234,41 +279,51 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <PageHeader title="Transactions" subtitle="Filter transactions, download reports, and generate invoices." />
 
-      <Card className="space-y-3">
-        <div className="grid gap-3 md:grid-cols-4">
-          <Input
-            label="Search customer"
-            placeholder="Name or phone"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+      <Card className="space-y-4 overflow-visible">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="min-w-0 w-full flex-1 sm:min-w-[12rem]">
+            <Input
+              label="Search customer"
+              placeholder="Name or phone"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <DateRangePicker
+            label="Date range"
+            value={range}
+            onChange={(value) => {
+              setRange(value);
               setPage(1);
             }}
           />
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Status</label>
-            <Select
-              options={STATUS_OPTIONS}
-              value={status}
-              onChange={(value) => {
-                setStatus(value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Date range</label>
-            <DateRangePicker
-              value={range}
-              onChange={(value) => {
-                setRange(value);
-                setPage(1);
-              }}
-            />
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Payment status</p>
+          <div
+            className="-mx-0.5 flex gap-2 overflow-x-auto overflow-y-visible scroll-px-1 py-1.5 scrollbar-hide sm:flex-wrap sm:overflow-visible"
+            role="tablist"
+            aria-label="Transaction status filters"
+          >
+            {STATUS_FILTERS.map((option) => (
+              <FilterChip
+                key={option.value}
+                label={option.label}
+                selected={status === option.value}
+                onSelect={() => {
+                  setStatus(option.value);
+                  setPage(1);
+                }}
+              />
+            ))}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
           <Button
             variant="secondary"
             loading={exportTransactionsMutation.isPending}
@@ -293,6 +348,44 @@ export default function TransactionsPage() {
         </div>
       </Card>
 
+      <Card className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Transaction trend
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Daily totals for your current filters · {chartTotals.count} txn · {formatINR(chartTotals.amount)} gross
+            </p>
+          </div>
+          <div
+            className="flex gap-2"
+            role="tablist"
+            aria-label="Chart metric"
+          >
+            <FilterChip
+              label="Gross bill"
+              selected={chartMetric === "amount"}
+              onSelect={() => setChartMetric("amount")}
+            />
+            <FilterChip
+              label="Count"
+              selected={chartMetric === "count"}
+              onSelect={() => setChartMetric("count")}
+            />
+          </div>
+        </div>
+
+        {showChartSkeleton ? (
+          <div className="h-60 animate-pulse rounded-lg bg-muted/30" />
+        ) : (
+          <TransactionsTrendChart data={chartData} metric={chartMetric} height={240} />
+        )}
+      </Card>
+
+      {showGstSkeleton ? (
+        <StatCardsSkeleton count={11} className="md:grid-cols-2 xl:grid-cols-4" />
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Gross bill</p>
@@ -350,13 +443,19 @@ export default function TransactionsPage() {
           <p className="mt-1 text-xs text-muted-foreground">Platform GST + KC GST + retained KC</p>
         </Card>
       </div>
+      )}
 
       <Card>
         <div className="mb-3 flex items-center justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Transaction list ({total})</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Transaction list ({showTransactionsSkeleton ? "—" : total})
+          </p>
           <p className="text-xs text-muted-foreground">Page {page} of {Math.max(1, pages)}</p>
         </div>
 
+        {showTransactionsSkeleton ? (
+          <TableRowsSkeleton rows={8} columns={8} minWidth="min-w-[1200px]" />
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-350 text-sm">
             <thead>
@@ -419,7 +518,7 @@ export default function TransactionsPage() {
                 </tr>
               ))}
 
-              {!transactionsQuery.isLoading && rows.length === 0 && (
+              {rows.length === 0 && (
                 <tr>
                   <td colSpan={16} className="px-2 py-8 text-center text-sm text-muted-foreground">
                     No transactions found for this filter.
@@ -429,6 +528,7 @@ export default function TransactionsPage() {
             </tbody>
           </table>
         </div>
+        )}
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>

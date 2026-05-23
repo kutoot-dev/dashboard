@@ -5,7 +5,6 @@ const AUTH_COOKIE = "kutoot_auth";
 const MERCHANT_ROUTES = [
   "/dashboard",
   "/leaderboard",
-  "/analysis",
   "/payouts",
   "/transactions",
   "/visitors",
@@ -60,7 +59,6 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/leaderboard/:path*",
-    "/analysis/:path*",
     "/payouts/:path*",
     "/transactions/:path*",
     "/visitors/:path*",

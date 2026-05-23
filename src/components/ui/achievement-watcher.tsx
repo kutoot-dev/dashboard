@@ -3,13 +3,12 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useBranchScore } from "@/lib/hooks/use-branch-data";
-import { useKMI } from "@/lib/hooks/use-kmi";
 import { fireCelebration, fireGoldRain, fireSparkle } from "@/lib/utils/effects";
 import { usePreferencesStore } from "@/lib/stores/preferences.store";
 
 /**
- * AchievementWatcher — monitors the authenticated merchant's rank and KBI
- * change and fires confetti + toast-like announcements for meaningful
+ * AchievementWatcher — monitors the authenticated merchant's rank and composite
+ * score and fires confetti + toast-like announcements for meaningful
  * improvements. Rendered globally inside the AppShell so achievements trigger
  * regardless of which page the merchant is on.
  *
@@ -17,7 +16,6 @@ import { usePreferencesStore } from "@/lib/stores/preferences.store";
  *   - Rank improves by 5+ positions → gold rain
  *   - Rank improves by 1-4 positions → celebration burst
  *   - Composite score crosses a 10-point boundary upward → sparkle
- *   - KBI change_percent > 3% in positive direction → sparkle
  *
  * Announcements are throttled per tab via sessionStorage so a refresh won't
  * replay the same celebration.
@@ -26,12 +24,10 @@ export function AchievementWatcher() {
   const { user } = useAuth();
   const branchId = user?.branch_id ?? "";
   const { data: score } = useBranchScore(branchId);
-  const kmi = useKMI();
   const { soundEnabled } = usePreferencesStore();
 
   const prevRankRef = useRef<number | null>(null);
   const prevScoreBandRef = useRef<number | null>(null);
-  const prevKbiChangeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!score) return;
@@ -61,20 +57,6 @@ export function AchievementWatcher() {
     }
     prevScoreBandRef.current = currentBand;
   }, [score, soundEnabled]);
-
-  useEffect(() => {
-    if (!kmi) return;
-    const change = kmi.changePercent ?? 0;
-    if (
-      prevKbiChangeRef.current <= 3 &&
-      change > 3 &&
-      kmi.isPositive
-    ) {
-      void fireSparkle();
-      announce(`📈 KBI up +${change.toFixed(1)}%`, soundEnabled);
-    }
-    prevKbiChangeRef.current = change;
-  }, [kmi, soundEnabled]);
 
   return null;
 }
