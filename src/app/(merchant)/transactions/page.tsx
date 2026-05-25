@@ -20,13 +20,18 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { formatINR, formatINRDecimal } from "@/lib/utils/format";
-import { getPaymentStatusDisplay, PAYMENT_STATUS_FILTERS } from "@/lib/utils/payment-status";
+import {
+  getPaymentStatusDisplay,
+  getPaymentStatusGuide,
+  PAYMENT_STATUS_FILTERS,
+  PAYMENT_STATUS_GUIDE,
+} from "@/lib/utils/payment-status";
+import { Badge } from "@/components/ui/badge";
 import { StatCardsSkeleton, TableRowsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 import { DEFAULT_FILTER_DATE_RANGE } from "@/lib/utils/date-range";
@@ -115,7 +120,7 @@ function TransactionRowCard({
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Badge variant={status.variant} title={status.description}>
+          <Badge variant={status.variant} title={`${status.description}. ${status.detail}`}>
             {status.label}
           </Badge>
           <Button
@@ -357,10 +362,15 @@ export default function TransactionsPage() {
     );
   }, [gstRows]);
 
+  const activeStatusGuide = useMemo(
+    () => getPaymentStatusGuide(status as (typeof PAYMENT_STATUS_FILTERS)[number]["value"]),
+    [status],
+  );
+
   const summaryCards = [
     { label: "Gross bill", value: formatINRDecimal(totals.gross), hint: "Before discounts" },
     { label: "Discounts", value: formatINRDecimal(totals.discount), hint: "Coupon savings" },
-    { label: "Customer paid", value: formatINRDecimal(totals.userPaid), hint: "Collected via Razorpay" },
+    { label: "Customer paid", value: formatINRDecimal(totals.userPaid), hint: "Collected via payment gateway" },
     { label: "Your settlement", value: formatINRDecimal(totals.settlement), hint: "After KC and taxes" },
     { label: "Platform fee", value: formatINRDecimal(totals.platformFee), hint: "Kutoot service fee" },
     { label: "GST on platform fee", value: formatINRDecimal(totals.platformGst), hint: "Tax on service fee" },
@@ -398,8 +408,13 @@ export default function TransactionsPage() {
           />
         </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Payment status (Razorpay)</p>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">Payment status (payment gateway)</p>
+            <p className="text-[11px] text-muted-foreground">
+              Statuses update from the payment gateway — not entered manually
+            </p>
+          </div>
           <div
             className="-mx-0.5 flex gap-2 overflow-x-auto overflow-y-visible scroll-px-1 py-1.5 scrollbar-hide sm:flex-wrap sm:overflow-visible"
             role="tablist"
@@ -417,6 +432,51 @@ export default function TransactionsPage() {
               />
             ))}
           </div>
+
+          <div
+            className="rounded-lg border border-accent/25 bg-accent/5 px-3 py-3 sm:px-4"
+            role="region"
+            aria-labelledby="payment-status-guide-heading"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p id="payment-status-guide-heading" className="text-xs font-semibold text-foreground">
+                  {status === "all" ? "Payment status guide" : activeStatusGuide.label}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Gateway event: {activeStatusGuide.gatewayEvent}
+                </p>
+              </div>
+              <Badge variant={activeStatusGuide.variant}>{activeStatusGuide.label}</Badge>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-foreground">{activeStatusGuide.summary}</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{activeStatusGuide.detail}</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">For your branch: </span>
+              {activeStatusGuide.forMerchant}
+            </p>
+          </div>
+
+          {status === "all" && (
+            <details className="group rounded-lg border border-border/70 bg-muted/15">
+              <summary className="cursor-pointer list-none px-3 py-2.5 text-xs font-medium text-foreground sm:px-4 [&::-webkit-details-marker]:hidden">
+                Compare all statuses
+                <span className="ml-1 text-muted-foreground group-open:hidden">▾</span>
+                <span className="ml-1 text-muted-foreground hidden group-open:inline">▴</span>
+              </summary>
+              <ul className="space-y-3 border-t border-border/60 px-3 py-3 sm:px-4">
+                {PAYMENT_STATUS_GUIDE.filter((entry) => entry.value !== "all").map((entry) => (
+                  <li key={entry.value} className="text-xs leading-relaxed">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={entry.variant}>{entry.label}</Badge>
+                      <span className="font-mono text-[10px] text-muted-foreground">{entry.gatewayEvent}</span>
+                    </div>
+                    <p className="mt-1 text-muted-foreground">{entry.summary}</p>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
@@ -566,7 +626,10 @@ export default function TransactionsPage() {
                           {formatINRDecimal(Number(row.merchant_settlement_wallet ?? 0))}
                         </td>
                         <td className="px-2 py-3">
-                          <Badge variant={paymentStatus.variant} title={paymentStatus.description}>
+                          <Badge
+                            variant={paymentStatus.variant}
+                            title={`${paymentStatus.description}. ${paymentStatus.detail}`}
+                          >
                             {paymentStatus.label}
                           </Badge>
                         </td>
