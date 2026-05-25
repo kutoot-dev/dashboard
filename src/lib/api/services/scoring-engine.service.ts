@@ -1,5 +1,5 @@
-import { apiClient } from "@/lib/api/client";
-import type { ApiResponse } from "@/lib/api/types";
+import apiClient from "@/lib/api/client";
+import type { ApiResponse } from "@/lib/types";
 
 export interface ScoringEngineParameter {
   key: string;
