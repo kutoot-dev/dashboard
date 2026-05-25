@@ -27,6 +27,12 @@ const EVENT_COLOR_MAP: Record<string, string> = {
   scanned: "text-warning",
   approved: "text-gain",
   rejected: "text-loss",
+  merchant_submitted: "text-accent",
+  onboarding_link_sent: "text-accent",
+  store_profile_completed: "text-gain",
+  password_reset: "text-warning",
+  credentials_resent_email: "text-accent",
+  credentials_resent_sms: "text-accent",
 };
 
 function timeAgo(ts: string): string {
@@ -152,7 +158,7 @@ export function ActivityTicker({ className }: { className?: string }) {
                 key={item.id}
                 className="flex items-start gap-2 rounded-lg border border-glass-border bg-glass-bg/50 px-2.5 py-1.5 transition-colors hover:bg-glass-bg"
               >
-                <Icon icon={item.icon} className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <Icon icon={item.icon} className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", color)} />
                 <div className="min-w-0 flex-1">
                   <p className={cn("text-[11px] leading-tight", color)}>
                     {item.message}

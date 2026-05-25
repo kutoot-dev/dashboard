@@ -20,6 +20,8 @@ import { StatCardsSkeleton, TableRowsSkeleton } from "@/components/ui/loading-sk
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 import { PAYOUTS } from "@/lib/constants/strings";
 import { cn } from "@/lib/utils/cn";
+import { Icon } from "@/components/ui/icon";
+import { faCalendarDay, faChartLine, faMoneyBillTransfer } from "@/lib/icons";
 
 const PAYOUTS_REFRESH_MS = 5 * 60 * 1000;
 
@@ -144,14 +146,14 @@ export default function PayoutsPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <BonusPayoutStatCard
             variant="gold"
-            icon={<span aria-hidden>💰</span>}
+            icon={<Icon icon={faMoneyBillTransfer} className="h-5 w-5 text-gold" aria-hidden />}
             label={PAYOUTS.TOTAL_BONUS_RECEIVED}
             value={formatINR(payload?.total_bonus_received ?? 0)}
             helper="Lifetime bonus credited from daily pools"
           />
           <BonusPayoutStatCard
             variant="accent"
-            icon={<span aria-hidden>📅</span>}
+            icon={<Icon icon={faCalendarDay} className="h-5 w-5 text-accent" aria-hidden />}
             label={PAYOUTS.LATEST_DAY_SHARE}
             value={latest ? formatINR(latest.your_share) : "—"}
             helper={
@@ -162,7 +164,7 @@ export default function PayoutsPage() {
           />
           <BonusPayoutStatCard
             variant="default"
-            icon={<span aria-hidden>📊</span>}
+            icon={<Icon icon={faChartLine} className="h-5 w-5 text-foreground" aria-hidden />}
             label={PAYOUTS.AVG_DAILY_SHARE}
             value={chartData.length ? formatINR(chartSummary.avgShare) : "—"}
             helper={

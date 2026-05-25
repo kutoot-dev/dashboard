@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KutootIcon, KutootLogo } from "@/components/branding";
 import { Icon } from "@/components/ui/icon";
-import { BRANCH_NAV } from "@/lib/constants/navigation";
+import { getBranchNav } from "@/lib/constants/navigation";
 import { faChevronLeft } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -12,9 +12,9 @@ import { cn } from "@/lib/utils/cn";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
-  const navItems = BRANCH_NAV;
+  const navItems = getBranchNav(Boolean(user?.is_test));
 
   return (
     <aside

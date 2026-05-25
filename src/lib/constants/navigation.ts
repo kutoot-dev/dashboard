@@ -11,6 +11,7 @@ import {
   faChartBar,
   faClipboardCheck,
   faComments,
+  faFlask,
   faGear,
   faHouse,
   faMoneyBillTransfer,
@@ -72,3 +73,28 @@ export const BRANCH_NAV: NavItem[] = [
     icon: faGear,
   },
 ];
+
+/** Demo-only: scoring / payout engine lab */
+export const DEMO_SCORING_ENGINE_NAV: NavItem = {
+  label: "Score Engine",
+  href: "/scoring-engine",
+  icon: faFlask,
+};
+
+/** Branch nav; appends demo lab link when `isTest` is true. */
+export function getBranchNav(isTest = false): NavItem[] {
+  if (!isTest) {
+    return BRANCH_NAV;
+  }
+
+  const payoutIndex = BRANCH_NAV.findIndex((item) => item.href === "/payouts");
+  if (payoutIndex === -1) {
+    return [...BRANCH_NAV, DEMO_SCORING_ENGINE_NAV];
+  }
+
+  return [
+    ...BRANCH_NAV.slice(0, payoutIndex + 1),
+    DEMO_SCORING_ENGINE_NAV,
+    ...BRANCH_NAV.slice(payoutIndex + 1),
+  ];
+}

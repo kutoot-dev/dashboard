@@ -4,20 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { Icon } from "@/components/ui/icon";
-import { BRANCH_NAV } from "@/lib/constants/navigation";
+import { getBranchNav } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false,
   );
 
-  const navItems = BRANCH_NAV;
+  const navItems = getBranchNav(Boolean(user?.is_test));
 
   if (!mounted || isLoading) return null;
 

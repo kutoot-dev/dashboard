@@ -1,10 +1,12 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Icon } from "@/components/ui/icon";
 import type { BranchPayoutHistoryItem } from "@/lib/api/services/branches.service";
 import { formatINR } from "@/lib/utils/format";
 import { PAYOUTS } from "@/lib/constants/strings";
 import { cn } from "@/lib/utils/cn";
+import { faTrophy } from "@/lib/icons";
 
 function statusBadgeVariant(status: string) {
   const normalized = status.toLowerCase();
@@ -33,9 +35,7 @@ export function BonusPayoutHistory({ rows }: BonusPayoutHistoryProps) {
   if (!rows.length) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 py-14 text-center text-sm text-muted-foreground">
-        <span className="text-2xl opacity-50" aria-hidden>
-          🏆
-        </span>
+        <Icon icon={faTrophy} className="h-8 w-8 text-gold/50" aria-hidden />
         <p>{PAYOUTS.EMPTY}</p>
       </div>
     );
