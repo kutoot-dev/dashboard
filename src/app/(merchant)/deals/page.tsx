@@ -112,6 +112,32 @@ const METRIC_PRESET_MAP: Record<string, string[]> = {
   platform_capture_score: ["happy-hour", "flat-15", "save-50"],
 };
 
+function normalizeOptionalAmount(value: number | null | undefined): number | null {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  return Number(value);
+}
+
+function presetMatchesDeal(payload: CreateDealPayload, deal: Deal): boolean {
+  const presetCode = payload.code?.trim().toUpperCase();
+  if (presetCode) {
+    const dealCode = deal.code?.trim().toUpperCase();
+    if (dealCode && dealCode === presetCode) {
+      return true;
+    }
+  }
+
+  return (
+    deal.discount_type === payload.discount_type &&
+    Number(deal.discount_value) === Number(payload.discount_value) &&
+    normalizeOptionalAmount(deal.min_order_value) === normalizeOptionalAmount(payload.min_order_value ?? null) &&
+    normalizeOptionalAmount(deal.max_discount_amount) === normalizeOptionalAmount(payload.max_discount_amount ?? null)
+  );
+}
+
+function isPresetAlreadyCreated(preset: (typeof DEAL_PRESETS)[number], deals: Deal[]): boolean {
+  return deals.some((deal) => presetMatchesDeal(preset.payload, deal));
+}
+
 function lifecycleBadgeVariant(status: Deal["lifecycle_status"]) {
   if (status === "archived") return "neutral" as const;
   if (status === "paused") return "warning" as const;
@@ -201,6 +227,13 @@ export default function DealsPage() {
     retry: false,
   });
 
+  const allDealsQuery = useQuery({
+    queryKey: ["deals", branchId, { limit: 100 }],
+    queryFn: () => getDeals(branchId, { limit: 100 }),
+    enabled: Boolean(branchId),
+    retry: false,
+  });
+
   const createMutation = useMutation({
     mutationFn: (payload: CreateDealPayload) => createDeal(branchId, payload),
     onSuccess: () => {
@@ -256,6 +289,7 @@ export default function DealsPage() {
   }
 
   const rows = dealsQuery.data?.success ? dealsQuery.data.data.deals : [];
+  const allDeals = allDealsQuery.data?.success ? allDealsQuery.data.data.deals : rows;
   const showDealsSkeleton = useQuerySkeleton(dealsQuery);
   const totalDeals = rows.length;
   const activeDeals = rows.filter((deal) => (deal.lifecycle_status ?? (deal.archived_at ? "archived" : deal.is_active ? "active" : "paused")) === "active").length;
@@ -264,11 +298,15 @@ export default function DealsPage() {
   const totalVisits = rows.reduce((acc, deal) => acc + Number(deal.visit_count ?? 0), 0);
   const totalNetSales = rows.reduce((acc, deal) => acc + Number(deal.net_sales ?? 0), 0);
   const totalDiscountGiven = rows.reduce((acc, deal) => acc + Number(deal.discount_amount ?? 0), 0);
+  const availablePresets = useMemo(
+    () => DEAL_PRESETS.filter((preset) => !isPresetAlreadyCreated(preset, allDeals)),
+    [allDeals],
+  );
   const metricRecommendedIds = METRIC_PRESET_MAP[metric] ?? [];
   const recommendedPresets = (
     metricRecommendedIds.length > 0
-      ? DEAL_PRESETS.filter((preset) => metricRecommendedIds.includes(preset.id))
-      : DEAL_PRESETS
+      ? availablePresets.filter((preset) => metricRecommendedIds.includes(preset.id))
+      : availablePresets
   ).slice(0, 6);
   const sourceText = source === "scoring" ? "from scoring fix" : source === "quick-action" ? "from quick action" : "for you";
 
@@ -325,7 +363,7 @@ export default function DealsPage() {
       </div>
       )}
 
-      {showRecommended && (
+      {showRecommended && recommendedPresets.length > 0 && (
         <div id="recommended-presets">
           <Card className="border border-primary/30 bg-primary/5">
           <div className="mb-3 flex items-start justify-between gap-3">
@@ -378,22 +416,28 @@ export default function DealsPage() {
               Scroll presets — tap any card to publish instantly.
             </p>
           </div>
-          <Badge variant="neutral">{DEAL_PRESETS.length} templates</Badge>
+          <Badge variant="neutral">{availablePresets.length} templates</Badge>
         </div>
-        <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory">
-          {DEAL_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              disabled={createMutation.isPending}
-              onClick={() => createFromPreset(preset)}
-              className="deal-preset-dark w-[min(100%,220px)] shrink-0 snap-start p-3.5 text-left disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <p className="relative z-[1] text-sm font-semibold text-white">{preset.label}</p>
-              <p className="relative z-[1] mt-1 text-xs text-white/65">{preset.hint}</p>
-            </button>
-          ))}
-        </div>
+        {availablePresets.length > 0 ? (
+          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory">
+            {availablePresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                disabled={createMutation.isPending}
+                onClick={() => createFromPreset(preset)}
+                className="deal-preset-dark w-[min(100%,220px)] shrink-0 snap-start p-3.5 text-left disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <p className="relative z-[1] text-sm font-semibold text-white">{preset.label}</p>
+                <p className="relative z-[1] mt-1 text-xs text-white/65">{preset.hint}</p>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            You have already created all quick presets. Edit or archive deals below, or add a custom offer from your list.
+          </p>
+        )}
       </Card>
 
       <Card className="space-y-4">
