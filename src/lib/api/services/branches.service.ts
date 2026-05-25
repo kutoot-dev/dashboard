@@ -74,9 +74,20 @@ export interface BranchPayoutHistoryItem {
   status: string;
 }
 
+/** Live or settled projection for the current calendar day */
+export interface BranchPayoutTodayExpected {
+  date: string;
+  daily_pool: number;
+  your_share: number;
+  rank: number | null;
+  as_of: string;
+  is_estimate: boolean;
+}
+
 /** Bonus payout API payload */
 export interface BranchPayoutsData {
   total_bonus_received: number;
+  today_expected: BranchPayoutTodayExpected | null;
   latest: {
     date: string;
     rank: number | null;

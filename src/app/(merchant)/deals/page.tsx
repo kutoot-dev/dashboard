@@ -26,6 +26,13 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { CardGridSkeleton, StatCardsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
+import {
+  type DealPreset,
+  MIN_QUICK_PRESETS,
+  selectQuickCreatePresets,
+  selectRecommendedPresets,
+  suggestCustomDealDraft,
+} from "@/lib/deals/deal-presets";
 
 const STATUS_FILTERS: Array<{ value: string; label: string; tone: FilterChipTone }> = [
   { value: "all", label: "All", tone: "accent" },
@@ -35,108 +42,6 @@ const STATUS_FILTERS: Array<{ value: string; label: string; tone: FilterChipTone
   { value: "approved", label: "Approved", tone: "gain" },
   { value: "pending", label: "Pending", tone: "gold" },
 ];
-
-const DEAL_PRESETS: Array<{
-  id: string;
-  label: string;
-  hint: string;
-  payload: CreateDealPayload;
-}> = [
-  {
-    id: "flat-10",
-    label: "10% OFF",
-    hint: "All bills",
-    payload: { discount_type: "percentage", discount_value: 10, min_order_value: null, max_discount_amount: null, code: null, starts_at: null, expires_at: null },
-  },
-  {
-    id: "flat-15",
-    label: "15% OFF",
-    hint: "All bills",
-    payload: { discount_type: "percentage", discount_value: 15, min_order_value: null, max_discount_amount: null, code: null, starts_at: null, expires_at: null },
-  },
-  {
-    id: "flat-20-cap-200",
-    label: "20% OFF",
-    hint: "Cap Rs 200",
-    payload: { discount_type: "percentage", discount_value: 20, min_order_value: null, max_discount_amount: 200, code: null, starts_at: null, expires_at: null },
-  },
-  {
-    id: "welcome-25",
-    label: "Welcome 25%",
-    hint: "Min Rs 299",
-    payload: { discount_type: "percentage", discount_value: 25, min_order_value: 299, max_discount_amount: 250, code: "WELCOME25", starts_at: null, expires_at: null },
-  },
-  {
-    id: "weekend-30",
-    label: "Weekend 30%",
-    hint: "Min Rs 499",
-    payload: { discount_type: "percentage", discount_value: 30, min_order_value: 499, max_discount_amount: 300, code: "WEEKEND30", starts_at: null, expires_at: null },
-  },
-  {
-    id: "save-50",
-    label: "Save Rs 50",
-    hint: "Min Rs 299",
-    payload: { discount_type: "fixed", discount_value: 50, min_order_value: 299, max_discount_amount: null, code: "SAVE50", starts_at: null, expires_at: null },
-  },
-  {
-    id: "save-100",
-    label: "Save Rs 100",
-    hint: "Min Rs 799",
-    payload: { discount_type: "fixed", discount_value: 100, min_order_value: 799, max_discount_amount: null, code: "SAVE100", starts_at: null, expires_at: null },
-  },
-  {
-    id: "happy-hour",
-    label: "Happy Hour",
-    hint: "18% OFF cap Rs 180",
-    payload: { discount_type: "percentage", discount_value: 18, min_order_value: 199, max_discount_amount: 180, code: "HAPPYHOUR", starts_at: null, expires_at: null },
-  },
-  {
-    id: "family-combo",
-    label: "Family Combo",
-    hint: "Rs 150 OFF over Rs 1200",
-    payload: { discount_type: "fixed", discount_value: 150, min_order_value: 1200, max_discount_amount: null, code: "FAMILY150", starts_at: null, expires_at: null },
-  },
-  {
-    id: "mega-35",
-    label: "Mega 35%",
-    hint: "Min Rs 999 cap Rs 400",
-    payload: { discount_type: "percentage", discount_value: 35, min_order_value: 999, max_discount_amount: 400, code: "MEGA35", starts_at: null, expires_at: null },
-  },
-];
-
-const METRIC_PRESET_MAP: Record<string, string[]> = {
-  discount_aggression_score: ["flat-10", "flat-15", "flat-20-cap-200"],
-  user_growth_score: ["welcome-25", "weekend-30", "happy-hour"],
-  repeat_rate_score: ["flat-15", "save-50", "save-100"],
-  gmv_score: ["family-combo", "weekend-30", "mega-35"],
-  platform_capture_score: ["happy-hour", "flat-15", "save-50"],
-};
-
-function normalizeOptionalAmount(value: number | null | undefined): number | null {
-  if (value == null || Number.isNaN(Number(value))) return null;
-  return Number(value);
-}
-
-function presetMatchesDeal(payload: CreateDealPayload, deal: Deal): boolean {
-  const presetCode = payload.code?.trim().toUpperCase();
-  if (presetCode) {
-    const dealCode = deal.code?.trim().toUpperCase();
-    if (dealCode && dealCode === presetCode) {
-      return true;
-    }
-  }
-
-  return (
-    deal.discount_type === payload.discount_type &&
-    Number(deal.discount_value) === Number(payload.discount_value) &&
-    normalizeOptionalAmount(deal.min_order_value) === normalizeOptionalAmount(payload.min_order_value ?? null) &&
-    normalizeOptionalAmount(deal.max_discount_amount) === normalizeOptionalAmount(payload.max_discount_amount ?? null)
-  );
-}
-
-function isPresetAlreadyCreated(preset: (typeof DEAL_PRESETS)[number], deals: Deal[]): boolean {
-  return deals.some((deal) => presetMatchesDeal(preset.payload, deal));
-}
 
 function lifecycleBadgeVariant(status: Deal["lifecycle_status"]) {
   if (status === "archived") return "neutral" as const;
@@ -210,6 +115,7 @@ export default function DealsPage() {
 
   const [status, setStatus] = useState("all");
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
+  const [customDealDraft, setCustomDealDraft] = useState<CreateDealPayload | null>(null);
   const showRecommended = searchParams.get("recommended") === "1";
   const source = searchParams.get("source") ?? "";
   const metric = searchParams.get("metric") ?? "";
@@ -275,13 +181,30 @@ export default function DealsPage() {
     },
   });
 
-  function createFromPreset(preset: (typeof DEAL_PRESETS)[number]) {
+  function createFromPreset(preset: DealPreset) {
     if (createMutation.isPending) return;
     createMutation.mutate(preset.payload, {
       onSuccess: () => {
         pushToast({
           title: "Preset deal created",
           description: `${preset.label} is now live.`,
+          variant: "success",
+        });
+      },
+    });
+  }
+
+  function openCustomDealCreator() {
+    setCustomDealDraft(suggestCustomDealDraft(allDeals));
+  }
+
+  function submitCustomDeal(payload: CreateDealPayload) {
+    createMutation.mutate(payload, {
+      onSuccess: () => {
+        setCustomDealDraft(null);
+        pushToast({
+          title: "Custom deal created",
+          description: "Your offer is live — tweak or pause it anytime below.",
           variant: "success",
         });
       },
@@ -298,16 +221,12 @@ export default function DealsPage() {
   const totalVisits = rows.reduce((acc, deal) => acc + Number(deal.visit_count ?? 0), 0);
   const totalNetSales = rows.reduce((acc, deal) => acc + Number(deal.net_sales ?? 0), 0);
   const totalDiscountGiven = rows.reduce((acc, deal) => acc + Number(deal.discount_amount ?? 0), 0);
-  const availablePresets = useMemo(
-    () => DEAL_PRESETS.filter((preset) => !isPresetAlreadyCreated(preset, allDeals)),
-    [allDeals],
+  const quickCreatePresets = useMemo(() => selectQuickCreatePresets(allDeals), [allDeals]);
+  const presetsExhausted = !showDealsSkeleton && quickCreatePresets.length === 0;
+  const recommendedPresets = useMemo(
+    () => (showRecommended ? selectRecommendedPresets(allDeals, metric) : []),
+    [allDeals, metric, showRecommended],
   );
-  const metricRecommendedIds = METRIC_PRESET_MAP[metric] ?? [];
-  const recommendedPresets = (
-    metricRecommendedIds.length > 0
-      ? availablePresets.filter((preset) => metricRecommendedIds.includes(preset.id))
-      : availablePresets
-  ).slice(0, 6);
   const sourceText = source === "scoring" ? "from scoring fix" : source === "quick-action" ? "from quick action" : "for you";
 
   return (
@@ -319,7 +238,7 @@ export default function DealsPage() {
         <div className="w-full max-w-full rounded-xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card to-secondary/10 px-3 py-2.5 text-left sm:w-auto sm:max-w-xs">
           <p className="font-mono text-[10px] uppercase tracking-widest text-foreground">Tip</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Run 2–3 active deals. Pause weak ones weekly and try a recommended preset.
+            Run 2–3 active deals. Presets below skip offers you already run and stay margin-safe.
           </p>
         </div>
       </PageHeader>
@@ -416,11 +335,13 @@ export default function DealsPage() {
               Scroll presets — tap any card to publish instantly.
             </p>
           </div>
-          <Badge variant="neutral">{availablePresets.length} templates</Badge>
+          <Badge variant="neutral">
+            {quickCreatePresets.length} ready · min {MIN_QUICK_PRESETS}
+          </Badge>
         </div>
-        {availablePresets.length > 0 ? (
+        {quickCreatePresets.length > 0 ? (
           <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory">
-            {availablePresets.map((preset) => (
+            {quickCreatePresets.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
@@ -434,11 +355,40 @@ export default function DealsPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            You have already created all quick presets. Edit or archive deals below, or add a custom offer from your list.
-          </p>
+          <div className="rounded-xl border border-dashed border-primary/35 bg-primary/5 px-4 py-5 sm:px-5">
+            <p className="font-semibold text-foreground">You&apos;ve used all quick presets</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              Create your own offer next. We&apos;ll prefill a balanced discount (type, min bill, cap, and coupon
+              code) — adjust anything before you publish.
+            </p>
+            <Button
+              type="button"
+              variant="primary"
+              className="mt-4"
+              onClick={openCustomDealCreator}
+              disabled={createMutation.isPending}
+            >
+              Create your own deal
+            </Button>
+          </div>
         )}
       </Card>
+
+      {presetsExhausted && recommendedPresets.length === 0 && showRecommended && (
+        <Card className="border border-primary/25 bg-primary/5 px-4 py-4">
+          <p className="text-sm text-muted-foreground">
+            No recommended presets left either.{" "}
+            <button
+              type="button"
+              className="font-medium text-primary underline-offset-2 hover:underline"
+              onClick={openCustomDealCreator}
+            >
+              Build a custom deal
+            </button>{" "}
+            with suggested terms you can edit.
+          </p>
+        </Card>
+      )}
 
       <Card className="space-y-4">
         <div className="space-y-3">
@@ -589,14 +539,35 @@ export default function DealsPage() {
       </Card>
 
       <Modal
+        isOpen={customDealDraft !== null}
+        onClose={() => setCustomDealDraft(null)}
+        title="Create your own deal"
+      >
+        {customDealDraft && (
+          <DealForm
+            key={customDealDraft.code ?? "custom-draft"}
+            initial={customDealDraft}
+            mode="create"
+            helperText="Suggested terms based on what you don't run yet. Change discount, minimum bill, cap, or coupon code (unique for your branch) before publishing."
+            submitLabel="Publish deal"
+            onCancel={() => setCustomDealDraft(null)}
+            onSubmit={(payload) => submitCustomDeal(payload as CreateDealPayload)}
+            isSubmitting={createMutation.isPending}
+          />
+        )}
+      </Modal>
+
+      <Modal
         isOpen={Boolean(editingDeal)}
         onClose={() => setEditingDeal(null)}
         title={editingDeal ? `Edit ${editingDeal.title || `Deal #${editingDeal.id}`}` : "Edit deal"}
       >
         {editingDeal && (
-          <EditDealForm
+          <DealForm
             key={editingDeal.id}
-            deal={editingDeal}
+            initial={dealToFormPayload(editingDeal)}
+            mode="edit"
+            submitLabel="Save changes"
             onCancel={() => setEditingDeal(null)}
             onSubmit={(payload) => {
               editMutation.mutate({ dealId: editingDeal.id, payload });
@@ -609,32 +580,60 @@ export default function DealsPage() {
   );
 }
 
-interface EditDealFormProps {
-  deal: Deal;
+function dealToFormPayload(deal: Deal): CreateDealPayload {
+  return {
+    discount_type: deal.discount_type,
+    discount_value: deal.discount_value,
+    min_order_value: deal.min_order_value,
+    max_discount_amount: deal.max_discount_amount,
+    code: deal.code,
+    starts_at: deal.starts_at,
+    expires_at: deal.expires_at,
+  };
+}
+
+interface DealFormProps {
+  initial: CreateDealPayload;
+  mode: "create" | "edit";
+  helperText?: string;
+  submitLabel: string;
   onCancel: () => void;
-  onSubmit: (payload: Partial<CreateDealPayload>) => void;
+  onSubmit: (payload: CreateDealPayload | Partial<CreateDealPayload>) => void;
   isSubmitting: boolean;
 }
 
-function EditDealForm({ deal, onCancel, onSubmit, isSubmitting }: EditDealFormProps) {
-  const [discountType, setDiscountType] = useState<"percentage" | "fixed">(deal.discount_type);
-  const [discountValue, setDiscountValue] = useState(String(deal.discount_value ?? ""));
-  const [minOrder, setMinOrder] = useState(deal.min_order_value != null ? String(deal.min_order_value) : "");
-  const [maxDiscount, setMaxDiscount] = useState(deal.max_discount_amount != null ? String(deal.max_discount_amount) : "");
-  const [code, setCode] = useState(deal.code ?? "");
-  const [expiresAt, setExpiresAt] = useState(deal.expires_at ? deal.expires_at.slice(0, 16) : "");
+function DealForm({
+  initial,
+  mode,
+  helperText,
+  submitLabel,
+  onCancel,
+  onSubmit,
+  isSubmitting,
+}: DealFormProps) {
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">(initial.discount_type);
+  const [discountValue, setDiscountValue] = useState(String(initial.discount_value ?? ""));
+  const [minOrder, setMinOrder] = useState(
+    initial.min_order_value != null ? String(initial.min_order_value) : "",
+  );
+  const [maxDiscount, setMaxDiscount] = useState(
+    initial.max_discount_amount != null ? String(initial.max_discount_amount) : "",
+  );
+  const [code, setCode] = useState(initial.code ?? "");
+  const [expiresAt, setExpiresAt] = useState(initial.expires_at ? initial.expires_at.slice(0, 16) : "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsedValue = Number(discountValue);
     if (!Number.isFinite(parsedValue) || parsedValue <= 0) return;
 
-    const payload: Partial<CreateDealPayload> = {
+    const payload: CreateDealPayload = {
       discount_type: discountType,
       discount_value: parsedValue,
       min_order_value: minOrder.trim() === "" ? null : Number(minOrder),
       max_discount_amount: maxDiscount.trim() === "" ? null : Number(maxDiscount),
       code: code.trim() === "" ? null : code.trim().toUpperCase(),
+      starts_at: mode === "create" ? null : initial.starts_at ?? null,
       expires_at: expiresAt.trim() === "" ? null : new Date(expiresAt).toISOString(),
     };
     onSubmit(payload);
@@ -642,6 +641,12 @@ function EditDealForm({ deal, onCancel, onSubmit, isSubmitting }: EditDealFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {helperText && (
+        <p className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {helperText}
+        </p>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Discount type</label>
@@ -690,7 +695,7 @@ function EditDealForm({ deal, onCancel, onSubmit, isSubmitting }: EditDealFormPr
         label="Coupon code"
         value={code}
         onChange={(e) => setCode(e.target.value)}
-        placeholder="AUTO"
+        placeholder="Leave blank for auto-generated"
       />
 
       <Input
@@ -705,7 +710,7 @@ function EditDealForm({ deal, onCancel, onSubmit, isSubmitting }: EditDealFormPr
           Cancel
         </Button>
         <Button type="submit" variant="primary" loading={isSubmitting}>
-          Save changes
+          {submitLabel}
         </Button>
       </div>
     </form>
