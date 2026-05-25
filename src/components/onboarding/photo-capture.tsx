@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 
@@ -14,11 +14,13 @@ interface PhotoCaptureProps {
   hint?: string;
   className?: string;
   hideUpload?: boolean;
+  /** Use rear-facing device camera (native camera app) instead of in-browser webcam */
+  useDeviceCamera?: boolean;
 }
 
 /**
- * Camera-based photo capture with GPS + timestamp watermark.
- * Falls back to file input if camera API is unavailable.
+ * Photo capture via native device camera (mobile) with GPS + timestamp watermark.
+ * Falls back to file picker on desktop when the capture attribute is not supported.
  */
 export function PhotoCapture({
   label,
@@ -30,13 +32,11 @@ export function PhotoCapture({
   hint,
   className,
   hideUpload = false,
+  useDeviceCamera = true,
 }: PhotoCaptureProps) {
-  const [capturing, setCapturing] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<string>("");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileSelect(file: File) {
     if (file.size < 1 * 1024 || file.size > 10 * 1024 * 1024) {
@@ -51,36 +51,27 @@ export function PhotoCapture({
     reader.readAsDataURL(file);
   }
 
-  function openFilePicker() {
-    fileInputRef.current?.click();
+  function openDeviceCamera() {
+    cameraInputRef.current?.click();
   }
 
-  function onFileInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function openFilePicker() {
+    uploadInputRef.current?.click();
+  }
+
+  function onCameraInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (file) handleFileSelect(file);
   }
 
-  function capturePhoto() {
-    if (!videoRef.current || !canvasRef.current) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-
-    // Stop camera
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setCapturing(false);
-
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    addWatermark(dataUrl);
+  function onUploadInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) handleFileSelect(file);
   }
 
   function addWatermark(dataUrl: string) {
-    // Get GPS for watermark
     if (navigator.geolocation) {
       setGpsStatus("Getting location...");
       navigator.geolocation.getCurrentPosition(
@@ -118,82 +109,58 @@ export function PhotoCapture({
       if (!ctx) return;
       ctx.drawImage(img, 0, 0);
 
-      // Watermark bar
-      const barHeight = 40;
+      const barHeight = Math.max(40, Math.round(img.height * 0.06));
+      const fontSize = Math.max(14, Math.round(img.width * 0.028));
       ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
       ctx.fillRect(0, img.height - barHeight, img.width, barHeight);
       ctx.fillStyle = "#ffffff";
-      ctx.font = "16px monospace";
-      ctx.fillText(text, 10, img.height - 14);
+      ctx.font = `${fontSize}px monospace`;
+      ctx.fillText(text, 10, img.height - Math.round(barHeight * 0.35));
 
       onChange(canvas.toDataURL("image/jpeg", 0.85));
     };
     img.src = dataUrl;
   }
 
-  async function startCamera() {
-    try {
-      setCapturing(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: 1280, height: 720 },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-    } catch {
-      setCapturing(false);
-      // Fallback to file input
-      openFilePicker();
-    }
-  }
-
-  const cancelCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setCapturing(false);
-  }, []);
-
   function removeImage() {
     onChange(null);
     setGpsStatus("");
-    cancelCamera();
   }
+
+  const takePhotoLabel = useDeviceCamera ? "Take Photo" : "Open Camera";
+  const retakeLabel = useDeviceCamera ? "Retake Photo" : "Capture Again";
 
   return (
     <div className={cn("space-y-2", className)}>
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
+        capture={useDeviceCamera ? "environment" : undefined}
         className="hidden"
-        onChange={onFileInputChange}
+        onChange={onCameraInputChange}
       />
+      {!hideUpload && (
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onUploadInputChange}
+        />
+      )}
       <p className="text-sm font-medium text-foreground">
         {label} {required && <span className="text-error">*</span>}
       </p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {hint ? (
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      ) : useDeviceCamera ? (
+        <p className="text-xs text-muted-foreground">
+          Opens your device camera. Location and timestamp are stamped on the photo.
+        </p>
+      ) : null}
 
-      {capturing ? (
-        <div className="space-y-2">
-          <video
-            ref={videoRef}
-            className="w-full max-w-md rounded-lg border border-border"
-            autoPlay
-            playsInline
-            muted
-          />
-          <canvas ref={canvasRef} className="hidden" />
-          <div className="flex gap-2">
-            <Button variant="primary" size="sm" onClick={capturePhoto}>
-              Capture
-            </Button>
-            <Button variant="ghost" size="sm" onClick={cancelCamera}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : value ? (
+      {value ? (
         <div className="space-y-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -202,8 +169,8 @@ export function PhotoCapture({
             className="w-full max-w-md rounded-lg border border-border"
           />
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={startCamera}>
-              Retake Photo
+            <Button variant="secondary" size="sm" onClick={openDeviceCamera}>
+              {retakeLabel}
             </Button>
             {!hideUpload && (
               <Button variant="ghost" size="sm" onClick={openFilePicker}>
@@ -244,8 +211,8 @@ export function PhotoCapture({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="primary" size="sm" onClick={startCamera}>
-              Take Photo
+            <Button variant="primary" size="sm" onClick={openDeviceCamera}>
+              {takePhotoLabel}
             </Button>
             {!hideUpload && (
               <Button variant="secondary" size="sm" onClick={openFilePicker}>

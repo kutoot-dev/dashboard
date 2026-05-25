@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -27,6 +27,7 @@ import {
 } from "@/lib/constants/onboarding";
 import type { ApplicationStatus } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
+import { resolveAddressFromCoords } from "@/lib/utils/resolve-address-from-coords";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
@@ -59,6 +60,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const verifyEmailOtp = useVerifyEmailOtp();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [gpsStatus, setGpsStatus] = useState<string>("");
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const [selectedStateId, setSelectedStateId] = useState<string>("");
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
@@ -106,25 +108,93 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     [checkPhone, formData.channel, setPhoneCheckResult, updateFormData],
   );
 
-  // Auto-fill city/state from PIN code (mock)
-  useEffect(() => {
-    const pin = formData.pin_code ?? "";
-    if (pin.length === 6) {
-      const pinMap: Record<string, { city: string; state: string }> = {
-        "560034": { city: "Bengaluru", state: "Karnataka" },
-        "110024": { city: "New Delhi", state: "Delhi" },
-        "400058": { city: "Mumbai", state: "Maharashtra" },
-        "400050": { city: "Mumbai", state: "Maharashtra" },
-        "110006": { city: "New Delhi", state: "Delhi" },
-        "302001": { city: "Jaipur", state: "Rajasthan" },
-        "600001": { city: "Chennai", state: "Tamil Nadu" },
-      };
-      const match = pinMap[pin];
-      if (match) {
-        updateFormData({ city: match.city, state: match.state });
+  const { states } = useStates();
+
+  const applyResolvedAddress = useCallback(
+    (resolved: {
+      pin_code?: string;
+      state?: string;
+      city?: string;
+      locality?: string;
+      state_id?: number | null;
+    }) => {
+      const patch: {
+        pin_code?: string;
+        state?: string;
+        city?: string;
+        locality?: string;
+      } = {};
+
+      if (resolved.pin_code) {
+        patch.pin_code = resolved.pin_code;
       }
-    }
-  }, [formData.pin_code, updateFormData]);
+      if (resolved.state) {
+        patch.state = resolved.state;
+      }
+      if (resolved.city) {
+        patch.city = resolved.city;
+      }
+      if (resolved.locality && !formData.locality.trim()) {
+        patch.locality = resolved.locality;
+      }
+
+      if (Object.keys(patch).length > 0) {
+        updateFormData(patch);
+      }
+
+      if (resolved.state_id != null) {
+        setSelectedStateId(String(resolved.state_id));
+      } else if (resolved.state) {
+        const match = states.find(
+          (s) => s.name.toLowerCase() === resolved.state!.toLowerCase(),
+        );
+        if (match) {
+          setSelectedStateId(String(match.id));
+        }
+      }
+
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.pin_code;
+        delete next.state;
+        delete next.city;
+        delete next.locality;
+        return next;
+      });
+    },
+    [formData.locality, states, updateFormData],
+  );
+
+  const handleLocationCaptured = useCallback(
+    async (coords: { lat: number; long: number; accuracy?: number }) => {
+      updateFormData({
+        gps_lat: coords.lat,
+        gps_long: coords.long,
+        ...(coords.accuracy != null ? { gps_accuracy: coords.accuracy } : {}),
+      });
+      setGpsStatus("Location captured. Resolving address...");
+      setIsResolvingAddress(true);
+
+      const resolved = await resolveAddressFromCoords(coords.lat, coords.long);
+      setIsResolvingAddress(false);
+
+      if (resolved) {
+        applyResolvedAddress(resolved);
+        setGpsStatus("Location and address captured from coordinates.");
+      } else {
+        setGpsStatus(
+          "Location captured. Could not auto-fill address — enter state, city, and PIN manually.",
+        );
+      }
+
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.gps;
+        return next;
+      });
+    },
+    [applyResolvedAddress, updateFormData],
+  );
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
@@ -213,7 +283,6 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     }
   };
 
-  const { states } = useStates();
   const selectedState =
     states.find((s) => String(s.id) === selectedStateId) ??
     states.find((s) => s.name === formData.state) ??
@@ -248,16 +317,10 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     setGpsStatus("Fetching current location...");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        updateFormData({
-          gps_lat: Number(pos.coords.latitude.toFixed(6)),
-          gps_long: Number(pos.coords.longitude.toFixed(6)),
-          gps_accuracy: Number(pos.coords.accuracy.toFixed(2)),
-        });
-        setGpsStatus("Location captured.");
-        setErrors((prev) => {
-          const next = { ...prev };
-          delete next.gps;
-          return next;
+        void handleLocationCaptured({
+          lat: Number(pos.coords.latitude.toFixed(6)),
+          long: Number(pos.coords.longitude.toFixed(6)),
+          accuracy: Number(pos.coords.accuracy.toFixed(2)),
         });
       },
       () => {
@@ -265,7 +328,7 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
-  }, [updateFormData]);
+  }, [handleLocationCaptured]);
 
   const goResume = useCallback(() => {
     const params = new URLSearchParams({ from: "basic_details" });
@@ -727,26 +790,26 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
               : null
           }
           onSelect={(coords) => {
-            updateFormData({
-              gps_lat: coords.lat,
-              gps_long: coords.long,
-            });
-            setGpsStatus("Location selected from map.");
-            setErrors((prev) => {
-              const next = { ...prev };
-              delete next.gps;
-              return next;
-            });
+            void handleLocationCaptured(coords);
           }}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input value={formData.gps_lat ?? ""} readOnly placeholder="Latitude" />
           <Input value={formData.gps_long ?? ""} readOnly placeholder="Longitude" />
         </div>
-        <Button type="button" variant="secondary" onClick={pickCurrentLocation}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={pickCurrentLocation}
+          disabled={isResolvingAddress}
+        >
           Current Location
         </Button>
-        {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
+        {gpsStatus && (
+          <p className="text-xs text-muted-foreground">
+            {isResolvingAddress ? "Resolving address from coordinates…" : gpsStatus}
+          </p>
+        )}
         {errors.gps && <p className="text-xs text-error">{errors.gps}</p>}
       </div>
 
@@ -772,21 +835,18 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
             storefront_photo_status: url ? "uploaded" : "pending",
           })
         }
-        onLocationCaptured={(coords) =>
-          updateFormData({
-            gps_lat: coords.lat,
-            gps_long: coords.long,
-            gps_accuracy: coords.accuracy,
-          })
-        }
+        onLocationCaptured={(coords) => {
+          void handleLocationCaptured(coords);
+        }}
         required={!isFeVisitOnly}
         error={errors.storefront_photo}
         hint={
           isFeVisitOnly
-            ? "Optional for visit records. Take a photo if possible."
-            : undefined
+            ? "Optional for visit records. Use your phone camera at the shop."
+            : "Take a live photo of the shop front using your device camera. Enable location access for GPS stamp."
         }
         hideUpload
+        useDeviceCamera
       />
 
       {/* Navigation */}

@@ -325,6 +325,7 @@ export function StepQrActivation({ onNext, onBack }: StepQrActivationProps) {
         error={errors.qr_photo}
         hint="Take a photo of the QR sticker placed at the merchant's counter."
         hideUpload
+        useDeviceCamera
       />
 
       {formData.channel === "field_executive" && (

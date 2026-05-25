@@ -55,3 +55,26 @@ export async function getMerchantCategories(params?: { search?: string }) {
   );
   return res.data;
 }
+
+export interface ReverseGeocodeResult {
+  latitude: number;
+  longitude: number;
+  pin_code: string | null;
+  state_id: number | null;
+  state: string | null;
+  city: string | null;
+  locality: string | null;
+}
+
+export async function reverseGeocode(latitude: number, longitude: number) {
+  const res = await apiClient.get<ApiResponse<ReverseGeocodeResult>>(
+    "/geo/reverse",
+    {
+      params: {
+        latitude,
+        longitude,
+      },
+    },
+  );
+  return res.data;
+}
