@@ -1,5 +1,8 @@
 "use client";
 
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { Icon } from "@/components/ui/icon";
+import { faCaretDown, faCaretUp, faCircle } from "@/lib/icons";
 import { cn } from "@/lib/utils/cn";
 import { COMMON } from "@/lib/constants/strings";
 
@@ -11,24 +14,27 @@ interface MarketIndicatorProps {
   className?: string;
 }
 
-const TREND_CONFIG: Record<MarketTrend, { label: string; icon: string; color: string; bgColor: string; desc: string }> = {
+const TREND_CONFIG: Record<
+  MarketTrend,
+  { label: string; icon: IconDefinition; color: string; bgColor: string; desc: string }
+> = {
   bull: {
     label: COMMON.BULL,
-    icon: "▲",
+    icon: faCaretUp,
     color: "text-gain neon-gain",
     bgColor: "bg-gain/10",
     desc: COMMON.MARKET_BULL_DESC,
   },
   bear: {
     label: COMMON.BEAR,
-    icon: "▼",
+    icon: faCaretDown,
     color: "text-loss neon-loss",
     bgColor: "bg-loss/10",
     desc: COMMON.MARKET_BEAR_DESC,
   },
   sideways: {
     label: COMMON.SIDEWAYS,
-    icon: "◆",
+    icon: faCircle,
     color: "text-muted-foreground",
     bgColor: "bg-muted/20",
     desc: COMMON.MARKET_SIDEWAYS_DESC,
@@ -49,7 +55,7 @@ export function MarketIndicator({ trend, size = "sm", className }: MarketIndicat
       )}
       title={config.desc}
     >
-      <span>{config.icon}</span>
+      <Icon icon={config.icon} className="h-3 w-3" />
       <span className="font-semibold uppercase tracking-wider">{config.label}</span>
     </div>
   );

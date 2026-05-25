@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/ui/icon";
 import { BRANCH_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
@@ -38,15 +39,7 @@ export function TabBar() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <svg
-                className="h-4 w-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={isActive ? 2 : 1.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-              </svg>
+              <Icon icon={item.icon} className="h-4 w-4" />
               <span className="font-mono text-xs tracking-wide">{item.label}</span>
               {/* Active indicator */}
               {isActive && (

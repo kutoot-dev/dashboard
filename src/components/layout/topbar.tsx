@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { KutootIcon } from "@/components/branding";
+import { Icon } from "@/components/ui/icon";
+import { faRightFromBracket } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { QuickActions } from "@/components/ui/quick-actions";
@@ -71,9 +73,7 @@ export function Topbar() {
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-loss/20 hover:text-loss"
               aria-label="Logout"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              <Icon icon={faRightFromBracket} className="h-4 w-4" />
             </button>
           </div>
         )}

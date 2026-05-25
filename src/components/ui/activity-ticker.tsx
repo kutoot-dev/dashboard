@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMerchantNewsFeed } from "@/lib/api/services/merchant.service";
 import { cn } from "@/lib/utils/cn";
+import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
+import { newsFeedIcon } from "@/lib/icons";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 
 export interface ActivityItem {
   id: string;
-  icon: string;
+  icon: IconDefinition;
   event: string;
   message: string;
   merchantLocationName: string | null;
@@ -54,7 +57,7 @@ export function ActivityTicker({ className }: { className?: string }) {
 
   const items: ActivityItem[] = backendItems.map((item) => ({
     id: item.id,
-    icon: item.icon || "⚡",
+    icon: newsFeedIcon(item.event, item.icon),
     event: item.event,
     message: item.message,
     merchantLocationName: item.merchant_location_name ?? null,
@@ -149,7 +152,7 @@ export function ActivityTicker({ className }: { className?: string }) {
                 key={item.id}
                 className="flex items-start gap-2 rounded-lg border border-glass-border bg-glass-bg/50 px-2.5 py-1.5 transition-colors hover:bg-glass-bg"
               >
-                <span className="text-xs flex-shrink-0">{item.icon}</span>
+                <Icon icon={item.icon} className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className={cn("text-[11px] leading-tight", color)}>
                     {item.message}

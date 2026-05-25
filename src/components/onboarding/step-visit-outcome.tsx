@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { faCheck, faPlus, faXmark } from "@/lib/icons";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { VISIT_OUTCOME_OPTIONS } from "@/lib/constants/onboarding";
 import { cn } from "@/lib/utils/cn";
@@ -121,9 +123,7 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
                   : "border-border",
               )}
             >
-              <span className="text-xl leading-none mt-0.5" aria-hidden>
-                {opt.icon}
-              </span>
+              <Icon icon={opt.icon} className="mt-0.5 h-5 w-5 text-foreground" aria-hidden />
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground leading-snug">
                   {opt.label}
@@ -133,19 +133,7 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
                 </p>
               </div>
               {isSelected && (
-                <svg
-                  className="ml-auto h-4 w-4 flex-shrink-0 text-primary mt-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+                <Icon icon={faCheck} className="ml-auto mt-0.5 h-4 w-4 shrink-0 text-primary" />
               )}
             </button>
           );
@@ -191,19 +179,7 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
               onClick={addSlot}
               className="text-primary text-xs gap-1.5"
             >
-              <svg
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              <Icon icon={faPlus} className="h-3.5 w-3.5" />
               Add Slot
             </Button>
           </div>
@@ -233,19 +209,7 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
                   aria-label="Remove slot"
                   className="text-muted-foreground hover:text-error transition-colors"
                 >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <Icon icon={faXmark} className="h-4 w-4" />
                 </button>
               </div>
 
@@ -308,7 +272,7 @@ export function StepVisitOutcome({ onNext, onBack }: StepVisitOutcomeProps) {
               : "border-info/40 bg-info/5",
           )}
         >
-          <span className="text-lg leading-none">{selectedConfig.icon}</span>
+          <Icon icon={selectedConfig.icon} className="mt-0.5 h-5 w-5 shrink-0 text-foreground" />
           <div>
             <p className="text-sm font-medium text-foreground">
               {selectedConfig.isOnboarding

@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent } from "react";
 import { createPortal } from "react-dom";
+import { Icon } from "@/components/ui/icon";
+import { faCircleInfo } from "@/lib/icons";
 import { cn } from "@/lib/utils/cn";
 
 interface InfoTooltipProps {
@@ -11,25 +13,6 @@ interface InfoTooltipProps {
   label?: string;
   size?: "sm" | "md";
   iconClassName?: string;
-}
-
-function HelpIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4" />
-      <path d="M12 8h.01" />
-    </svg>
-  );
 }
 
 export function InfoTooltip({
@@ -107,7 +90,7 @@ export function InfoTooltip({
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
       >
-        <HelpIcon className={cn(iconSize, iconClassName)} />
+        <Icon icon={faCircleInfo} className={cn(iconSize, iconClassName)} aria-hidden />
       </button>
 
       {open &&

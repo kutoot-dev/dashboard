@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
+import { Icon } from "@/components/ui/icon";
 import { BRANCH_NAV } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
@@ -47,15 +48,7 @@ export function BottomNav() {
                   isActive ? "bg-linear-to-r from-primary/20 via-secondary/20 to-accent/20 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]" : "bg-transparent"
                 )}
               >
-                <svg
-                  className="h-5 w-5 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={isActive ? 2 : 1.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                </svg>
+                <Icon icon={item.icon} className="h-5 w-5" />
               </div>
               {/* Label */}
               <span

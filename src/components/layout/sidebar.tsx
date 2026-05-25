@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KutootIcon, KutootLogo } from "@/components/branding";
+import { Icon } from "@/components/ui/icon";
 import { BRANCH_NAV } from "@/lib/constants/navigation";
+import { faChevronLeft } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils/cn";
@@ -52,15 +54,10 @@ export function Sidebar() {
               )}
               title={sidebarCollapsed ? item.label : undefined}
             >
-              <svg
-                className={cn("h-5 w-5 shrink-0", isActive && "drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]")}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-              </svg>
+              <Icon
+                icon={item.icon}
+                className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]")}
+              />
               {!sidebarCollapsed && (
                 <span className="text-xs tracking-[0.08em]">{item.label}</span>
               )}
@@ -75,15 +72,10 @@ export function Sidebar() {
         className="flex h-11 items-center justify-center border-t border-border/70 text-muted-foreground transition-colors hover:bg-card-hover/70 hover:text-foreground"
         aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        <svg
+        <Icon
+          icon={faChevronLeft}
           className={cn("h-4 w-4 transition-transform", sidebarCollapsed && "rotate-180")}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        />
       </button>
     </aside>
   );

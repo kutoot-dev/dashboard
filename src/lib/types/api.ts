@@ -68,8 +68,16 @@ export interface LeaderboardFiltersMeta {
   available_parameters: string[];
 }
 
+export interface LeaderboardMyEntry extends LeaderboardEntry {
+  is_viewer?: boolean;
+  rank_pool_total?: number;
+  visible_in_list?: boolean;
+  list_total?: number;
+}
+
 export interface LeaderboardData extends PaginatedData<LeaderboardEntry> {
   filters?: LeaderboardFiltersMeta;
+  my_entry?: LeaderboardMyEntry | null;
 }
 
 /** Leaderboard entry as returned by the API */

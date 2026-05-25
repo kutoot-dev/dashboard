@@ -5,6 +5,21 @@
  * volume ranges, and rejection reasons.
  */
 
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import {
+  faBan,
+  faCircleCheck,
+  faComments,
+  faHandshake,
+  faLocationDot,
+  faLock,
+  faPhone,
+  faRotate,
+  faShieldHalved,
+  faSkull,
+  faUser,
+} from "@/lib/icons";
+
 // ── Field Info Tooltips ────────────────────────────────────────────
 
 export interface FieldInfo {
@@ -371,7 +386,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
   value: string;
   label: string;
   description: string;
-  icon: string;
+  icon: IconDefinition;
   isOnboarding: boolean;   // true = proceed to full form
   supportsSchedule: boolean; // true = show date/time follow-up picker
   color: string;
@@ -380,7 +395,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "interested",
     label: "Interested — Onboard Now",
     description: "Merchant agreed to join Kutoot",
-    icon: "✅",
+    icon: faHandshake,
     isOnboarding: true,
     supportsSchedule: false,
     color: "border-success/50 bg-success/5 hover:bg-success/10",
@@ -389,7 +404,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "not_interested",
     label: "Not Interested",
     description: "Merchant explicitly declined",
-    icon: "🚫",
+    icon: faBan,
     isOnboarding: false,
     supportsSchedule: false,
     color: "border-error/40 bg-error/5 hover:bg-error/10",
@@ -398,7 +413,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "follow_up",
     label: "Follow Up Required",
     description: "Needs another visit or callback",
-    icon: "🔄",
+    icon: faRotate,
     isOnboarding: false,
     supportsSchedule: true,
     color: "border-info/40 bg-info/5 hover:bg-info/10",
@@ -407,7 +422,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "owner_absent",
     label: "Owner Absent",
     description: "Shop open but owner not available",
-    icon: "👤",
+    icon: faUser,
     isOnboarding: false,
     supportsSchedule: true,
     color: "border-warning/40 bg-warning/5 hover:bg-warning/10",
@@ -416,7 +431,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "shop_closed",
     label: "Shop Closed",
     description: "Shop was closed during visit",
-    icon: "🔒",
+    icon: faLock,
     isOnboarding: false,
     supportsSchedule: true,
     color: "border-warning/40 bg-warning/5 hover:bg-warning/10",
@@ -425,7 +440,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "permanently_closed",
     label: "Permanently Closed",
     description: "Business has shut down",
-    icon: "🪦",
+    icon: faSkull,
     isOnboarding: false,
     supportsSchedule: false,
     color: "border-error/40 bg-error/5 hover:bg-error/10",
@@ -434,7 +449,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "competitor_user",
     label: "Using Competitor",
     description: "Already on a rival payment service",
-    icon: "⚔️",
+    icon: faShieldHalved,
     isOnboarding: false,
     supportsSchedule: true,
     color: "border-border bg-muted/30 hover:bg-muted/50",
@@ -443,7 +458,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "already_registered",
     label: "Already Registered",
     description: "Already an active Kutoot Business merchant",
-    icon: "✔️",
+    icon: faCircleCheck,
     isOnboarding: false,
     supportsSchedule: false,
     color: "border-success/30 bg-success/5 hover:bg-success/10",
@@ -452,7 +467,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "language_barrier",
     label: "Language Barrier",
     description: "Could not communicate effectively",
-    icon: "💬",
+    icon: faComments,
     isOnboarding: false,
     supportsSchedule: true,
     color: "border-border bg-muted/30 hover:bg-muted/50",
@@ -461,7 +476,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "invalid_address",
     label: "Invalid Address",
     description: "Address does not exist or unreachable",
-    icon: "📍",
+    icon: faLocationDot,
     isOnboarding: false,
     supportsSchedule: false,
     color: "border-error/40 bg-error/5 hover:bg-error/10",
@@ -470,7 +485,7 @@ export const VISIT_OUTCOME_OPTIONS: Array<{
     value: "called_back",
     label: "Call Back Later",
     description: "Merchant asked to call back at another time",
-    icon: "📞",
+    icon: faPhone,
     isOnboarding: false,
     supportsSchedule: true,
     color: "border-info/40 bg-info/5 hover:bg-info/10",

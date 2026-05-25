@@ -1,9 +1,12 @@
 "use client";
 
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { Icon } from "@/components/ui/icon";
+import { faCircleCheck } from "@/lib/icons";
 import { cn } from "@/lib/utils/cn";
 
 interface AchievementBadgeProps {
-  icon: string;
+  icon: IconDefinition;
   name: string;
   description: string;
   unlocked: boolean;
@@ -28,9 +31,10 @@ export function AchievementBadge({
       )}
       title={description}
     >
-      <span className={cn("text-xl", unlocked && "drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]")}>
-        {icon}
-      </span>
+      <Icon
+        icon={icon}
+        className={cn("h-5 w-5 text-accent", unlocked && "drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]")}
+      />
       <div className="min-w-0">
         <p className={cn(
           "font-mono text-xs font-semibold truncate",
@@ -43,9 +47,7 @@ export function AchievementBadge({
         </p>
       </div>
       {unlocked && (
-        <svg className="ml-auto h-4 w-4 shrink-0 text-accent" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
+        <Icon icon={faCircleCheck} className="ml-auto h-4 w-4 shrink-0 text-accent" />
       )}
     </div>
   );

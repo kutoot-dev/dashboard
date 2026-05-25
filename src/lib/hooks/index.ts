@@ -5,6 +5,11 @@ export {
   useBranchVolume,
 } from "./use-branch-data";
 export { useLeaderboard, useTicker } from "./use-leaderboard";
+export {
+  useInfiniteLeaderboard,
+  flattenLeaderboardPages,
+  latestLeaderboardMeta,
+} from "./use-infinite-leaderboard";
 export { useScoringPeriods, usePeriodScores } from "./use-scores";
 export {
   useLiveScore,

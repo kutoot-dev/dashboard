@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Icon } from "@/components/ui/icon";
+import { faXmark } from "@/lib/icons";
 
 interface ModalProps {
   isOpen: boolean;
@@ -56,9 +58,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
                 className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card-hover hover:text-foreground"
                 aria-label="Close"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <Icon icon={faXmark} className="h-4 w-4" />
               </button>
             </div>
 

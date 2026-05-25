@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
+import { faReceipt, faTags } from "@/lib/icons";
 import { cn } from "@/lib/utils/cn";
 import {
   simulateTransaction,
@@ -54,12 +56,7 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
         onClick={() => router.push("/deals?recommended=1&source=quick-action")}
         className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/35 bg-accent/15 px-2.5 text-[11px] font-semibold text-foreground shadow-[0_8px_18px_rgba(8,13,34,0.24)] transition-all hover:-translate-y-0.5 hover:border-accent/55 hover:bg-accent/22"
       >
-        <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 text-accent">
-          <path
-            fill="currentColor"
-            d="M20.59 13.41 12 22l-8.59-8.59A2 2 0 0 1 2.83 12L3 4h8a2 2 0 0 1 1.41.59l8.18 8.18a1 1 0 0 1 0 1.41ZM7.5 7A1.5 1.5 0 1 0 9 8.5 1.5 1.5 0 0 0 7.5 7Z"
-          />
-        </svg>
+        <Icon icon={faTags} className="h-3.5 w-3.5 text-accent" aria-hidden />
         {compact && <span className="font-mono">Add Deals</span>}
       </button>
       {isDemoAccount && (
@@ -70,12 +67,7 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
             onClick={() => setShowTxnModal(true)}
             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-secondary/35 bg-secondary/16 px-2.5 text-[11px] font-semibold text-foreground shadow-[0_8px_18px_rgba(8,13,34,0.24)] transition-all hover:-translate-y-0.5 hover:border-secondary/55 hover:bg-secondary/24"
           >
-            <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 text-secondary">
-              <path
-                fill="currentColor"
-                d="M19 2H5a2 2 0 0 0-2 2v18l3-2 3 2 3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2Zm-2 13H7v-2h10Zm0-4H7V9h10Zm0-4H7V5h10Z"
-              />
-            </svg>
+            <Icon icon={faReceipt} className="h-3.5 w-3.5 text-secondary" aria-hidden />
             {compact && <span className="font-mono">Add Txn</span>}
           </button>
 
