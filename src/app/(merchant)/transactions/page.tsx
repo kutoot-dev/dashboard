@@ -11,6 +11,7 @@ import {
   getGstSummary,
   getTransactions,
   getTransactionsSummary,
+  type Transaction,
 } from "@/lib/api/services/merchant.service";
 import { TransactionsTrendChart, type TransactionChartMetric } from "@/components/charts";
 import { buildDailyTransactionSeries } from "@/lib/utils/transactions-chart";
@@ -19,23 +20,16 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { formatINR, formatINRDecimal } from "@/lib/utils/format";
+import { getPaymentStatusDisplay, PAYMENT_STATUS_FILTERS } from "@/lib/utils/payment-status";
 import { StatCardsSkeleton, TableRowsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 import { DEFAULT_FILTER_DATE_RANGE } from "@/lib/utils/date-range";
-
-const STATUS_FILTERS = [
-  { value: "all", label: "All" },
-  { value: "paid", label: "Paid" },
-  { value: "completed", label: "Completed" },
-  { value: "pending", label: "Pending" },
-  { value: "failed", label: "Failed" },
-  { value: "cancelled", label: "Cancelled" },
-] as const;
 
 function parseFileName(response: AxiosResponse<Blob>, fallback: string): string {
   const disposition = response.headers?.["content-disposition"] as string | undefined;
@@ -63,6 +57,102 @@ function triggerDownload(response: AxiosResponse<Blob>, fallbackName: string): s
   URL.revokeObjectURL(url);
 
   return fileName;
+}
+
+function TransactionAmounts({ row }: { row: Transaction }) {
+  const discounted = Number(row.discounted_bill_amount ?? row.bill_amount - row.discount);
+  const platformFee = Number(row.platform_fee ?? 0);
+  const platformGst = Number(row.platform_fee_gst_amount ?? row.gst_amount ?? 0);
+  const commission = Number(row.commission ?? 0);
+  const commissionGst = Number(row.commission_gst_amount ?? 0);
+  const settlement = Number(row.merchant_settlement_wallet ?? 0);
+
+  return (
+    <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-3">
+      <div>
+        <dt className="text-muted-foreground">Discounted bill</dt>
+        <dd className="font-mono text-foreground">{formatINRDecimal(discounted)}</dd>
+      </div>
+      <div>
+        <dt className="text-muted-foreground">Platform fee + GST</dt>
+        <dd className="font-mono text-foreground">{formatINRDecimal(platformFee + platformGst)}</dd>
+      </div>
+      <div>
+        <dt className="text-muted-foreground">KC + GST</dt>
+        <dd className="font-mono text-foreground">{formatINRDecimal(commission + commissionGst)}</dd>
+      </div>
+      <div>
+        <dt className="text-muted-foreground">Customer paid</dt>
+        <dd className="font-mono font-medium text-foreground">{formatINR(row.total_paid)}</dd>
+      </div>
+      <div>
+        <dt className="text-muted-foreground">Your settlement</dt>
+        <dd className="font-mono font-medium text-foreground">{formatINRDecimal(settlement)}</dd>
+      </div>
+    </dl>
+  );
+}
+
+function TransactionRowCard({
+  row,
+  onDownloadInvoice,
+  downloading,
+}: {
+  row: Transaction;
+  onDownloadInvoice: (id: number) => void;
+  downloading: boolean;
+}) {
+  const status = getPaymentStatusDisplay(row.status);
+
+  return (
+    <article className="rounded-lg border border-border/70 bg-muted/20 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="font-medium text-foreground">{row.customer_name || "Walk-in customer"}</p>
+          <p className="text-xs text-muted-foreground">{row.customer_phone || "No phone"}</p>
+          <p className="text-xs text-muted-foreground">
+            {new Date(row.created_at).toLocaleString("en-IN")}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <Badge variant={status.variant} title={status.description}>
+            {status.label}
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            loading={downloading}
+            onClick={() => onDownloadInvoice(row.id)}
+          >
+            Invoice PDF
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-4 border-t border-border/50 pt-3 text-sm">
+        <div>
+          <p className="text-xs text-muted-foreground">Gross bill</p>
+          <p className="font-mono font-medium">{formatINR(row.bill_amount)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Discount</p>
+          <p className="font-mono">{formatINR(row.discount)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Customer paid</p>
+          <p className="font-mono font-semibold text-foreground">{formatINR(row.total_paid)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Settlement</p>
+          <p className="font-mono font-semibold text-foreground">
+            {formatINRDecimal(Number(row.merchant_settlement_wallet ?? 0))}
+          </p>
+        </div>
+      </div>
+
+      <TransactionAmounts row={row} />
+    </article>
+  );
 }
 
 export default function TransactionsPage() {
@@ -220,8 +310,8 @@ export default function TransactionsPage() {
   const showChartSkeleton = useQuerySkeleton(transactionsSummaryQuery);
 
   const chartData = useMemo(() => {
-    const rows = transactionsSummaryQuery.data?.success ? transactionsSummaryQuery.data.data.rows : [];
-    return buildDailyTransactionSeries(rows, range.start, range.end);
+    const summaryRows = transactionsSummaryQuery.data?.success ? transactionsSummaryQuery.data.data.rows : [];
+    return buildDailyTransactionSeries(summaryRows, range.start, range.end);
   }, [range.end, range.start, transactionsSummaryQuery.data]);
 
   const chartTotals = useMemo(
@@ -251,10 +341,6 @@ export default function TransactionsPage() {
         acc.platformGst += row.gst_amount;
         acc.commission += row.commission_amount;
         acc.commissionGst += Number(row.commission_gst_amount ?? 0);
-        acc.merchantBonus += Number(row.merchant_bonus_wallet ?? 0);
-        acc.userReward += Number(row.user_reward_wallet ?? 0);
-        acc.kutootCompany += Number(row.kutoot_company_wallet ?? 0);
-        acc.taxable += row.taxable_amount;
         acc.settlement += Number(row.settlement_amount ?? 0);
         return acc;
       },
@@ -266,18 +352,28 @@ export default function TransactionsPage() {
         platformGst: 0,
         commission: 0,
         commissionGst: 0,
-        merchantBonus: 0,
-        userReward: 0,
-        kutootCompany: 0,
-        taxable: 0,
         settlement: 0,
       },
     );
   }, [gstRows]);
 
+  const summaryCards = [
+    { label: "Gross bill", value: formatINRDecimal(totals.gross), hint: "Before discounts" },
+    { label: "Discounts", value: formatINRDecimal(totals.discount), hint: "Coupon savings" },
+    { label: "Customer paid", value: formatINRDecimal(totals.userPaid), hint: "Collected via Razorpay" },
+    { label: "Your settlement", value: formatINRDecimal(totals.settlement), hint: "After KC and taxes" },
+    { label: "Platform fee", value: formatINRDecimal(totals.platformFee), hint: "Kutoot service fee" },
+    { label: "GST on platform fee", value: formatINRDecimal(totals.platformGst), hint: "Tax on service fee" },
+    { label: "KC commission", value: formatINRDecimal(totals.commission), hint: "Kutoot Coins fee" },
+    { label: "GST on KC", value: formatINRDecimal(totals.commissionGst), hint: "Tax on commission" },
+  ];
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Transactions" subtitle="Filter transactions, download reports, and generate invoices." />
+      <PageHeader
+        title="Transactions"
+        subtitle="See customer payments, settlements, and download invoices for your filtered period."
+      />
 
       <Card className="space-y-4 overflow-visible">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -303,13 +399,13 @@ export default function TransactionsPage() {
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Payment status</p>
+          <p className="text-xs font-medium text-muted-foreground">Payment status (Razorpay)</p>
           <div
             className="-mx-0.5 flex gap-2 overflow-x-auto overflow-y-visible scroll-px-1 py-1.5 scrollbar-hide sm:flex-wrap sm:overflow-visible"
             role="tablist"
-            aria-label="Transaction status filters"
+            aria-label="Payment status filters"
           >
-            {STATUS_FILTERS.map((option) => (
+            {PAYMENT_STATUS_FILTERS.map((option) => (
               <FilterChip
                 key={option.value}
                 label={option.label}
@@ -329,7 +425,7 @@ export default function TransactionsPage() {
             loading={exportTransactionsMutation.isPending}
             onClick={() => exportTransactionsMutation.mutate()}
           >
-            Export Transactions CSV
+            Export CSV
           </Button>
           <Button
             variant="secondary"
@@ -343,7 +439,7 @@ export default function TransactionsPage() {
             loading={exportZipMutation.isPending}
             onClick={() => exportZipMutation.mutate()}
           >
-            Download Invoices ZIP
+            Download invoices (ZIP)
           </Button>
         </div>
       </Card>
@@ -355,14 +451,10 @@ export default function TransactionsPage() {
               Transaction trend
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Daily totals for your current filters · {chartTotals.count} txn · {formatINR(chartTotals.amount)} gross
+              {chartTotals.count} payments · {formatINR(chartTotals.amount)} gross in selected range
             </p>
           </div>
-          <div
-            className="flex gap-2"
-            role="tablist"
-            aria-label="Chart metric"
-          >
+          <div className="flex gap-2" role="tablist" aria-label="Chart metric">
             <FilterChip
               label="Gross bill"
               selected={chartMetric === "amount"}
@@ -384,150 +476,117 @@ export default function TransactionsPage() {
       </Card>
 
       {showGstSkeleton ? (
-        <StatCardsSkeleton count={11} className="md:grid-cols-2 xl:grid-cols-4" />
+        <StatCardsSkeleton count={8} className="md:grid-cols-2 xl:grid-cols-4" />
       ) : (
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Gross bill</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.gross)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Before discounts</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Discount</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.discount)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Coupons redeemed</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">User paid</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.userPaid)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Gross - discount + fee + GST</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchant settlement</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.settlement)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">After KC and GST on KC</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Platform fee</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.platformFee)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Merchant bonus wallet source</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GST on platform fee</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.platformGst)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Tax collected by Kutoot</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">KC commission</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.commission)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Collected from merchant</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GST on KC</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.commissionGst)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Tax on commission</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Merchant bonus wallet</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.merchantBonus)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Full platform fee allocation</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">User reward wallet</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.userReward)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Configured share of KC</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Kutoot company wallet</p>
-          <p className="mt-2 font-mono text-xl text-foreground">{formatINRDecimal(totals.kutootCompany)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Platform GST + KC GST + retained KC</p>
-        </Card>
-      </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryCards.map((card) => (
+            <Card key={card.label}>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{card.label}</p>
+              <p className="mt-2 font-mono text-xl text-foreground">{card.value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{card.hint}</p>
+            </Card>
+          ))}
+        </div>
       )}
 
       <Card>
-        <div className="mb-3 flex items-center justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Transaction list ({showTransactionsSkeleton ? "—" : total})
-          </p>
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Transactions {showTransactionsSkeleton ? "" : `(${total})`}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Customer paid and settlement are the main amounts; expand details on smaller screens.
+            </p>
+          </div>
           <p className="text-xs text-muted-foreground">Page {page} of {Math.max(1, pages)}</p>
         </div>
 
         {showTransactionsSkeleton ? (
-          <TableRowsSkeleton rows={8} columns={8} minWidth="min-w-[1200px]" />
+          <TableRowsSkeleton rows={8} columns={7} minWidth="min-w-[960px]" />
+        ) : rows.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            No transactions match your filters. Try a wider date range or another payment status.
+          </p>
         ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-350 text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-2 py-2">Date</th>
-                <th className="px-2 py-2">Customer</th>
-                <th className="px-2 py-2">Gross bill</th>
-                <th className="px-2 py-2">Discount</th>
-                <th className="px-2 py-2">Discounted bill</th>
-                <th className="px-2 py-2">Platform fee</th>
-                <th className="px-2 py-2">GST on fee</th>
-                <th className="px-2 py-2">KC</th>
-                <th className="px-2 py-2">GST on KC</th>
-                <th className="px-2 py-2">User paid</th>
-                <th className="px-2 py-2">Merchant settlement</th>
-                <th className="px-2 py-2">Merchant bonus</th>
-                <th className="px-2 py-2">User reward</th>
-                <th className="px-2 py-2">Status</th>
-                <th className="px-2 py-2">Invoice</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="space-y-3 md:hidden">
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-border/60 align-top">
-                  <td className="px-2 py-3 text-xs text-muted-foreground">
-                    {new Date(row.created_at).toLocaleString("en-IN")}
-                  </td>
-                  <td className="px-2 py-3">
-                    <p className="font-medium text-foreground">{row.customer_name || "Walk-in customer"}</p>
-                    <p className="text-xs text-muted-foreground">{row.customer_phone || "--"}</p>
-                    <p className="text-xs text-muted-foreground">Branch: {row.merchant_branch_name || "--"}</p>
-                    <p className="text-xs text-muted-foreground">Campaign: {row.campaign_reward_name || "--"}</p>
-                  </td>
-                  <td className="px-2 py-3 font-mono">{formatINR(row.bill_amount)}</td>
-                  <td className="px-2 py-3 font-mono">{formatINR(row.discount)}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.discounted_bill_amount ?? row.bill_amount - row.discount))}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.platform_fee ?? 0))}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.platform_fee_gst_amount ?? row.gst_amount ?? 0))}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(row.commission)}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.commission_gst_amount ?? 0))}</td>
-                  <td className="px-2 py-3 font-mono">{formatINR(row.total_paid)}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.merchant_settlement_wallet ?? 0))}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.merchant_bonus_wallet ?? 0))}</td>
-                  <td className="px-2 py-3 font-mono">{formatINRDecimal(Number(row.user_reward_wallet ?? 0))}</td>
-                  <td className="px-2 py-3">
-                    <span className="rounded-full border border-border/70 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="px-2 py-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      loading={downloadingInvoiceId === row.id}
-                      onClick={() => handleInvoiceDownload(row.id)}
-                    >
-                      PDF
-                    </Button>
-                  </td>
-                </tr>
+                <TransactionRowCard
+                  key={row.id}
+                  row={row}
+                  downloading={downloadingInvoiceId === row.id}
+                  onDownloadInvoice={handleInvoiceDownload}
+                />
               ))}
+            </div>
 
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={16} className="px-2 py-8 text-center text-sm text-muted-foreground">
-                    No transactions found for this filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[960px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="px-2 py-2">Date</th>
+                    <th className="px-2 py-2">Customer</th>
+                    <th className="px-2 py-2">Gross</th>
+                    <th className="px-2 py-2">Discount</th>
+                    <th className="px-2 py-2">Customer paid</th>
+                    <th className="px-2 py-2">Settlement</th>
+                    <th className="px-2 py-2">Payment</th>
+                    <th className="px-2 py-2">Invoice</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => {
+                    const paymentStatus = getPaymentStatusDisplay(row.status);
+                    const discounted = Number(row.discounted_bill_amount ?? row.bill_amount - row.discount);
+
+                    return (
+                      <tr key={row.id} className="border-b border-border/60 align-top hover:bg-muted/15">
+                        <td className="px-2 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(row.created_at).toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-2 py-3 min-w-[10rem]">
+                          <p className="font-medium text-foreground">{row.customer_name || "Walk-in customer"}</p>
+                          <p className="text-xs text-muted-foreground">{row.customer_phone || "—"}</p>
+                          {(row.campaign_reward_name || row.coupon_code) && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {[row.campaign_reward_name, row.coupon_code ? `Coupon ${row.coupon_code}` : null]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-2 py-3 font-mono whitespace-nowrap">{formatINR(row.bill_amount)}</td>
+                        <td className="px-2 py-3 font-mono whitespace-nowrap">{formatINR(row.discount)}</td>
+                        <td className="px-2 py-3">
+                          <p className="font-mono font-medium whitespace-nowrap">{formatINR(row.total_paid)}</p>
+                          <p className="text-[11px] text-muted-foreground">Bill {formatINRDecimal(discounted)} after discount</p>
+                        </td>
+                        <td className="px-2 py-3 font-mono font-medium whitespace-nowrap">
+                          {formatINRDecimal(Number(row.merchant_settlement_wallet ?? 0))}
+                        </td>
+                        <td className="px-2 py-3">
+                          <Badge variant={paymentStatus.variant} title={paymentStatus.description}>
+                            {paymentStatus.label}
+                          </Badge>
+                        </td>
+                        <td className="px-2 py-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            loading={downloadingInvoiceId === row.id}
+                            onClick={() => handleInvoiceDownload(row.id)}
+                          >
+                            PDF
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         <div className="mt-4 flex items-center justify-end gap-2">

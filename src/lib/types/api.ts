@@ -58,6 +58,7 @@ export interface LeaderboardFilters {
   end_date?: string;
   parameter?: LeaderboardScoringParameter;
   sort_by?: string;
+  search?: string;
 }
 
 export interface LeaderboardFiltersMeta {

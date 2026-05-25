@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
@@ -86,6 +87,7 @@ export default function LeaderboardPage() {
   const [page, setPage] = useState(1);
   const [parameter, setParameter] = useState<LeaderboardScoringParameter>("all");
   const [scoreDate, setScoreDate] = useState(todayIso);
+  const [search, setSearch] = useState("");
 
   const leaderboardFilters = useMemo(() => {
     const next: {
@@ -94,6 +96,7 @@ export default function LeaderboardPage() {
       parameter: LeaderboardScoringParameter;
       start_date?: string;
       end_date?: string;
+      search?: string;
     } = {
       page,
       limit: 20,
@@ -105,8 +108,12 @@ export default function LeaderboardPage() {
       next.end_date = scoreDate;
     }
 
+    if (search.trim()) {
+      next.search = search.trim();
+    }
+
     return next;
-  }, [page, parameter, scoreDate]);
+  }, [page, parameter, scoreDate, search]);
 
   const query = useLeaderboard(leaderboardFilters);
 
@@ -147,7 +154,7 @@ export default function LeaderboardPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <DateRangePicker
             mode="single"
             label="Score date"
@@ -160,7 +167,17 @@ export default function LeaderboardPage() {
             onChange={(range) => onScoreDateChange(range.start || todayIso)}
           />
 
-          <div className="space-y-1.5">
+          <Input
+            label="Search branches"
+            placeholder="Business, city, state, or sector"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+
+          <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
             <label
               htmlFor="leaderboard-sort-parameter"
               className="text-xs font-medium text-muted-foreground"
@@ -277,7 +294,9 @@ export default function LeaderboardPage() {
               {!showSkeleton && (!data?.items || data.items.length === 0) && (
                 <tr>
                   <td colSpan={6} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                    No leaderboard entries found.
+                    {search.trim()
+                      ? "No branches match your search. Try a different name, city, or sector."
+                      : "No leaderboard entries found for this date."}
                   </td>
                 </tr>
               )}

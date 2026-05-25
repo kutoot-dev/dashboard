@@ -16,7 +16,7 @@ import apiClient from "../client";
 
 /**
  * Get the paginated leaderboard with optional filters.
- * @endpoint GET /api/leaderboard?page=&limit=&city_tier=&state=&period_id=
+ * @endpoint GET /api/leaderboard?page=&limit=&city_tier=&state=&search=&start_date=&end_date=&parameter=
  * BACKEND SPEC: Compute ranked scores with joins to merchants, sectors,
  *   locations. Apply filters, paginate with OFFSET/LIMIT.
  */

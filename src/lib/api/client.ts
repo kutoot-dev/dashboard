@@ -50,6 +50,8 @@ export const BACKEND_BASE_URL =
 
 export const AUTH_TOKEN_STORAGE_KEY = "kutoot_token";
 export const AUTH_USER_COOKIE = "kutoot_auth";
+/** Set alongside the bearer token so middleware can detect an active session. */
+export const AUTH_SESSION_COOKIE = "kutoot_session";
 
 const apiClient = axios.create({
   baseURL: BACKEND_BASE_URL,
@@ -89,6 +91,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
+    if (status === 401 && typeof window !== "undefined") {
+      // Dynamic import avoids circular dependency with auth.service
+      void import("./services/auth.service").then(({ clearAuthSession }) => clearAuthSession());
+    }
     const raw = error.response?.data?.error || {
       code: status === 422 ? "VALIDATION_ERROR" : "NETWORK_ERROR",
       message:

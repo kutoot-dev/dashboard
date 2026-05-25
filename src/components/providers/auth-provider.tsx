@@ -9,7 +9,12 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { AuthUser } from "@/lib/types";
-import { login as loginService, logout as logoutService, getMe } from "@/lib/api/services/auth.service";
+import {
+  clearAuthSession,
+  login as loginService,
+  logout as logoutService,
+  getMe,
+} from "@/lib/api/services/auth.service";
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
 import { useQueryClientInstance } from "./query-provider";
 
@@ -38,19 +43,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isOnboardingRoute = window.location.pathname.startsWith("/onboard");
     const hasToken = !!window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
 
-    if (isOnboardingRoute || !hasToken) {
+    if (isOnboardingRoute) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (!hasToken) {
+      clearAuthSession();
+      setUser(null);
       setIsLoading(false);
       return;
     }
 
     getMe()
       .then((res) => {
-        if (res.success) {
+        if (res.success && res.data) {
           setUser(res.data);
+        } else {
+          clearAuthSession();
+          setUser(null);
         }
       })
       .catch(() => {
-        // Not authenticated
+        clearAuthSession();
+        setUser(null);
       })
       .finally(() => {
         setIsLoading(false);

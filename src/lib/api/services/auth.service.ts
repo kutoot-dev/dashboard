@@ -6,7 +6,11 @@
  * non-httpOnly cookie so Next.js middleware can detect the auth state.
  */
 import type { ApiResponse, AuthUser } from "@/lib/types";
-import apiClient, { AUTH_TOKEN_STORAGE_KEY, AUTH_USER_COOKIE } from "../client";
+import apiClient, {
+  AUTH_SESSION_COOKIE,
+  AUTH_TOKEN_STORAGE_KEY,
+  AUTH_USER_COOKIE,
+} from "../client";
 
 interface MerchantSellerPayload {
   sellerId?: string | number;
@@ -103,17 +107,33 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
   };
 }
 
+function cookieFlags(maxAge: number): string {
+  const secure = typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : "";
+  return `Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
+}
+
 function setAuthCookie(user: AuthUser): void {
   if (typeof document === "undefined") return;
-  const value = encodeURIComponent(JSON.stringify(user));
   const maxAge = COOKIE_MAX_AGE_DAYS * 24 * 60 * 60;
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${AUTH_USER_COOKIE}=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
+  const flags = cookieFlags(maxAge);
+  const value = encodeURIComponent(JSON.stringify(user));
+  document.cookie = `${AUTH_USER_COOKIE}=${value}; ${flags}`;
+  document.cookie = `${AUTH_SESSION_COOKIE}=1; ${flags}`;
 }
 
 function clearAuthCookie(): void {
   if (typeof document === "undefined") return;
-  document.cookie = `${AUTH_USER_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  const flags = cookieFlags(0);
+  document.cookie = `${AUTH_USER_COOKIE}=; ${flags}`;
+  document.cookie = `${AUTH_SESSION_COOKIE}=; ${flags}`;
+}
+
+/** Clear token, auth cookies, and any stale client session state. */
+export function clearAuthSession(): void {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  }
+  clearAuthCookie();
 }
 
 /**
@@ -152,10 +172,7 @@ export async function logout() {
     /* ignore — clear locally regardless */
   }
 
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  }
-  clearAuthCookie();
+  clearAuthSession();
 
   return {
     success: true,
