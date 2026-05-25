@@ -15,6 +15,7 @@ interface BadgeProps {
   variant: BadgeVariant;
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
@@ -29,9 +30,10 @@ const variantClasses: Record<BadgeVariant, string> = {
   accent: "border border-accent/35 bg-accent/14 text-accent",
 };
 
-export function Badge({ variant, children, className }: BadgeProps) {
+export function Badge({ variant, children, className, title }: BadgeProps) {
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold font-mono",
         variantClasses[variant],
