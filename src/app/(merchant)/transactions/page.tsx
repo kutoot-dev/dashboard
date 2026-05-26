@@ -17,6 +17,7 @@ import { TransactionsTrendChart, type TransactionChartMetric } from "@/component
 import { buildDailyTransactionSeries } from "@/lib/utils/transactions-chart";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -162,7 +163,7 @@ function TransactionRowCard({
 
 export default function TransactionsPage() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
   const pushToast = useToastStore((s) => s.push);
 
   const [search, setSearch] = useState("");

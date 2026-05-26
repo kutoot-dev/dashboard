@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { Icon } from "@/components/ui/icon";
-import { getBranchNav } from "@/lib/constants/navigation";
+import { getMerchantNav } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
 
@@ -17,7 +17,7 @@ export function BottomNav() {
     () => false,
   );
 
-  const navItems = getBranchNav(Boolean(user?.is_test));
+  const navItems = getMerchantNav(Boolean(user?.is_test), user?.role ?? "merchant");
 
   if (!mounted || isLoading) return null;
 

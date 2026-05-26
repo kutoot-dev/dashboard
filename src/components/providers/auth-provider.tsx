@@ -16,7 +16,19 @@ import {
   getMe,
 } from "@/lib/api/services/auth.service";
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
+import { useSelectedLocationStore } from "@/lib/stores/selected-location.store";
 import { useQueryClientInstance } from "./query-provider";
+
+function syncOpsHubSelectedLocation(user: AuthUser): void {
+  if (user.role !== "operations_hub") {
+    return;
+  }
+
+  const defaultId = user.default_location_id ?? user.branch_id;
+  if (defaultId) {
+    useSelectedLocationStore.getState().setSelectedLocationId(defaultId);
+  }
+}
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -58,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getMe()
       .then((res) => {
         if (res.success && res.data) {
+          syncOpsHubSelectedLocation(res.data);
           setUser(res.data);
         } else {
           clearAuthSession();
@@ -79,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.success) {
         queryClient.clear();
         if (res.data) {
+          syncOpsHubSelectedLocation(res.data);
           setUser(res.data);
         }
         router.push("/dashboard");

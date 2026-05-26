@@ -60,13 +60,46 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor: attach Bearer token if stored locally (browser only)
+// Request interceptor: attach Bearer token + ops-hub location scope
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      const authCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith(`${AUTH_USER_COOKIE}=`));
+      if (authCookie) {
+        const raw = decodeURIComponent(authCookie.split("=").slice(1).join("="));
+        const user = JSON.parse(raw) as { role?: string };
+        if (user.role === "operations_hub") {
+          const selected = window.localStorage.getItem("kutoot_selected_location_id");
+          let locationId: string | null = null;
+          if (selected) {
+            try {
+              const parsed = JSON.parse(selected) as { state?: { selectedLocationId?: string | null } };
+              locationId = parsed.state?.selectedLocationId ?? null;
+            } catch {
+              locationId = null;
+            }
+          }
+          if (!locationId) {
+            const parsedUser = user as { default_location_id?: string; branch_id?: string | null };
+            locationId = parsedUser.default_location_id ?? parsedUser.branch_id ?? null;
+          }
+          if (locationId && config.url?.startsWith("/merchant")) {
+            config.headers = config.headers || {};
+            config.headers["X-Location-Id"] = locationId;
+            config.params = { ...(config.params as object), location_id: locationId };
+          }
+        }
+      }
+    } catch {
+      /* ignore cookie parse errors */
     }
   }
   return config;

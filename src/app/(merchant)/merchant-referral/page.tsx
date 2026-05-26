@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
 import { getMerchantDashboard } from "@/lib/api/services/merchant.service";
@@ -16,7 +17,7 @@ export default function MerchantReferralPage() {
   const router = useRouter();
   const { user } = useAuth();
   const pushToast = useToastStore((s) => s.push);
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
 
   const dashboardQuery = useQuery({
     queryKey: ["merchant-dashboard"],

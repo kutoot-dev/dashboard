@@ -6,8 +6,10 @@
  */
 
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import type { UserRole } from "@/lib/types/auth";
 import {
   faBookOpen,
+  faBriefcase,
   faChartBar,
   faClipboardCheck,
   faComments,
@@ -80,6 +82,21 @@ export const DEMO_SCORING_ENGINE_NAV: NavItem = {
   href: "/scoring-engine",
   icon: faFlask,
 };
+
+export const OPS_HUB_PORTFOLIO_NAV: NavItem = {
+  label: "Portfolio",
+  href: "/portfolio",
+  icon: faBriefcase,
+};
+
+/** Merchant nav; adds portfolio for operations hub; demo lab when `isTest`. */
+export function getMerchantNav(isTest = false, role: UserRole = "merchant"): NavItem[] {
+  const base = getBranchNav(isTest);
+  if (role === "operations_hub") {
+    return [OPS_HUB_PORTFOLIO_NAV, ...base];
+  }
+  return base;
+}
 
 /** Branch nav; appends demo lab link when `isTest` is true. */
 export function getBranchNav(isTest = false): NavItem[] {

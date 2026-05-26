@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 
 import {
 
@@ -250,7 +251,7 @@ export default function LeaderboardPage() {
 
   const items = flattenLeaderboardPages(pages);
 
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
 
 
 

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getOnboardingProfile, getStoreProfile } from "@/lib/api/services/merchant.service";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { ProfileRowsSkeleton } from "@/components/ui/loading-skeletons";
@@ -16,7 +17,7 @@ function formatTime(value: string | null | undefined): string {
 
 export default function StorePage() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
 
   const storeQuery = useQuery({
     queryKey: ["store-profile", branchId],

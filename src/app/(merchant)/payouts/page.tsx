@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBranchPayouts } from "@/lib/api/services/branches.service";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,7 @@ function formatChangePct(value: number | null) {
 
 export default function PayoutsPage() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
   const [chartView, setChartView] = useState<BonusPayoutChartView>("both");
 
   const payoutsQuery = useQuery({

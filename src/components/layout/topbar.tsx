@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { faRightFromBracket } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTheme } from "@/components/providers/theme-provider";
+import { LocationPicker } from "@/components/layout/location-picker";
 import { QuickActions } from "@/components/ui/quick-actions";
 
 export function Topbar() {
@@ -35,7 +36,8 @@ export function Topbar() {
 
   return (
     <header className="glass-topbar flex h-16 items-center justify-between border-b border-border/80 px-4 md:px-6">
-      <div className="min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
+        <LocationPicker />
         <QuickActions compact className="flex" />
       </div>
 

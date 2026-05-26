@@ -20,6 +20,15 @@ interface MerchantSellerPayload {
   email?: string;
   is_test?: boolean;
   status?: string;
+  role?: string;
+  default_location_id?: string | number;
+  attached_locations?: Array<{
+    id: string | number;
+    branch_name: string;
+    merchant_category_id?: number | null;
+    category?: string | null;
+    role?: string;
+  }>;
 }
 
 interface MerchantLoginPayload {
@@ -96,13 +105,28 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
 
   const branchId = String(payload.shopId);
   const id = payload.sellerId ? String(payload.sellerId) : branchId;
+  const role = payload.role === "operations_hub" ? "operations_hub" : "merchant";
+  const defaultLocationId = payload.default_location_id
+    ? String(payload.default_location_id)
+    : branchId;
+
+  const attached =
+    payload.attached_locations?.map((loc) => ({
+      id: loc.id,
+      branch_name: loc.branch_name,
+      merchant_category_id: loc.merchant_category_id,
+      category: loc.category,
+      role: loc.role,
+    })) ?? [];
 
   return {
     id,
     name: payload.shopName ?? payload.ownerName ?? "Merchant",
     email: payload.email ?? "",
-    role: "merchant",
+    role,
     branch_id: branchId,
+    default_location_id: defaultLocationId,
+    attached_locations: attached.length > 0 ? attached : undefined,
     is_test: Boolean(payload.is_test),
   };
 }

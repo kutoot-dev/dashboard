@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KutootIcon, KutootLogo } from "@/components/branding";
 import { Icon } from "@/components/ui/icon";
-import { getBranchNav } from "@/lib/constants/navigation";
+import { getMerchantNav } from "@/lib/constants/navigation";
 import { faChevronLeft } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -14,7 +14,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
-  const navItems = getBranchNav(Boolean(user?.is_test));
+  const navItems = getMerchantNav(Boolean(user?.is_test), user?.role ?? "merchant");
 
   return (
     <aside

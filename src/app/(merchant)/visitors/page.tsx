@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getVisitors } from "@/lib/api/services/merchant.service";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -16,7 +17,7 @@ import { DEFAULT_FILTER_DATE_RANGE } from "@/lib/utils/date-range";
 
 export default function VisitorsPage() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);

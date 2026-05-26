@@ -14,6 +14,7 @@ import {
   type Deal,
 } from "@/lib/api/services/merchant.service";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { ApiError } from "@/lib/api/client";
 import { PageHeader } from "@/components/layout/page-header";
@@ -109,7 +110,7 @@ function DealStat({ label, value }: { label: string; value: string }) {
 export default function DealsPage() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
   const qc = useQueryClient();
   const pushToast = useToastStore((s) => s.push);
 

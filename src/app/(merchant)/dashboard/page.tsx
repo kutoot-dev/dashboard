@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { DashboardPageSkeleton } from "@/components/ui/loading-skeletons";
 import { ScoreInsightsCard } from "@/components/ui/score-insights-card";
 import { ScoreTrendCard } from "@/components/ui/score-trend-card";
@@ -28,13 +29,13 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const pushToast = useToastStore((s) => s.push);
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
   const [activeTab, setActiveTab] = useState<DashboardSectionId>("stats-strip");
 
   useTransactionStream(branchId);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["merchant-dashboard"],
+    queryKey: ["merchant-dashboard", branchId],
     queryFn: getMerchantDashboard,
     refetchInterval: 30_000,
     retry: false,

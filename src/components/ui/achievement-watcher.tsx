@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { useBranchScore } from "@/lib/hooks/use-branch-data";
 import { fireCelebration, fireGoldRain, fireSparkle } from "@/lib/utils/effects";
 import { usePreferencesStore } from "@/lib/stores/preferences.store";
@@ -22,7 +23,7 @@ import { usePreferencesStore } from "@/lib/stores/preferences.store";
  */
 export function AchievementWatcher() {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
   const { data: score } = useBranchScore(branchId);
   const { soundEnabled } = usePreferencesStore();
 

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 
 interface RecentRedemptionsSlideshowProps {
   className?: string;
@@ -38,7 +39,7 @@ export function RecentRedemptionsSlideshow({
   limit = 5,
 }: RecentRedemptionsSlideshowProps) {
   const { user } = useAuth();
-  const branchId = user?.branch_id ?? "";
+  const branchId = useEffectiveBranchId();
 
   const { data, isLoading } = useQuery({
     queryKey: ["recent-redemptions"],
