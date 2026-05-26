@@ -139,10 +139,6 @@ export default function PortfolioPage() {
               <p className="text-muted-foreground">Transactions</p>
               <p className="font-semibold">{summary?.transaction_count ?? 0}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Avg rank</p>
-              <p className="font-semibold">{summary?.average_rank ?? "—"}</p>
-            </div>
           </div>
         </Card>
       </div>
