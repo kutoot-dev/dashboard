@@ -137,6 +137,17 @@ export function ScoringEngineConfig({ config, payoutRules }: ScoringEngineConfig
                               {param.description}
                             </p>
                           ) : null}
+                          {param.example ? (
+                            <p className="mt-1.5 text-[10px] leading-snug text-foreground">
+                              <span className="font-semibold text-gain">Example: </span>
+                              {param.example}
+                            </p>
+                          ) : null}
+                          {param.impact ? (
+                            <p className="mt-1 text-[10px] leading-snug text-muted-foreground italic">
+                              If increased: {param.impact}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="text-right sm:pl-4">
                           <p className="font-mono text-sm font-semibold text-gain">

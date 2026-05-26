@@ -9,6 +9,7 @@ import {
   getDeals,
   pauseDeal,
   resumeDeal,
+  unarchiveDeal,
   updateDeal,
   type CreateDealPayload,
   type Deal,
@@ -40,8 +41,6 @@ const STATUS_FILTERS: Array<{ value: string; label: string; tone: FilterChipTone
   { value: "active", label: "Active", tone: "gain" },
   { value: "paused", label: "Paused", tone: "warning" },
   { value: "archived", label: "Archived", tone: "neutral" },
-  { value: "approved", label: "Approved", tone: "gain" },
-  { value: "pending", label: "Pending", tone: "gold" },
 ];
 
 function lifecycleBadgeVariant(status: Deal["lifecycle_status"]) {
@@ -153,14 +152,19 @@ export default function DealsPage() {
   });
 
   const actionMutation = useMutation({
-    mutationFn: async (input: { action: "pause" | "resume" | "archive"; dealId: number }) => {
+    mutationFn: async (input: { action: "pause" | "resume" | "archive" | "activate"; dealId: number }) => {
       if (input.action === "pause") return pauseDeal(branchId, input.dealId);
       if (input.action === "resume") return resumeDeal(branchId, input.dealId);
+      if (input.action === "activate") return unarchiveDeal(branchId, input.dealId);
       return archiveDeal(branchId, input.dealId);
     },
     onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: ["deals", branchId] });
-      pushToast({ title: `Deal ${vars.action}d`, variant: "success" });
+      const title =
+        vars.action === "activate"
+          ? "Deal activated"
+          : `Deal ${vars.action}d`;
+      pushToast({ title, variant: "success" });
     },
     onError: (error) => {
       const message = error instanceof ApiError ? error.message : "Unable to update deal";
@@ -261,7 +265,7 @@ export default function DealsPage() {
         <Card className="border border-border bg-muted/30">
           <p className="text-[10px] uppercase tracking-wide text-foreground">Archived</p>
           <p className="mt-1 text-xl font-semibold text-foreground">{archivedDeals}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Not editable</p>
+          <p className="mt-1 text-xs text-muted-foreground">Can be reactivated</p>
         </Card>
         <Card>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total deals</p>
@@ -519,6 +523,16 @@ export default function DealsPage() {
                           loading={actionMutation.isPending}
                         >
                           Archive
+                        </Button>
+                      )}
+                      {lifecycle === "archived" && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => actionMutation.mutate({ action: "activate", dealId: deal.id })}
+                          loading={actionMutation.isPending}
+                        >
+                          Activate
                         </Button>
                       )}
                     </div>

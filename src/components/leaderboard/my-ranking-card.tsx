@@ -74,6 +74,8 @@ function RankChangeIcon({ change }: { change: number }) {
 
 interface MyRankingCardProps {
   entry: LeaderboardMyEntry | null | undefined;
+  /** Rank for the active sort; should match the viewer row in the table when visible. */
+  displayRank?: number | null;
   parameter: LeaderboardScoringParameter;
   parameterLabel: string;
   dateLabel: string;
@@ -83,6 +85,7 @@ interface MyRankingCardProps {
 
 export function MyRankingCard({
   entry,
+  displayRank,
   parameter,
   parameterLabel,
   dateLabel,
@@ -113,12 +116,13 @@ export function MyRankingCard({
     );
   }
 
+  const rank = displayRank ?? entry.rank;
   const poolTotal = entry.rank_pool_total ?? entry.list_total ?? 0;
-  const tier = getRankTier(entry.rank, Math.max(poolTotal, 1));
+  const tier = getRankTier(rank, Math.max(poolTotal, 1));
   const styles = TIER_STYLES[tier];
   const score = displayScore(entry, parameter);
   const percentile =
-    poolTotal > 0 ? Math.min(100, Math.round((entry.rank / poolTotal) * 100)) : null;
+    poolTotal > 0 ? Math.min(100, Math.round((rank / poolTotal) * 100)) : null;
 
   return (
     <Card
@@ -180,7 +184,7 @@ export function MyRankingCard({
           <div className="flex items-center gap-2">
             <Icon icon={faTrophy} className={cn("h-8 w-8", styles.rank)} aria-hidden />
             <span className={cn("font-display text-4xl font-bold tabular-nums sm:text-5xl", styles.rank)}>
-              #{entry.rank}
+              #{rank}
             </span>
           </div>
           {poolTotal > 0 && (

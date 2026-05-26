@@ -1,19 +1,11 @@
 /**
  * Laravel Echo client — configured for Laravel Reverb (Pusher-compatible).
- *
- * Import the singleton `echo` anywhere in client components to subscribe
- * to real-time broadcast channels.
- *
- * Env vars (add to .env.local):
- *   NEXT_PUBLIC_REVERB_APP_KEY  — matches kutoot REVERB_APP_KEY
- *   NEXT_PUBLIC_REVERB_HOST     — e.g. localhost
- *   NEXT_PUBLIC_REVERB_PORT     — e.g. 8080
- *   NEXT_PUBLIC_REVERB_SCHEME   — http | https
  */
 
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
 import { AUTH_TOKEN_STORAGE_KEY, BACKEND_BASE_URL } from "@/lib/api/client";
+import { isReverbConfigured, resolveReverbConfig } from "@/lib/reverb-config";
 
 declare global {
   interface Window {
@@ -22,52 +14,74 @@ declare global {
 }
 
 let echo: Echo<"reverb"> | null = null;
+let echoToken: string | null = null;
+
+function readAuthToken(): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) ?? "";
+}
+
+export function isEchoConfigured(): boolean {
+  return isReverbConfigured();
+}
 
 export function getEcho(): Echo<"reverb"> {
-  if (echo) return echo;
-
   if (typeof window === "undefined") {
     throw new Error("Echo can only be initialised on the client");
   }
 
-  window.Pusher = Pusher;
+  const token = readAuthToken();
+  const config = resolveReverbConfig();
 
-  // Derive Laravel root URL from the dashboard API base, e.g.
-  //   http://kutoot.test/api/dashboard  →  http://kutoot.test/broadcasting/auth
-  let authEndpoint = "/broadcasting/auth";
-  try {
-    const apiUrl = new URL(BACKEND_BASE_URL);
-    authEndpoint = `${apiUrl.protocol}//${apiUrl.host}/broadcasting/auth`;
-  } catch {
-    /* keep relative fallback */
+  if (!config.key) {
+    throw new Error(
+      "Reverb is not configured. Set NEXT_PUBLIC_REVERB_APP_KEY in merchant-panel/.env.local (must match kutoot REVERB_APP_KEY).",
+    );
   }
 
-  const token =
-    typeof window !== "undefined"
-      ? window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) ?? ""
-      : "";
+  if (echo && echoToken === token) {
+    return echo;
+  }
+
+  if (echo) {
+    echo.disconnect();
+    echo = null;
+  }
+
+  window.Pusher = Pusher;
+  echoToken = token;
 
   echo = new Echo({
     broadcaster: "reverb",
-    key: process.env.NEXT_PUBLIC_REVERB_APP_KEY ?? "",
-    wsHost: process.env.NEXT_PUBLIC_REVERB_HOST ?? "localhost",
-    wsPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT ?? 8080),
-    wssPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT ?? 443),
-    forceTLS: (process.env.NEXT_PUBLIC_REVERB_SCHEME ?? "http") === "https",
+    key: config.key,
+    wsHost: config.host,
+    wsPort: config.port,
+    wssPort: config.port,
+    forceTLS: config.scheme === "https",
     enabledTransports: ["ws", "wss"],
     disableStats: true,
-    // Direct Reverb auth at Laravel; Bearer token attached for Sanctum guard.
-    authEndpoint,
+    authEndpoint: config.authEndpoint,
     auth: {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        Accept: "application/json",
+      },
     },
   });
+
+  if (process.env.NODE_ENV === "development") {
+    const connector = echo.connector as { pusher?: { connection: { bind: (e: string, cb: (s: unknown) => void) => void } } };
+    connector.pusher?.connection.bind("state_change", (states: unknown) => {
+      console.debug("[Echo] connection", states, { host: config.host, port: config.port, api: BACKEND_BASE_URL });
+    });
+  }
 
   return echo;
 }
 
-/** Tear down the socket connection (call on unmount / logout). */
+/** Tear down the socket connection (call on logout / before re-auth). */
 export function disconnectEcho(): void {
   echo?.disconnect();
   echo = null;
+  echoToken = null;
 }

@@ -5,6 +5,8 @@ export interface ScoringEngineParameter {
   key: string;
   label: string;
   description: string;
+  example: string;
+  impact: string;
   unit: string;
   range: [number, number] | string[] | null;
   value: string | number | boolean | null;
@@ -14,6 +16,16 @@ export interface ScoringEngineParameter {
 export interface ScoringEngineConfigGroup {
   group: string;
   parameters: ScoringEngineParameter[];
+}
+
+export interface ScoringEngineProjectionRow {
+  branch_id: number;
+  branch_name: string;
+  merchant_name: string | null;
+  live_rank: number | null;
+  composite: number;
+  projected_share: number;
+  pool_pct: number;
 }
 
 export interface ScoringEngineOverview {
@@ -51,14 +63,11 @@ export interface ScoringEngineOverview {
     live_composite: number | null;
     gmv_today: number | null;
     last_updated_at: string | null;
+    active_branch_count: number;
   };
-  projection_top: Array<{
-    branch_id: number;
-    branch_name: string;
-    live_rank: number | null;
-    composite: number;
-    projected_share: number;
-  }>;
+  projection_all: ScoringEngineProjectionRow[];
+  /** @deprecated Use projection_all — same data, all active branches */
+  projection_top: ScoringEngineProjectionRow[];
   recent_periods: Array<{
     id: number;
     date: string;
@@ -71,9 +80,11 @@ export interface ScoringEngineOverview {
 
 export type ScoringEngineCommand =
   | "scores:tick"
+  | "scores:track-composite"
   | "scores:compute-daily"
   | "payouts:distribute-daily"
-  | "demo:add-txn";
+  | "demo:add-txn"
+  | "schedule:run";
 
 export interface RunScoringEngineCommandPayload {
   command: ScoringEngineCommand;

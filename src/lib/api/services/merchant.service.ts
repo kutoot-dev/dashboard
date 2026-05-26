@@ -180,6 +180,13 @@ export async function archiveDeal(branchId: string, dealId: number) {
   return res.data;
 }
 
+export async function unarchiveDeal(branchId: string, dealId: number) {
+  const res = await apiClient.post<ApiResponse<Deal>>(
+    `/merchant/${branchId}/deals/${dealId}/unarchive`,
+  );
+  return res.data;
+}
+
 // ── Store Profile ────────────────────────────────────────────────────────────
 
 export async function getStoreProfile(branchId: string) {

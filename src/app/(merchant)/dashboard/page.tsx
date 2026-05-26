@@ -20,7 +20,6 @@ import { getMerchantDashboard, type MerchantScoreInsight } from "@/lib/api/servi
 import { SUB_SCORE_DESCRIPTIONS, SUB_SCORE_LABELS } from "@/lib/constants/scoring";
 import { formatINR } from "@/lib/utils/format";
 import { useToastStore } from "@/lib/stores/toast.store";
-import { useTransactionStream } from "@/lib/hooks/use-transaction-stream";
 import type { DashboardSectionId } from "@/lib/hooks/use-dashboard-layout";
 
 const EMPTY_SCORE_INSIGHTS: MerchantScoreInsight[] = [];
@@ -31,8 +30,6 @@ export default function DashboardPage() {
   const pushToast = useToastStore((s) => s.push);
   const branchId = useEffectiveBranchId();
   const [activeTab, setActiveTab] = useState<DashboardSectionId>("stats-strip");
-
-  useTransactionStream(branchId);
 
   const { data, isLoading } = useQuery({
     queryKey: ["merchant-dashboard", branchId],

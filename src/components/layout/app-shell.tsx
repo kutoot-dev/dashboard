@@ -5,6 +5,8 @@ import { Topbar } from "./topbar";
 import { BottomNav } from "./bottom-nav";
 import { AchievementWatcher } from "@/components/ui/achievement-watcher";
 import { Toaster } from "@/components/ui/toaster";
+import { TransactionAlertPopover } from "@/components/ui/transaction-alert-popover";
+import { TransactionStreamWatcher } from "@/components/ui/transaction-stream-watcher";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -28,6 +30,8 @@ export function AppShell({ children }: AppShellProps) {
       </div>
       {/* Mobile bottom nav */}
       <BottomNav />
+      <TransactionStreamWatcher />
+      <TransactionAlertPopover />
       <AchievementWatcher />
       <Toaster />
     </div>

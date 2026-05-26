@@ -11,6 +11,9 @@ import { getScoringEngineOverview } from "@/lib/api/services/scoring-engine.serv
 import { ScoringEngineFlowchart } from "@/components/scoring-engine/scoring-engine-flowchart";
 import { ScoringEngineConfig } from "@/components/scoring-engine/scoring-engine-config";
 import { ScoringEngineCommands } from "@/components/scoring-engine/scoring-engine-commands";
+import { ScoringEngineFormulaGuide } from "@/components/scoring-engine/scoring-engine-formula-guide";
+import { ScoringEngineSchedule } from "@/components/scoring-engine/scoring-engine-schedule";
+import { canAccessScoringEngine } from "@/lib/utils/scoring-engine-access";
 import { formatINR } from "@/lib/utils/format";
 import { StatCardsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
@@ -22,25 +25,25 @@ function formatRank(rank: number | null | undefined) {
 export default function ScoringEnginePage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
-  const isDemo = Boolean(user?.is_test);
+  const scoringEngineEnabled = canAccessScoringEngine(user);
 
   useEffect(() => {
-    if (!authLoading && user && !isDemo) {
+    if (!authLoading && user && !scoringEngineEnabled) {
       router.replace("/dashboard");
     }
-  }, [authLoading, user, isDemo, router]);
+  }, [authLoading, user, scoringEngineEnabled, router]);
 
   const overviewQuery = useQuery({
     queryKey: ["scoring-engine"],
     queryFn: getScoringEngineOverview,
-    enabled: isDemo,
+    enabled: scoringEngineEnabled,
     refetchInterval: 60_000,
   });
 
   const showSkeleton = useQuerySkeleton(overviewQuery);
   const data = overviewQuery.data?.success ? overviewQuery.data.data : null;
 
-  if (authLoading || (!isDemo && user)) {
+  if (authLoading || (!scoringEngineEnabled && user)) {
     return (
       <main className="flex min-h-[40vh] items-center justify-center">
         <p className="font-mono text-xs text-muted-foreground">Loading…</p>
@@ -48,7 +51,7 @@ export default function ScoringEnginePage() {
     );
   }
 
-  if (!isDemo) {
+  if (!scoringEngineEnabled) {
     return null;
   }
 
@@ -112,36 +115,59 @@ export default function ScoringEnginePage() {
             </div>
           </Card>
 
+          <ScoringEngineSchedule
+            schedule={data.schedule}
+            allowedCommands={data.allowed_commands}
+          />
+
           <div className="grid gap-6 xl:grid-cols-2">
             <ScoringEngineCommands defaultDate={data.today.date} />
 
             <div className="space-y-4">
               <Card className="p-4">
-                <h3 className="font-mono text-xs font-semibold uppercase tracking-widest text-secondary">
-                  Top projected payouts today
-                </h3>
-                <div className="mt-3 overflow-x-auto">
-                  <table className="w-full min-w-[320px] font-mono text-[11px]">
-                    <thead>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="font-mono text-xs font-semibold uppercase tracking-widest text-secondary">
+                    Projected payouts today (all branches)
+                  </h3>
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {data.today.active_branch_count} active · pool {formatINR(data.today.pool)}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Live estimate using the same rules as payouts:distribute-daily. ₹0 share means
+                  below min score or zero composite weight.
+                </p>
+                <div className="mt-3 max-h-[420px] overflow-auto">
+                  <table className="w-full min-w-[400px] font-mono text-[11px]">
+                    <thead className="sticky top-0 bg-card">
                       <tr className="border-b border-glass-border text-left text-muted-foreground">
                         <th className="py-2 pr-2">Rank</th>
-                        <th className="py-2 pr-2">Branch</th>
+                        <th className="py-2 pr-2">Merchant / branch</th>
                         <th className="py-2 pr-2 text-right">Score</th>
+                        <th className="py-2 pr-2 text-right">% pool</th>
                         <th className="py-2 text-right">Share</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {data.projection_top.map((row) => (
+                      {(data.projection_all ?? data.projection_top).map((row) => (
                         <tr key={row.branch_id} className="border-b border-glass-border/50">
                           <td className="py-2 pr-2 text-accent">{formatRank(row.live_rank)}</td>
-                          <td className="py-2 pr-2 max-w-[140px] truncate text-foreground">
-                            {row.branch_name}
-                            {row.branch_id === data.branch.id ? (
-                              <span className="ml-1 text-gain">(you)</span>
-                            ) : null}
+                          <td className="py-2 pr-2 max-w-[180px]">
+                            <p className="truncate text-foreground">
+                              {row.merchant_name ?? "—"}
+                              {row.branch_id === data.branch.id ? (
+                                <span className="ml-1 text-gain">(you)</span>
+                              ) : null}
+                            </p>
+                            <p className="truncate text-[10px] text-muted-foreground">
+                              {row.branch_name}
+                            </p>
                           </td>
                           <td className="py-2 pr-2 text-right text-muted-foreground">
                             {row.composite.toFixed(4)}
+                          </td>
+                          <td className="py-2 pr-2 text-right text-muted-foreground">
+                            {row.pool_pct > 0 ? `${row.pool_pct.toFixed(1)}%` : "—"}
                           </td>
                           <td className="py-2 text-right font-semibold text-gain">
                             {formatINR(row.projected_share)}
@@ -174,14 +200,20 @@ export default function ScoringEnginePage() {
             </div>
           </div>
 
-          <ScoringEngineConfig config={data.config} payoutRules={data.payout_rules} />
+          <div className="grid gap-6 xl:grid-cols-2">
+            <ScoringEngineFormulaGuide
+              weights={data.config.weights}
+              payoutRules={data.payout_rules}
+            />
+            <ScoringEngineConfig config={data.config} payoutRules={data.payout_rules} />
+          </div>
         </>
       )}
 
       {overviewQuery.isError ? (
         <Card className="border-loss/40 bg-loss/10 p-4">
           <p className="text-sm text-loss">
-            Could not load scoring engine data. Ensure you are logged in as a demo merchant.
+            Could not load scoring engine data. Use the demo merchant or demo-ops hub account.
           </p>
         </Card>
       ) : null}

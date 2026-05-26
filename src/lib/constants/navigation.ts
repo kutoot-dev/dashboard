@@ -89,18 +89,21 @@ export const OPS_HUB_PORTFOLIO_NAV: NavItem = {
   icon: faBriefcase,
 };
 
-/** Merchant nav; adds portfolio for operations hub; demo lab when `isTest`. */
-export function getMerchantNav(isTest = false, role: UserRole = "merchant"): NavItem[] {
-  const base = getBranchNav(isTest);
+/** Merchant nav; adds portfolio for operations hub; Score Engine when enabled. */
+export function getMerchantNav(
+  scoringEngineEnabled = false,
+  role: UserRole = "merchant",
+): NavItem[] {
+  const base = getBranchNav(scoringEngineEnabled);
   if (role === "operations_hub") {
     return [OPS_HUB_PORTFOLIO_NAV, ...base];
   }
   return base;
 }
 
-/** Branch nav; appends demo lab link when `isTest` is true. */
-export function getBranchNav(isTest = false): NavItem[] {
-  if (!isTest) {
+/** Branch nav; appends Score Engine when the session may access the lab. */
+export function getBranchNav(scoringEngineEnabled = false): NavItem[] {
+  if (!scoringEngineEnabled) {
     return BRANCH_NAV;
   }
 

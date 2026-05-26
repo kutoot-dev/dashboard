@@ -50,6 +50,7 @@ import {
 } from "@/lib/constants/scoring";
 
 import type { LeaderboardScoringParameter } from "@/lib/types";
+import { resolveMyLeaderboardRank } from "@/lib/utils/leaderboard-rank";
 
 
 
@@ -253,7 +254,10 @@ export default function LeaderboardPage() {
 
   const branchId = useEffectiveBranchId();
 
-
+  const myDisplayRank = useMemo(
+    () => resolveMyLeaderboardRank(parameter, my_entry, items, branchId),
+    [parameter, my_entry, items, branchId],
+  );
 
   const showInitialSkeleton =
 
@@ -341,13 +345,15 @@ export default function LeaderboardPage() {
 
         entry={my_entry}
 
+        displayRank={myDisplayRank}
+
         parameter={parameter}
 
         parameterLabel={parameterLabel(parameter)}
 
         dateLabel={dateSummary}
 
-        isLoading={showInitialSkeleton}
+        isLoading={showInitialSkeleton || (Boolean(my_entry) && myDisplayRank == null)}
 
         businessName={user?.name}
 

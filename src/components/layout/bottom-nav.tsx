@@ -6,6 +6,7 @@ import { useSyncExternalStore } from "react";
 import { Icon } from "@/components/ui/icon";
 import { getMerchantNav } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { canAccessScoringEngine } from "@/lib/utils/scoring-engine-access";
 import { cn } from "@/lib/utils/cn";
 
 export function BottomNav() {
@@ -17,7 +18,7 @@ export function BottomNav() {
     () => false,
   );
 
-  const navItems = getMerchantNav(Boolean(user?.is_test), user?.role ?? "merchant");
+  const navItems = getMerchantNav(canAccessScoringEngine(user), user?.role ?? "merchant");
 
   if (!mounted || isLoading) return null;
 

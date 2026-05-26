@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getEcho } from "@/lib/echo";
+import { disconnectEcho, getEcho, isEchoConfigured } from "@/lib/echo";
 import { usePreferencesStore } from "@/lib/stores/preferences.store";
-import { useToastStore } from "@/lib/stores/toast.store";
+import { useTransactionAlertStore } from "@/lib/stores/transaction-alert.store";
+import { playTransactionDing } from "@/lib/utils/transaction-ding";
 import type { ApiResponse } from "@/lib/types";
 import type { RecentRedemption } from "@/lib/api/services/merchant.service";
+import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
 
 export interface IncomingTransaction {
   id: number;
@@ -18,67 +20,28 @@ export interface IncomingTransaction {
   coupon_code: string | null;
   coupon_title: string | null;
   created_at: string;
+  payment_status?: string | null;
+  type?: string | null;
 }
 
 /**
- * Play a short "ding" via the Web Audio API. Avoids shipping an audio asset
- * and works offline. Only fires after the user has interacted with the page
- * (browsers block AudioContext creation until a user gesture).
+ * Subscribes to `private-merchant.{id}` via Laravel Reverb for live transaction alerts.
  */
-function playDing(): void {
-  if (typeof window === "undefined") return;
-  try {
-    const Ctx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.18);
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.32);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.35);
-    osc.onended = () => ctx.close();
-  } catch {
-    // AudioContext creation blocked (no user gesture yet) — silently ignore.
-  }
-}
-
-/**
- * useTransactionStream — subscribes to `private-merchant.{id}` via Laravel Reverb
- * and, for each `transaction.created` event:
- *   - plays a soft "ding" (respects usePreferencesStore().soundEnabled + gesture gating)
- *   - raises a toast via useToastStore
- *   - prepends the incoming txn to the cached latest-5 redemptions list so the
- *     dashboard card updates instantly (no extra HTTP round-trip)
- *   - invalidates dashboard/rolling-score queries so KPIs refresh promptly
- *
- * Pass an empty `branchId` to disable.
- */
-export function useTransactionStream(branchId: string | number): {
-  connected: boolean;
-} {
+export function useTransactionStream(
+  branchId: string | number,
+  authToken: string | null | undefined,
+): { connected: boolean; configured: boolean } {
   const qc = useQueryClient();
-  const pushToast = useToastStore((s) => s.push);
+  const showAlert = useTransactionAlertStore((s) => s.show);
   const soundEnabled = usePreferencesStore((s) => s.soundEnabled);
   const gestureUnlockedRef = useRef(false);
-  const connectedRef = useRef(false);
+  const [connected, setConnected] = useState(false);
+  const configured = isEchoConfigured();
 
-  // Track first user gesture so we can legally play audio afterwards.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onGesture = () => {
       gestureUnlockedRef.current = true;
-      window.removeEventListener("click", onGesture);
-      window.removeEventListener("keydown", onGesture);
-      window.removeEventListener("touchstart", onGesture);
     };
     window.addEventListener("click", onGesture, { once: true });
     window.addEventListener("keydown", onGesture, { once: true });
@@ -91,72 +54,105 @@ export function useTransactionStream(branchId: string | number): {
   }, []);
 
   useEffect(() => {
-    if (!branchId) return;
+    if (!branchId || !authToken || !configured) {
+      setConnected(false);
+      return;
+    }
 
     const channelName = `merchant.${branchId}`;
-
+    let cancelled = false;
     let channel: ReturnType<ReturnType<typeof getEcho>["private"]> | null = null;
+
+    const onTransaction = (payload: IncomingTransaction) => {
+      if (cancelled) return;
+
+      qc.setQueryData<ApiResponse<{ rows: RecentRedemption[] }> | undefined>(
+        ["recent-redemptions"],
+        (prev) => {
+          if (!prev) return prev;
+          const next: RecentRedemption = {
+            id: payload.id,
+            customer_name: payload.customer_name,
+            customer_initial: payload.customer_initial,
+            customer_phone: null,
+            coupon_code: payload.coupon_code,
+            coupon_title: payload.coupon_title,
+            discount_applied: payload.discount_applied,
+            bill_amount: payload.bill_amount,
+            total_paid: payload.total_paid,
+            created_at: payload.created_at,
+          };
+          const rows = [next, ...(prev.data?.rows ?? [])].slice(0, 5);
+          return { ...prev, data: { rows } };
+        },
+      );
+
+      qc.invalidateQueries({ queryKey: ["recent-redemptions"] });
+      qc.invalidateQueries({ queryKey: ["merchant-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["branchScore"] });
+      qc.invalidateQueries({ queryKey: ["rolling-score"] });
+
+      showAlert(payload);
+      if (soundEnabled && gestureUnlockedRef.current) {
+        playTransactionDing();
+      }
+    };
+
     try {
       const echo = getEcho();
       channel = echo.private(channelName);
 
-      channel.listen(".transaction.created", (payload: IncomingTransaction) => {
-        connectedRef.current = true;
+      channel.listen(".transaction.created", onTransaction);
 
-        // 1. Optimistically update recent redemptions so the card animates in.
-        qc.setQueryData<ApiResponse<{ rows: RecentRedemption[] }> | undefined>(
-          ["recent-redemptions"],
-          (prev) => {
-            if (!prev) return prev;
-            const next: RecentRedemption = {
-              id: payload.id,
-              customer_name: payload.customer_name,
-              customer_initial: payload.customer_initial,
-              customer_phone: null,
-              coupon_code: payload.coupon_code,
-              coupon_title: payload.coupon_title,
-              discount_applied: payload.discount_applied,
-              bill_amount: payload.bill_amount,
-              total_paid: payload.total_paid,
-              created_at: payload.created_at,
-            };
-            const rows = [next, ...(prev.data?.rows ?? [])].slice(0, 5);
-            return { ...prev, data: { rows } };
-          },
-        );
-
-        // 2. Refresh derived data.
-        qc.invalidateQueries({ queryKey: ["recent-redemptions"] });
-        qc.invalidateQueries({ queryKey: ["merchant-dashboard"] });
-        qc.invalidateQueries({ queryKey: ["branchScore"] });
-        qc.invalidateQueries({ queryKey: ["rolling-score"] });
-
-        // 3. Sound + toast.
-        if (soundEnabled && gestureUnlockedRef.current) {
-          playDing();
+      channel.subscribed(() => {
+        if (!cancelled) {
+          setConnected(true);
+          if (process.env.NODE_ENV === "development") {
+            console.debug("[Reverb] subscribed", `private-${channelName}`);
+          }
         }
-        pushToast({
-          title: `New transaction • ₹${payload.total_paid.toFixed(0)}`,
-          description:
-            (payload.customer_name ?? "Customer") +
-            (payload.coupon_code ? ` used ${payload.coupon_code}` : ""),
-          variant: "success",
-        });
       });
 
-      connectedRef.current = true;
-    } catch {
-      connectedRef.current = false;
+      channel.error((error: unknown) => {
+        setConnected(false);
+        console.error("[Reverb] private channel error", channelName, error);
+      });
+    } catch (error) {
+      setConnected(false);
+      console.error("[Reverb] failed to subscribe", channelName, error);
     }
 
     return () => {
+      cancelled = true;
+      setConnected(false);
       try {
-        if (channel) getEcho().leaveChannel(`private-${channelName}`);
+        if (channel) {
+          channel.stopListening(".transaction.created");
+        }
+        getEcho().leaveChannel(`private-${channelName}`);
       } catch {
         // noop
       }
     };
-  }, [branchId, qc, pushToast, soundEnabled]);
+  }, [branchId, authToken, configured, qc, showAlert, soundEnabled]);
 
-  return { connected: connectedRef.current };
+  return { connected, configured };
+}
+
+/**
+ * Sanctum token for Reverb auth. Re-reads when auth state changes (storage
+ * events do not fire in the same tab after login).
+ */
+export function useAuthToken(isAuthenticated: boolean): string | null {
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setToken(null);
+      return;
+    }
+    setToken(window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY));
+  }, [isAuthenticated]);
+
+  return token;
 }

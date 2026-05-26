@@ -6,6 +6,7 @@
  * non-httpOnly cookie so Next.js middleware can detect the auth state.
  */
 import type { ApiResponse, AuthUser } from "@/lib/types";
+import { disconnectEcho } from "@/lib/echo";
 import apiClient, {
   AUTH_SESSION_COOKIE,
   AUTH_TOKEN_STORAGE_KEY,
@@ -19,6 +20,7 @@ interface MerchantSellerPayload {
   ownerName?: string;
   email?: string;
   is_test?: boolean;
+  scoring_engine_enabled?: boolean;
   status?: string;
   role?: string;
   default_location_id?: string | number;
@@ -128,6 +130,10 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
     default_location_id: defaultLocationId,
     attached_locations: attached.length > 0 ? attached : undefined,
     is_test: Boolean(payload.is_test),
+    scoring_engine_enabled:
+      payload.scoring_engine_enabled !== undefined
+        ? Boolean(payload.scoring_engine_enabled)
+        : Boolean(payload.is_test),
   };
 }
 
@@ -154,6 +160,7 @@ function clearAuthCookie(): void {
 
 /** Clear token, auth cookies, and any stale client session state. */
 export function clearAuthSession(): void {
+  disconnectEcho();
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   }
@@ -174,8 +181,11 @@ export async function login(username: string, password: string): Promise<ApiResp
   const token = envelope.data?.token;
   const user = normaliseAuthUser(envelope.data?.seller);
 
-  if (token && typeof window !== "undefined") {
-    window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  if (typeof window !== "undefined") {
+    disconnectEcho();
+    if (token) {
+      window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    }
   }
 
   if (envelope.success && user) {
