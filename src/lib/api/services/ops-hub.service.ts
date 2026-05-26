@@ -52,11 +52,10 @@ export interface OpsHubLocationRow {
   merchant_name?: string;
   merchant_category_id?: number;
   category?: string;
-  share_percentage: number;
-  current_rank?: number | null;
-  rank_movement?: number | null;
+  today_rank?: number | null;
+  store_commission_percentage: number;
+  hub_share_percentage: number;
   transaction_count: number;
-  total_commission: number;
   hub_share_earned: number;
   is_active: boolean;
 }

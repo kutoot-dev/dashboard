@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/components/providers/auth-provider";
 
-const TEST_LOGIN_USERNAME = "demo";
-const TEST_LOGIN_PASSWORD = "Kutoot@123";
+const DEMO_MERCHANT_USERNAME = "demo";
+const DEMO_OPS_HUB_USERNAME = "demo-ops";
+const DEMO_LOGIN_PASSWORD = "Kutoot@123";
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -49,10 +50,16 @@ export default function LoginPage() {
     await signIn(username.trim(), password);
   }
 
-  async function handleTestLogin() {
-    setUsername(TEST_LOGIN_USERNAME);
-    setPassword(TEST_LOGIN_PASSWORD);
-    await signIn(TEST_LOGIN_USERNAME, TEST_LOGIN_PASSWORD);
+  async function handleDemoMerchantLogin() {
+    setUsername(DEMO_MERCHANT_USERNAME);
+    setPassword(DEMO_LOGIN_PASSWORD);
+    await signIn(DEMO_MERCHANT_USERNAME, DEMO_LOGIN_PASSWORD);
+  }
+
+  async function handleDemoOpsHubLogin() {
+    setUsername(DEMO_OPS_HUB_USERNAME);
+    setPassword(DEMO_LOGIN_PASSWORD);
+    await signIn(DEMO_OPS_HUB_USERNAME, DEMO_LOGIN_PASSWORD);
   }
 
   return (
@@ -102,11 +109,32 @@ export default function LoginPage() {
             <p className="rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-xs text-loss">{error}</p>
           )}
 
-          <Button type="button" variant="secondary" className="w-full" onClick={handleTestLogin} disabled={submitting}>
-            Login with Test Credentials
-          </Button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={handleDemoMerchantLogin}
+              disabled={submitting}
+            >
+              Demo Merchant
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={handleDemoOpsHubLogin}
+              disabled={submitting}
+            >
+              Demo Ops Hub
+            </Button>
+          </div>
           <p className="text-center text-xs text-muted-foreground">
-            Test account: <span className="font-mono">{TEST_LOGIN_USERNAME}</span>
+            Merchant: <span className="font-mono">{DEMO_MERCHANT_USERNAME}</span>
+            {" · "}
+            Ops hub: <span className="font-mono">{DEMO_OPS_HUB_USERNAME}</span>
+            {" · "}
+            Password: <span className="font-mono">{DEMO_LOGIN_PASSWORD}</span>
           </p>
 
           <Button type="submit" className="w-full" loading={submitting}>

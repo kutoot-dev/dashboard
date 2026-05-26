@@ -16,7 +16,14 @@ import {
   getOpsHubSummary,
   type OpsHubLocationRow,
 } from "@/lib/api/services/ops-hub.service";
-import { formatINR } from "@/lib/utils/format";
+import { formatINR, formatINRDecimal } from "@/lib/utils/format";
+
+function formatPct(value?: number | null): string {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  return `${value.toFixed(2)}%`;
+}
 import type { DateRange } from "@/lib/hooks/use-date-range";
 
 function defaultRange(): DateRange {
@@ -24,8 +31,8 @@ function defaultRange(): DateRange {
   const from = new Date();
   from.setDate(from.getDate() - 30);
   return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
+    start: from.toISOString().slice(0, 10),
+    end: to.toISOString().slice(0, 10),
   };
 }
 
@@ -39,8 +46,8 @@ export default function PortfolioPage() {
 
   const filters = useMemo(
     () => ({
-      from: range.from,
-      to: range.to,
+      from: range.start,
+      to: range.end,
       search: search.trim() || undefined,
       merchant_category_id: categoryId ? Number(categoryId) : undefined,
     }),
@@ -126,7 +133,7 @@ export default function PortfolioPage() {
             </div>
             <div>
               <p className="text-muted-foreground">Your hub share</p>
-              <p className="font-semibold">{formatINR(summary?.total_hub_share ?? 0)}</p>
+              <p className="font-semibold">{formatINRDecimal(summary?.total_hub_share ?? 0)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Transactions</p>
@@ -143,25 +150,28 @@ export default function PortfolioPage() {
       <Card className="space-y-4 p-4">
         <div className="flex flex-wrap items-end gap-3">
           <DateRangePicker value={range} onChange={setRange} label="Date range" />
-          <Select
-            label="Category"
-            value={categoryId}
-            onChange={setCategoryId}
-            options={categoryOptions}
-          />
+          <div className="flex min-w-[160px] flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Category</span>
+            <Select
+              value={categoryId}
+              onChange={setCategoryId}
+              options={categoryOptions}
+            />
+          </div>
           <Input label="Search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Store name" />
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground">
                 <th className="py-2 pr-4">Store</th>
                 <th className="py-2 pr-4">Category</th>
-                <th className="py-2 pr-4">Rank</th>
-                <th className="py-2 pr-4">Txns</th>
-                <th className="py-2 pr-4">Commission</th>
-                <th className="py-2 pr-4">Hub share</th>
+                <th className="py-2 pr-4">Today&apos;s rank</th>
+                <th className="py-2 pr-4">Store commission</th>
+                <th className="py-2 pr-4">Your share of commission</th>
+                <th className="py-2 pr-4">Transactions</th>
+                <th className="py-2 pr-4">Hub share earned</th>
               </tr>
             </thead>
             <tbody>
@@ -176,18 +186,16 @@ export default function PortfolioPage() {
                 >
                   <td className="py-3 pr-4 font-medium">{row.branch_name}</td>
                   <td className="py-3 pr-4">{row.category ?? "—"}</td>
+                  <td className="py-3 pr-4 font-tabular">{row.today_rank ?? "—"}</td>
+                  <td className="py-3 pr-4 font-tabular">{formatPct(row.store_commission_percentage)}</td>
                   <td className="py-3 pr-4">
-                    {row.current_rank ?? "—"}
-                    {row.rank_movement != null && row.rank_movement !== 0 ? (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({row.rank_movement > 0 ? "+" : ""}
-                        {row.rank_movement})
-                      </span>
-                    ) : null}
+                    <span className="font-tabular">{formatPct(row.hub_share_percentage)}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      of store commission in period
+                    </span>
                   </td>
-                  <td className="py-3 pr-4">{row.transaction_count}</td>
-                  <td className="py-3 pr-4">{formatINR(row.total_commission)}</td>
-                  <td className="py-3 pr-4">{formatINR(row.hub_share_earned)}</td>
+                  <td className="py-3 pr-4 font-tabular">{row.transaction_count}</td>
+                  <td className="py-3 pr-4 font-tabular">{formatINRDecimal(row.hub_share_earned)}</td>
                 </tr>
               ))}
             </tbody>
