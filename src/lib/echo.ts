@@ -25,12 +25,12 @@ export function isEchoConfigured(): boolean {
   return isReverbConfigured();
 }
 
-export function getEcho(): Echo<"reverb"> {
+export function getEcho(authToken?: string | null): Echo<"reverb"> {
   if (typeof window === "undefined") {
     throw new Error("Echo can only be initialised on the client");
   }
 
-  const token = readAuthToken();
+  const token = authToken ?? readAuthToken();
   const config = resolveReverbConfig();
 
   if (!config.key) {

@@ -99,7 +99,7 @@ export function useTransactionStream(
     };
 
     try {
-      const echo = getEcho();
+      const echo = getEcho(authToken);
       channel = echo.private(channelName);
 
       channel.listen(".transaction.created", onTransaction);
@@ -115,7 +115,15 @@ export function useTransactionStream(
 
       channel.error((error: unknown) => {
         setConnected(false);
-        console.error("[Reverb] private channel error", channelName, error);
+        const detail =
+          error && typeof error === "object"
+            ? JSON.stringify(error, Object.getOwnPropertyNames(error as object))
+            : String(error);
+        console.error(
+          "[Reverb] private channel error",
+          channelName,
+          detail || "(subscription denied — check /broadcasting/auth and location access)",
+        );
       });
     } catch (error) {
       setConnected(false);
