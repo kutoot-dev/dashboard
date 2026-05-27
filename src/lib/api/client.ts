@@ -91,7 +91,9 @@ apiClient.interceptors.request.use((config) => {
             const parsedUser = user as { default_location_id?: string; branch_id?: string | null };
             locationId = parsedUser.default_location_id ?? parsedUser.branch_id ?? null;
           }
-          if (locationId && config.url?.startsWith("/merchant")) {
+          const needsLocationScope =
+            config.url?.startsWith("/merchant") || config.url?.startsWith("/leaderboard");
+          if (locationId && needsLocationScope) {
             config.headers = config.headers || {};
             config.headers["X-Location-Id"] = locationId;
             config.params = { ...(config.params as object), location_id: locationId };

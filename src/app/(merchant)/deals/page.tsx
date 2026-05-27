@@ -21,6 +21,8 @@ import { ApiError } from "@/lib/api/client";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { faPlus } from "@/lib/icons";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { FilterChip, type FilterChipTone } from "@/components/ui/filter-chip";
@@ -240,6 +242,16 @@ export default function DealsPage() {
         title="Deals"
         subtitle="Create offers in one tap, track performance, and keep only your best deals live."
       >
+        <Button
+          type="button"
+          variant="primary"
+          className="w-full shrink-0 sm:w-auto"
+          onClick={openCustomDealCreator}
+          disabled={!branchId || createMutation.isPending}
+        >
+          <Icon icon={faPlus} className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          Add new deal
+        </Button>
         <div className="w-full max-w-full rounded-xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card to-secondary/10 px-3 py-2.5 text-left sm:w-auto sm:max-w-xs">
           <p className="font-mono text-[10px] uppercase tracking-widest text-foreground">Tip</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -337,12 +349,24 @@ export default function DealsPage() {
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Quick create</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Scroll presets — tap any card to publish instantly.
+              Use presets for one-tap publish, or build a custom offer in the form.
             </p>
           </div>
-          <Badge variant="neutral">
-            {quickCreatePresets.length} ready · min {MIN_QUICK_PRESETS}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openCustomDealCreator}
+              disabled={createMutation.isPending}
+            >
+              <Icon icon={faPlus} className="mr-1 h-3 w-3" aria-hidden />
+              Add new deal
+            </Button>
+            <Badge variant="neutral">
+              {quickCreatePresets.length} ready · min {MIN_QUICK_PRESETS}
+            </Badge>
+          </div>
         </div>
         {quickCreatePresets.length > 0 ? (
           <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory">
@@ -547,8 +571,18 @@ export default function DealsPage() {
           <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-10 text-center">
             <p className="text-sm font-medium text-foreground">No deals in this view</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Try another status filter or create a preset above.
+              Try another status filter, pick a preset above, or create a custom offer.
             </p>
+            <Button
+              type="button"
+              variant="primary"
+              className="mt-4"
+              onClick={openCustomDealCreator}
+              disabled={createMutation.isPending}
+            >
+              <Icon icon={faPlus} className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Add new deal
+            </Button>
           </div>
         )}
       </Card>
@@ -556,14 +590,14 @@ export default function DealsPage() {
       <Modal
         isOpen={customDealDraft !== null}
         onClose={() => setCustomDealDraft(null)}
-        title="Create your own deal"
+        title="Add new deal"
       >
         {customDealDraft && (
           <DealForm
             key={customDealDraft.code ?? "custom-draft"}
             initial={customDealDraft}
             mode="create"
-            helperText="Suggested terms based on what you don't run yet. Change discount, minimum bill, cap, or coupon code (unique for your branch) before publishing."
+            helperText="We prefill balanced terms you can edit. Set discount, minimum bill, cap, and coupon code (unique for your branch), then publish."
             submitLabel="Publish deal"
             onCancel={() => setCustomDealDraft(null)}
             onSubmit={(payload) => submitCustomDeal(payload as CreateDealPayload)}
@@ -597,6 +631,7 @@ export default function DealsPage() {
 
 function dealToFormPayload(deal: Deal): CreateDealPayload {
   return {
+    title: deal.title,
     discount_type: deal.discount_type,
     discount_value: deal.discount_value,
     min_order_value: deal.min_order_value,
@@ -626,6 +661,7 @@ function DealForm({
   onSubmit,
   isSubmitting,
 }: DealFormProps) {
+  const [title, setTitle] = useState(initial.title ?? "");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">(initial.discount_type);
   const [discountValue, setDiscountValue] = useState(String(initial.discount_value ?? ""));
   const [minOrder, setMinOrder] = useState(
@@ -643,6 +679,7 @@ function DealForm({
     if (!Number.isFinite(parsedValue) || parsedValue <= 0) return;
 
     const payload: CreateDealPayload = {
+      ...(title.trim() !== "" ? { title: title.trim() } : {}),
       discount_type: discountType,
       discount_value: parsedValue,
       min_order_value: minOrder.trim() === "" ? null : Number(minOrder),
@@ -661,6 +698,15 @@ function DealForm({
           {helperText}
         </p>
       )}
+
+      <Input
+        label={mode === "create" ? "Deal name (optional)" : "Deal name"}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={
+          mode === "create" ? "Auto-generated from discount if left blank" : "Offer title shown to customers"
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
