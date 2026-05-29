@@ -35,7 +35,7 @@ export function getEcho(authToken?: string | null): Echo<"reverb"> {
 
   if (!config.key) {
     throw new Error(
-      "Reverb is not configured. Set NEXT_PUBLIC_REVERB_APP_KEY in merchant-panel/.env.local (must match kutoot REVERB_APP_KEY).",
+      "Reverb is not configured. Log in again so the API can provide seller.realtime settings.",
     );
   }
 

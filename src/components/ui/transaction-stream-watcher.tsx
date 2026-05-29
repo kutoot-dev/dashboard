@@ -22,7 +22,7 @@ export function TransactionStreamWatcher() {
 
   if (process.env.NODE_ENV === "development" && isAuthenticated && branchId && !configured) {
     console.warn(
-      "[Reverb] NEXT_PUBLIC_REVERB_APP_KEY is missing — transaction popover disabled. Copy REVERB_APP_KEY from kutoot/.env into merchant-panel/.env.local",
+      "[Reverb] Realtime config missing — log in again or ensure kutoot Reverb is running.",
     );
   }
 

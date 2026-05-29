@@ -1,4 +1,9 @@
 import { BACKEND_BASE_URL } from "@/lib/api/client";
+import {
+  DEFAULT_REVERB_APP_KEY,
+  readRealtimeConfig,
+} from "@/lib/realtime-storage";
+import type { MerchantRealtimeConfig } from "@/lib/types/realtime";
 
 export interface ReverbClientConfig {
   key: string;
@@ -8,36 +13,62 @@ export interface ReverbClientConfig {
   authEndpoint: string;
 }
 
-/**
- * Resolve Reverb client settings from env, with sensible fallbacks from the API base URL.
- */
-export function resolveReverbConfig(): ReverbClientConfig {
-  let apiOrigin = "http://localhost";
+function apiOrigin(): string {
   try {
-    apiOrigin = new URL(BACKEND_BASE_URL).origin;
+    return new URL(BACKEND_BASE_URL).origin;
   } catch {
-    // keep default
+    return "http://localhost";
   }
+}
 
-  const apiUrl = new URL(apiOrigin);
-  const key = (process.env.NEXT_PUBLIC_REVERB_APP_KEY ?? "").trim();
-  const scheme = ((process.env.NEXT_PUBLIC_REVERB_SCHEME ?? "http").trim() || "http") as
-    | "http"
-    | "https";
-  const port = Number(process.env.NEXT_PUBLIC_REVERB_PORT ?? (scheme === "https" ? 443 : 8080));
+function fallbackFromApiUrl(): Omit<ReverbClientConfig, "key"> {
+  const apiUrl = new URL(apiOrigin());
+  const isLocalHerd = apiUrl.hostname === "localhost" || apiUrl.hostname.endsWith(".test");
 
-  // Default ws host: explicit env, else localhost for *.test Herd APIs, else API hostname.
-  let host = (process.env.NEXT_PUBLIC_REVERB_HOST ?? "").trim();
-  if (!host) {
-    host = apiUrl.hostname.endsWith(".test") ? "localhost" : apiUrl.hostname;
+  if (isLocalHerd) {
+    return {
+      host: "localhost",
+      port: 8080,
+      scheme: "http",
+      authEndpoint: `${apiUrl.origin}/broadcasting/auth`,
+    };
   }
 
   return {
-    key,
-    host,
-    port,
-    scheme,
+    host: apiUrl.hostname,
+    port: apiUrl.protocol === "https:" ? 443 : 8080,
+    scheme: apiUrl.protocol === "https:" ? "https" : "http",
     authEndpoint: `${apiUrl.origin}/broadcasting/auth`,
+  };
+}
+
+function fromServerRealtime(realtime: MerchantRealtimeConfig): ReverbClientConfig {
+  const scheme = (realtime.scheme === "https" ? "https" : "http") as "http" | "https";
+
+  return {
+    key: realtime.app_key,
+    host: realtime.host,
+    port: Number(realtime.port) || (scheme === "https" ? 443 : 8080),
+    scheme,
+    authEndpoint: realtime.auth_endpoint || `${apiOrigin()}/broadcasting/auth`,
+  };
+}
+
+/**
+ * Resolve Reverb client settings from the API login/me payload first, then API hostname.
+ */
+export function resolveReverbConfig(): ReverbClientConfig {
+  const stored = readRealtimeConfig();
+  if (stored) {
+    return fromServerRealtime(stored);
+  }
+
+  const fallback = fallbackFromApiUrl();
+  const envKey = (process.env.NEXT_PUBLIC_REVERB_APP_KEY ?? "").trim();
+
+  return {
+    ...fallback,
+    key: envKey || DEFAULT_REVERB_APP_KEY,
   };
 }
 

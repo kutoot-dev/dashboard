@@ -6,7 +6,9 @@
  * non-httpOnly cookie so Next.js middleware can detect the auth state.
  */
 import type { ApiResponse, AuthUser } from "@/lib/types";
+import type { MerchantRealtimeConfig } from "@/lib/types/realtime";
 import { disconnectEcho } from "@/lib/echo";
+import { clearRealtimeConfig, persistRealtimeConfig } from "@/lib/realtime-storage";
 import apiClient, {
   AUTH_SESSION_COOKIE,
   AUTH_TOKEN_STORAGE_KEY,
@@ -24,6 +26,7 @@ interface MerchantSellerPayload {
   status?: string;
   role?: string;
   default_location_id?: string | number;
+  realtime?: MerchantRealtimeConfig;
   attached_locations?: Array<{
     id: string | number;
     branch_name: string;
@@ -158,9 +161,14 @@ function clearAuthCookie(): void {
   document.cookie = `${AUTH_SESSION_COOKIE}=; ${flags}`;
 }
 
+function syncRealtimeFromSeller(payload?: MerchantSellerPayload): void {
+  persistRealtimeConfig(payload?.realtime ?? null);
+}
+
 /** Clear token, auth cookies, and any stale client session state. */
 export function clearAuthSession(): void {
   disconnectEcho();
+  clearRealtimeConfig();
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   }
@@ -183,6 +191,7 @@ export async function login(username: string, password: string): Promise<ApiResp
 
   if (typeof window !== "undefined") {
     disconnectEcho();
+    syncRealtimeFromSeller(envelope.data?.seller);
     if (token) {
       window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
     }
@@ -223,8 +232,11 @@ export async function getMe(): Promise<ApiResponse<AuthUser | null>> {
   const res = await apiClient.get<MerchantMeResponse>("/auth/me");
   const user = normaliseAuthUser(res.data.data);
 
-  if (res.data.success && user) {
-    setAuthCookie(user);
+  if (res.data.success) {
+    syncRealtimeFromSeller(res.data.data);
+    if (user) {
+      setAuthCookie(user);
+    }
   }
 
   return toAuthEnvelope(user, res.data.message);
