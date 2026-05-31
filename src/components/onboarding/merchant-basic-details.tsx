@@ -321,6 +321,7 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
   );
 
   const validate = (): boolean => {
+    const e: Record<string, string> = {};
 
     if (!formData.legal_name || formData.legal_name.trim().length < 2) {
       e.legal_name = "Legal name must be at least 2 characters.";
