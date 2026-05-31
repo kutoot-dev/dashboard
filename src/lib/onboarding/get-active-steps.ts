@@ -6,7 +6,7 @@ export function getActiveOnboardingSteps(
   visitOutcome: string | null,
 ): WizardStepId[] {
   if (channel === "merchant") {
-    return ["identity", "basic_details", "commission", "kyc", "bank", "review"];
+    return ["identity", "basic_details"];
   }
   if (channel === "field_executive") {
     if (visitOutcome === "interested") {

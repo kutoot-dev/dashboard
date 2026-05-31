@@ -31,7 +31,9 @@ interface OnboardingFormData {
   owner_name: string;
   owner_email: string;
   owner_email_verified: boolean;
+  legal_name: string;
   shop_name: string;
+  google_maps_link: string;
   door_no: string;
   shop_no: string;
   year_of_establishment: string;
@@ -147,7 +149,9 @@ const initialFormData: OnboardingFormData = {
   owner_name: "",
   owner_email: "",
   owner_email_verified: false,
+  legal_name: "",
   shop_name: "",
+  google_maps_link: "",
   door_no: "",
   shop_no: "",
   year_of_establishment: "",
@@ -293,7 +297,25 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
         }
       }
       return {
-        formData: { ...state.formData, ...formUpdate },
+        formData: {
+          ...state.formData,
+          ...formUpdate,
+          legal_name:
+            (formUpdate.legal_name as string | undefined) ||
+            (app as Record<string, unknown>).legal_name?.toString() ||
+            (app as Record<string, unknown>).gst_business_name?.toString() ||
+            state.formData.legal_name,
+          merchant_phone_verified:
+            typeof (app as Record<string, unknown>).phone_verified === "boolean"
+              ? ((app as Record<string, unknown>).phone_verified as boolean)
+              : typeof (app as Record<string, unknown>).merchant_phone_verified === "boolean"
+                ? ((app as Record<string, unknown>).merchant_phone_verified as boolean)
+                : state.formData.merchant_phone_verified,
+          owner_email_verified:
+            typeof (app as Record<string, unknown>).email_verified === "boolean"
+              ? ((app as Record<string, unknown>).email_verified as boolean)
+              : state.formData.owner_email_verified,
+        },
         applicationId: app.application_id || state.applicationId,
         currentStep: app.current_step || state.currentStep,
         completedSteps: app.completed_steps || state.completedSteps,

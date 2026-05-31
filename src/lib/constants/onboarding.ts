@@ -58,6 +58,28 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
         "Used for KYC verification. Must match PAN records for compliance.",
     },
   },
+  legal_name: {
+    label: "Legal Name",
+    placeholder: "Sharma Retail Private Limited",
+    tooltip: {
+      title: "Registered Legal Business Name",
+      description:
+        "The official legal name of your business as registered with authorities.",
+      example: "Sharma Retail Private Limited",
+      whyNeeded: "Used for compliance, contracts, and official records.",
+    },
+  },
+  display_name: {
+    label: "Display Name",
+    placeholder: "Sharma General Store",
+    tooltip: {
+      title: "Customer-Facing Store Name",
+      description:
+        "The name customers see on receipts and in the Kutoot app. Usually your shop signboard name.",
+      example: "Sharma General Store",
+      whyNeeded: "Shown to customers during transactions.",
+    },
+  },
   shop_name: {
     label: "Shop / Business Name",
     placeholder: "Sharma General Store",

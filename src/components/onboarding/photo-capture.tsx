@@ -10,6 +10,7 @@ interface PhotoCaptureProps {
   onChange: (dataUrl: string | null) => void;
   onLocationCaptured?: (coords: { lat: number; long: number; accuracy: number }) => void;
   required?: boolean;
+  requireGps?: boolean;
   error?: string;
   hint?: string;
   className?: string;
@@ -28,6 +29,7 @@ export function PhotoCapture({
   onChange,
   onLocationCaptured,
   required,
+  requireGps = false,
   error,
   hint,
   className,
@@ -35,6 +37,7 @@ export function PhotoCapture({
   useDeviceCamera = true,
 }: PhotoCaptureProps) {
   const [gpsStatus, setGpsStatus] = useState<string>("");
+  const [gpsError, setGpsError] = useState<string>("");
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
@@ -74,28 +77,38 @@ export function PhotoCapture({
   function addWatermark(dataUrl: string) {
     if (navigator.geolocation) {
       setGpsStatus("Getting location...");
+      setGpsError("");
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setGpsStatus("");
-          onLocationCaptured?.({
+          const coords = {
             lat: Number(pos.coords.latitude.toFixed(6)),
             long: Number(pos.coords.longitude.toFixed(6)),
             accuracy: Number(pos.coords.accuracy.toFixed(2)),
-          });
+          };
+          onLocationCaptured?.(coords);
           const now = new Date();
-          const watermarkText = `${now.toLocaleString("en-IN")} | ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+          const watermarkText = `${now.toLocaleString("en-IN")} | ${coords.lat}, ${coords.long}`;
           applyWatermark(dataUrl, watermarkText);
         },
         () => {
-          setGpsStatus("GPS unavailable");
-          const watermarkText = `${new Date().toLocaleString("en-IN")} | GPS unavailable`;
-          applyWatermark(dataUrl, watermarkText);
+          setGpsStatus("");
+          const message = "Location access is required. Enable GPS and try again.";
+          setGpsError(message);
+          if (!requireGps) {
+            const watermarkText = `${new Date().toLocaleString("en-IN")} | GPS unavailable`;
+            applyWatermark(dataUrl, watermarkText);
+          }
         },
         { enableHighAccuracy: true, timeout: 10000 },
       );
     } else {
-      const watermarkText = `${new Date().toLocaleString("en-IN")}`;
-      applyWatermark(dataUrl, watermarkText);
+      const message = "Geolocation is not supported on this device.";
+      setGpsError(message);
+      if (!requireGps) {
+        const watermarkText = `${new Date().toLocaleString("en-IN")}`;
+        applyWatermark(dataUrl, watermarkText);
+      }
     }
   }
 
@@ -125,6 +138,7 @@ export function PhotoCapture({
   function removeImage() {
     onChange(null);
     setGpsStatus("");
+    setGpsError("");
   }
 
   const takePhotoLabel = useDeviceCamera ? "Take Photo" : "Open Camera";
@@ -225,6 +239,7 @@ export function PhotoCapture({
       {gpsStatus && (
         <p className="text-xs text-muted-foreground">{gpsStatus}</p>
       )}
+      {gpsError && <p className="text-xs text-error">{gpsError}</p>}
       {error && <p className="text-xs text-error">{error}</p>}
     </div>
   );

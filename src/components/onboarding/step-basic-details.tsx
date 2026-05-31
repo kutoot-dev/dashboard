@@ -1,5 +1,7 @@
 "use client";
 
+import { MerchantBasicDetails } from "./merchant-basic-details";
+import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -11,7 +13,6 @@ import { PhotoCapture } from "./photo-capture";
 import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { OtpInput } from "./otp-input";
-import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import {
   useCheckPhone,
   useCities,
@@ -51,6 +52,16 @@ function normalizeIndianMobileInput(value: string): string {
 }
 
 export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
+  const { formData } = useOnboardingStore();
+
+  if (formData.channel === "merchant") {
+    return <MerchantBasicDetails onBack={onBack} />;
+  }
+
+  return <FieldExecutiveBasicDetails onNext={onNext} onBack={onBack} />;
+}
+
+function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const router = useRouter();
   const { formData, updateFormData, phoneCheckResult, setPhoneCheckResult } =
     useOnboardingStore();

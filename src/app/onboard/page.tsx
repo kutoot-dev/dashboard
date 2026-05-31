@@ -207,9 +207,13 @@ export default function OnboardPage() {
         return;
       }
 
-      // FE identity step happens before phone collection. Avoid creating a draft
-      // too early, otherwise backend validation rejects it and blocks navigation.
-      if (!applicationId && fromStep === "identity" && formData.channel === "field_executive") {
+      // Identity happens before phone collection / full basic details. Avoid creating
+      // a draft too early, otherwise backend validation rejects it and blocks navigation.
+      if (
+        !applicationId &&
+        fromStep === "identity" &&
+        (formData.channel === "field_executive" || formData.channel === "merchant")
+      ) {
         advance();
         return;
       }
