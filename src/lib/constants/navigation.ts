@@ -19,6 +19,7 @@ import {
   faMoneyBillTransfer,
   faTag,
   faUsers,
+  faWallet,
 } from "@/lib/icons";
 
 export interface NavItem {
@@ -63,6 +64,11 @@ export const BRANCH_NAV: NavItem[] = [
     label: "Visitors",
     href: "/visitors",
     icon: faUsers,
+  },
+  {
+    label: "Wallet",
+    href: "/wallet",
+    icon: faWallet,
   },
   {
     label: "Bonus Payout",
