@@ -47,6 +47,7 @@ interface OnboardingFormData {
   referral_code: string;
   branch_name: string;
   storefront_photo_url: string | null;
+  storefront_photo_urls: string[];
   storefront_photo_status: "pending" | "uploaded" | "failed";
   gps_lat: number | null;
   gps_long: number | null;
@@ -165,6 +166,7 @@ const initialFormData: OnboardingFormData = {
   referral_code: "",
   branch_name: "",
   storefront_photo_url: null,
+  storefront_photo_urls: [],
   storefront_photo_status: "pending",
   gps_lat: null,
   gps_long: null,
@@ -305,6 +307,13 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
             (app as Record<string, unknown>).legal_name?.toString() ||
             (app as Record<string, unknown>).gst_business_name?.toString() ||
             state.formData.legal_name,
+          storefront_photo_urls:
+            Array.isArray((app as Record<string, unknown>).storefront_photo_urls) &&
+            ((app as Record<string, unknown>).storefront_photo_urls as unknown[]).length > 0
+              ? ((app as Record<string, unknown>).storefront_photo_urls as string[])
+              : (app as Record<string, unknown>).storefront_photo_url
+                ? [String((app as Record<string, unknown>).storefront_photo_url)]
+                : state.formData.storefront_photo_urls,
           merchant_phone_verified:
             typeof (app as Record<string, unknown>).phone_verified === "boolean"
               ? ((app as Record<string, unknown>).phone_verified as boolean)

@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
-import { PhotoCapture } from "./photo-capture";
+import { MultiPhotoCapture } from "./multi-photo-capture";
 import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { OtpInput } from "./otp-input";
@@ -271,8 +271,10 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       }
     }
     // Storefront photo: required only for interested / merchant flows
-    if (!isFeVisitOnly && !formData.storefront_photo_url) {
-      e.storefront_photo = "Shop storefront photo is mandatory.";
+    const hasStorefrontPhotos =
+      formData.storefront_photo_urls.length > 0 || !!formData.storefront_photo_url;
+    if (!isFeVisitOnly && !hasStorefrontPhotos) {
+      e.storefront_photo = "At least one shop storefront photo is mandatory.";
     }
 
     if (Object.keys(e).length > 0) {
@@ -340,6 +342,24 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }, [handleLocationCaptured]);
+
+  const updateStorefrontPhotos = useCallback(
+    (urls: string[]) => {
+      updateFormData({
+        storefront_photo_urls: urls,
+        storefront_photo_url: urls[0] ?? null,
+        storefront_photo_status: urls.length > 0 ? "uploaded" : "pending",
+      });
+      if (urls.length > 0) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.storefront_photo;
+          return next;
+        });
+      }
+    },
+    [updateFormData],
+  );
 
   const goResume = useCallback(() => {
     const params = new URLSearchParams({ from: "basic_details" });
@@ -836,27 +856,23 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         />
       </div>
 
-      {/* Storefront Photo — optional for FE visit-only, required otherwise */}
-      <PhotoCapture
-        label="Store / Business Photo"
-        value={formData.storefront_photo_url}
-        onChange={(url) =>
-          updateFormData({
-            storefront_photo_url: url,
-            storefront_photo_status: url ? "uploaded" : "pending",
-          })
-        }
+      {/* Storefront Photos — optional for FE visit-only, required otherwise */}
+      <MultiPhotoCapture
+        label="Store / Business Photos"
+        values={formData.storefront_photo_urls}
+        onChange={updateStorefrontPhotos}
         onLocationCaptured={(coords) => {
-          void handleLocationCaptured(coords);
+          if (formData.gps_lat == null || formData.gps_long == null) {
+            void handleLocationCaptured(coords);
+          }
         }}
         required={!isFeVisitOnly}
         error={errors.storefront_photo}
         hint={
           isFeVisitOnly
-            ? "Optional for visit records. Use your phone camera at the shop."
-            : "Take a live photo of the shop front using your device camera. Enable location access for GPS stamp."
+            ? "Optional for visit records. You can add up to 5 photos using your phone camera."
+            : "Take live photos of the shop front. You can add up to 5 images."
         }
-        hideUpload
         useDeviceCamera
       />
 

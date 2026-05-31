@@ -96,6 +96,7 @@ export function StepReview({ onBack }: StepReviewProps) {
       state: formData.state,
       pin_code: formData.pin_code,
       storefront_photo_url: formData.storefront_photo_url,
+      storefront_photo_urls: formData.storefront_photo_urls,
       gps_lat: formData.gps_lat,
       gps_long: formData.gps_long,
       google_maps_link:
@@ -387,9 +388,21 @@ export function StepReview({ onBack }: StepReviewProps) {
           }
         />
         <Row
-          label="Storefront Photo"
-          value={formData.storefront_photo_url ? "Uploaded" : isFeVisitOnly ? "Skipped" : "Missing"}
-          valueClass={formData.storefront_photo_url ? "text-success" : isFeVisitOnly ? "text-muted-foreground" : "text-error"}
+          label="Storefront Photos"
+          value={
+            formData.storefront_photo_urls.length > 0 || formData.storefront_photo_url
+              ? `${Math.max(formData.storefront_photo_urls.length, formData.storefront_photo_url ? 1 : 0)} uploaded`
+              : isFeVisitOnly
+                ? "Skipped"
+                : "Missing"
+          }
+          valueClass={
+            formData.storefront_photo_urls.length > 0 || formData.storefront_photo_url
+              ? "text-success"
+              : isFeVisitOnly
+                ? "text-muted-foreground"
+                : "text-error"
+          }
         />
       </Section>
 

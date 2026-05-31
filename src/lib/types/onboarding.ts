@@ -238,6 +238,7 @@ export interface OnboardingApplication {
   pin_code: string;
   branch_name?: string | null;
   storefront_photo_url: string | null;
+  storefront_photo_urls: string[];
   storefront_photo_status: "pending" | "uploaded" | "failed";
   gps_lat: number | null;
   gps_long: number | null;

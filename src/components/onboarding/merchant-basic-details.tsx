@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
-import { PhotoCapture } from "./photo-capture";
+import { MultiPhotoCapture } from "./multi-photo-capture";
+import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { OtpInput } from "./otp-input";
 import { ApplicationStatusScreen } from "./application-status-screen";
@@ -90,6 +91,8 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
   const [emailOtpMessage, setEmailOtpMessage] = useState("");
+
+  const [gpsStatus, setGpsStatus] = useState<string>("");
 
   const phoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -261,8 +264,63 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
     }
   };
 
+  const handleLocationCaptured = useCallback(
+    (coords: { lat: number; long: number; accuracy?: number }) => {
+      updateFormData({
+        gps_lat: coords.lat,
+        gps_long: coords.long,
+        ...(coords.accuracy != null ? { gps_accuracy: coords.accuracy } : {}),
+      });
+      setGpsStatus("Location coordinates captured.");
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.gps;
+        return next;
+      });
+    },
+    [updateFormData],
+  );
+
+  const pickCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGpsStatus("Geolocation not supported on this device.");
+      return;
+    }
+    setGpsStatus("Fetching current location...");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        handleLocationCaptured({
+          lat: Number(pos.coords.latitude.toFixed(6)),
+          long: Number(pos.coords.longitude.toFixed(6)),
+          accuracy: Number(pos.coords.accuracy.toFixed(2)),
+        });
+      },
+      () => {
+        setGpsStatus("Unable to capture location. Please enable location access.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }, [handleLocationCaptured]);
+
+  const updateStorefrontPhotos = useCallback(
+    (urls: string[]) => {
+      updateFormData({
+        storefront_photo_urls: urls,
+        storefront_photo_url: urls[0] ?? null,
+        storefront_photo_status: urls.length > 0 ? "uploaded" : "pending",
+      });
+      if (urls.length > 0) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.storefront_photo;
+          return next;
+        });
+      }
+    },
+    [updateFormData],
+  );
+
   const validate = (): boolean => {
-    const e: Record<string, string> = {};
 
     if (!formData.legal_name || formData.legal_name.trim().length < 2) {
       e.legal_name = "Legal name must be at least 2 characters.";
@@ -296,11 +354,13 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
       }
     }
 
-    if (!formData.storefront_photo_url) {
-      e.storefront_photo = "Storefront photo is mandatory.";
+    const hasPhotos =
+      formData.storefront_photo_urls.length > 0 || !!formData.storefront_photo_url;
+    if (!hasPhotos) {
+      e.storefront_photo = "At least one storefront photo is mandatory.";
     }
     if (formData.gps_lat == null || formData.gps_long == null) {
-      e.gps = "Enable location access and capture GPS coordinates with your photo.";
+      e.gps = "Select location on map or use current location to capture latitude and longitude.";
     }
     if (formData.referral_code && !/^(ML-\d+|\d+)$/i.test(formData.referral_code.trim())) {
       e.referral_code =
@@ -341,6 +401,7 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
       sector_id: formData.sector_id,
       sector_name: formData.sector_name,
       storefront_photo_url: formData.storefront_photo_url,
+      storefront_photo_urls: formData.storefront_photo_urls,
       gps_lat: formData.gps_lat,
       gps_long: formData.gps_long,
       gps_accuracy: formData.gps_accuracy,
@@ -684,53 +745,52 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
         )}
       </div>
 
-      <PhotoCapture
-        label="Storefront Photo"
-        value={formData.storefront_photo_url}
-        onChange={(url) =>
-          updateFormData({
-            storefront_photo_url: url,
-            storefront_photo_status: url ? "uploaded" : "pending",
-            ...(url
-              ? {}
-              : {
-                  gps_lat: null,
-                  gps_long: null,
-                  gps_accuracy: null,
-                }),
-          })
-        }
+      <div className="space-y-2 rounded-lg border border-border p-3">
+        <p className="text-sm font-medium text-foreground">
+          Shop Location <span className="text-error">*</span>
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Pick your shop location on the map or fetch coordinates from your current location.
+        </p>
+        <MapLocationPicker
+          value={
+            formData.gps_lat != null && formData.gps_long != null
+              ? { lat: formData.gps_lat, long: formData.gps_long }
+              : null
+          }
+          onSelect={(coords) => {
+            handleLocationCaptured(coords);
+          }}
+        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Input value={formData.gps_lat ?? ""} readOnly placeholder="Latitude" />
+          <Input value={formData.gps_long ?? ""} readOnly placeholder="Longitude" />
+        </div>
+        <Button type="button" variant="secondary" onClick={pickCurrentLocation}>
+          Use Current Location
+        </Button>
+        {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
+        {errors.gps && <p className="text-xs text-error">{errors.gps}</p>}
+      </div>
+
+      <MultiPhotoCapture
+        label="Storefront Photos"
+        values={formData.storefront_photo_urls}
+        onChange={updateStorefrontPhotos}
         onLocationCaptured={(coords) => {
-          updateFormData({
-            gps_lat: coords.lat,
-            gps_long: coords.long,
-            gps_accuracy: coords.accuracy,
-          });
-          setErrors((prev) => {
-            const next = { ...prev };
-            delete next.gps;
-            return next;
-          });
+          if (formData.gps_lat == null || formData.gps_long == null) {
+            handleLocationCaptured(coords);
+          }
         }}
         required
-        requireGps
-        error={errors.storefront_photo || errors.gps}
-        hint="Take or upload a photo of your shop front. Location access is required to capture exact GPS coordinates."
+        error={errors.storefront_photo}
+        hint="Take or upload photos of your shop front. You can add up to 5 images. Photos are stored securely after submission."
         useDeviceCamera
       />
 
       {mapsUrl && formData.gps_lat != null && formData.gps_long != null && (
         <div className="rounded-lg border border-border bg-card/50 p-3 space-y-2">
-          <p className="text-sm font-medium text-foreground">Location Coordinates</p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Input value={String(formData.gps_lat)} readOnly placeholder="Latitude" />
-            <Input value={String(formData.gps_long)} readOnly placeholder="Longitude" />
-          </div>
-          {formData.gps_accuracy != null && (
-            <p className="text-xs text-muted-foreground">
-              Accuracy: ±{formData.gps_accuracy}m
-            </p>
-          )}
+          <p className="text-sm font-medium text-foreground">Google Maps Link</p>
           <a
             href={mapsUrl}
             target="_blank"
