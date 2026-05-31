@@ -665,4 +665,6 @@ export const ONBOARDING_STRINGS = {
   DRAFT_SAVED: "Progress saved. You can resume anytime.",
   TERMS_REQUIRED: "You must accept the Terms & Conditions to proceed",
   PRIVACY_REQUIRED: "You must accept the Privacy Policy to proceed",
+  SERVICE_AGREEMENT_REQUIRED:
+    "You must accept the Merchant Service Agreement to proceed",
 };

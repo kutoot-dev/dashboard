@@ -96,6 +96,7 @@ interface OnboardingFormData {
   // Step 7
   terms_accepted: boolean;
   privacy_accepted: boolean;
+  service_agreement_accepted: boolean;
   resume_inventory_handover: boolean;
 
   // Visit record (FE non-interested flows)
@@ -210,6 +211,7 @@ const initialFormData: OnboardingFormData = {
 
   terms_accepted: false,
   privacy_accepted: false,
+  service_agreement_accepted: false,
   resume_inventory_handover: false,
 
   visit_outcome: null,

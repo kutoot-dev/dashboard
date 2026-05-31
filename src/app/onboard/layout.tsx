@@ -53,6 +53,13 @@ export default function OnboardLayout({
             className="text-accent underline-offset-2 transition-colors hover:text-accent/90 hover:underline"
           >
             Merchant Terms
+          </Link>{" "}
+          •{" "}
+          <Link
+            href="/merchant-service-agreement"
+            className="text-accent underline-offset-2 transition-colors hover:text-accent/90 hover:underline"
+          >
+            Service Agreement
           </Link>
         </div>
       </footer>

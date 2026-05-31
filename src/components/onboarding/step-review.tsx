@@ -50,8 +50,15 @@ export function StepReview({ onBack }: StepReviewProps) {
     const e: Record<string, string> = {};
     // For visit-only records, no T&C acceptance needed
     if (!isFeVisitOnly) {
-      if (!formData.terms_accepted) e.terms = "You must accept the terms.";
-      if (!formData.privacy_accepted) e.privacy = "You must accept the privacy policy.";
+      if (!formData.terms_accepted) {
+        e.terms = ONBOARDING_STRINGS.TERMS_REQUIRED;
+      }
+      if (!formData.service_agreement_accepted) {
+        e.service_agreement = ONBOARDING_STRINGS.SERVICE_AGREEMENT_REQUIRED;
+      }
+      if (!formData.privacy_accepted) {
+        e.privacy = ONBOARDING_STRINGS.PRIVACY_REQUIRED;
+      }
     }
 
     if (Object.keys(e).length > 0) {
@@ -107,6 +114,11 @@ export function StepReview({ onBack }: StepReviewProps) {
       ...(!isFeVisitOnly && {
         commission_rate: formData.commission_rate,
         commission_model: "flat",
+        commission_agreed: formData.commission_agreed,
+        minimum_commission_percentage: formData.minimum_commission_percentage ?? undefined,
+        terms_accepted: formData.terms_accepted,
+        privacy_accepted: formData.privacy_accepted,
+        service_agreement_accepted: formData.service_agreement_accepted,
         gst_number: formData.gst_number || undefined,
         gst_business_name: formData.gst_business_name || undefined,
         gst_business_address: formData.gst_business_address || undefined,
@@ -533,7 +545,7 @@ export function StepReview({ onBack }: StepReviewProps) {
               className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
             />
             <span className="text-sm text-foreground">
-              I accept the{" "}
+              I have read and accept the{" "}
               <a
                 href="/merchant-terms"
                 target="_blank"
@@ -541,12 +553,50 @@ export function StepReview({ onBack }: StepReviewProps) {
                 className="text-accent underline"
               >
                 Terms & Conditions
-              </a>{" "}
-              and agree to the commission structure above.
+              </a>
+              .
             </span>
           </label>
           {errors.terms && (
             <p className="text-xs text-error pl-7">{errors.terms}</p>
+          )}
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.service_agreement_accepted}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                useOnboardingStore.getState().updateFormData({
+                  service_agreement_accepted: checked,
+                });
+                if (checked) {
+                  setErrors((prev) => {
+                    if (!prev.service_agreement) return prev;
+                    const next = { ...prev };
+                    delete next.service_agreement;
+
+                    return next;
+                  });
+                }
+              }}
+              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
+            />
+            <span className="text-sm text-foreground">
+              I have read and accept the{" "}
+              <a
+                href="/merchant-service-agreement"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                Merchant Service Agreement
+              </a>{" "}
+              (commissions, settlements, and platform fees).
+            </span>
+          </label>
+          {errors.service_agreement && (
+            <p className="text-xs text-error pl-7">{errors.service_agreement}</p>
           )}
 
           <label className="flex items-start gap-3 cursor-pointer">

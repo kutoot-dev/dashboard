@@ -289,6 +289,7 @@ export interface OnboardingApplication {
   // Step 7: Review
   terms_accepted: boolean;
   privacy_accepted: boolean;
+  service_agreement_accepted: boolean;
 
   // Meta
   created_at: string;

@@ -51,6 +51,25 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
     });
 
   useEffect(() => {
+    if (formData.commission_model !== "flat") {
+      updateFormData({ commission_model: "flat" });
+    }
+  }, [formData.commission_model, updateFormData]);
+
+  useEffect(() => {
+    const current = formData.commission_rate;
+    if (current === null) {
+      updateFormData({ commission_rate: categoryMinCommission });
+      setCommissionInput(categoryMinCommission.toString());
+      return;
+    }
+    if (current < categoryMinCommission) {
+      updateFormData({ commission_rate: categoryMinCommission });
+      setCommissionInput(categoryMinCommission.toString());
+    }
+  }, [categoryMinCommission, formData.commission_rate, updateFormData]);
+
+  useEffect(() => {
     setCommissionInput(formData.commission_rate?.toString() || "");
   }, [formData.commission_rate]);
 
@@ -64,7 +83,10 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
     }
 
     if (!isNaN(num)) {
-      const clamped = Math.min(VALIDATION_RULES.commission_rate.max, num);
+      const clamped = Math.min(
+        VALIDATION_RULES.commission_rate.max,
+        Math.max(categoryMinCommission, num),
+      );
       updateFormData({ commission_rate: clamped });
     }
   };
@@ -114,8 +136,15 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
       <div>
         <h2 className="text-xl font-bold text-foreground">Commission Setup</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Set up the transaction commission terms. Minimum commission for your category is{" "}
-          {categoryMinCommission.toFixed(2)}%.
+          Set your transaction commission rate using the slider below.{" "}
+          {selectedCategory ? (
+            <>
+              For <span className="font-medium text-foreground">{selectedCategory.name}</span>,
+              the minimum is {categoryMinCommission.toFixed(2)}%.
+            </>
+          ) : (
+            <>Select a business category in Basic Details to see your category minimum.</>
+          )}
         </p>
       </div>
 
@@ -164,7 +193,7 @@ export function StepCommission({ onNext, onBack }: StepCommissionProps) {
                   placeholder={categoryMinCommission.toFixed(2)}
                   value={commissionInput}
                   onChange={(e) => handleRateInputChange(e.target.value)}
-                  min={VALIDATION_RULES.commission_rate.min}
+                  min={categoryMinCommission}
                   max={VALIDATION_RULES.commission_rate.max}
                   step={0.01}
                   className="w-32"

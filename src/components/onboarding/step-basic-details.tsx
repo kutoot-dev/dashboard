@@ -637,12 +637,25 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           value={formData.sector_id != null ? String(formData.sector_id) : ""}
           onChange={(v) => {
             const opt = merchantCategories.find((c) => String(c.id) === v);
-            updateFormData({
+            const categoryMin =
+              opt?.minimum_commission_percentage != null
+                ? Number(opt.minimum_commission_percentage)
+                : null;
+            const patch: Parameters<typeof updateFormData>[0] = {
               sector_id: v,
               sector_name: opt?.name || "",
               minimum_commission_percentage:
                 opt?.minimum_commission_percentage ?? null,
-            });
+            };
+            if (
+              categoryMin != null &&
+              !Number.isNaN(categoryMin) &&
+              formData.commission_rate != null &&
+              formData.commission_rate < categoryMin
+            ) {
+              patch.commission_rate = categoryMin;
+            }
+            updateFormData(patch);
           }}
           placeholder={categoriesLoading ? "Loading categories…" : "Select category..."}
           disabled={categoriesLoading || categoriesError || sectorSelectOptions.length === 0}
