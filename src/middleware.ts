@@ -42,7 +42,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes — no auth needed
-  if (pathname.startsWith("/onboard")) {
+  if (pathname.startsWith("/onboard") || pathname.startsWith("/operations-hub")) {
     return NextResponse.next();
   }
 
@@ -93,6 +93,8 @@ export const config = {
     "/academy/:path*",
     "/merchant-referral/:path*",
     "/onboard/:path*",
+    "/operations-hub",
+    "/operations-hub/:path*",
     "/login",
   ],
 };
