@@ -48,7 +48,7 @@ export function LegalDocumentPage({
           </div>
         </div>
 
-        <div className="glass-card space-y-6 rounded-2xl border border-border/80 p-5 shadow-[0_22px_54px_rgba(5,8,24,0.34)] md:p-8">
+        <div className="space-y-6 rounded-2xl border border-border/80 bg-card p-5 shadow-[0_22px_54px_rgba(5,8,24,0.34)] md:p-8">
           {sections.map((section, sectionIndex) => (
             <section key={`${sectionIndex}-${section.heading}`} className="space-y-3">
               <h2 className="text-base font-semibold md:text-lg">{section.heading}</h2>

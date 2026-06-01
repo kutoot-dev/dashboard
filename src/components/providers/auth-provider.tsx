@@ -12,8 +12,10 @@ import type { AuthUser } from "@/lib/types";
 import {
   clearAuthSession,
   login as loginService,
+  loginWithOtp as loginWithOtpService,
   logout as logoutService,
   getMe,
+  sendLoginOtp as sendLoginOtpService,
 } from "@/lib/api/services/auth.service";
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
 import { useSelectedLocationStore } from "@/lib/stores/selected-location.store";
@@ -35,6 +37,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  loginWithOtp: (mobile: string, otp: string) => Promise<void>;
+  sendLoginOtp: (mobile: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -103,6 +107,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router, queryClient],
   );
 
+  const loginWithOtp = useCallback(
+    async (mobile: string, otp: string) => {
+      const res = await loginWithOtpService(mobile, otp);
+      if (res.success) {
+        queryClient.clear();
+        if (res.data) {
+          syncOpsHubSelectedLocation(res.data);
+          setUser(res.data);
+        }
+        router.push("/dashboard");
+      } else {
+        throw new Error(res.error?.message ?? "Login failed");
+      }
+    },
+    [router, queryClient],
+  );
+
+  const sendLoginOtp = useCallback(async (mobile: string) => {
+    const res = await sendLoginOtpService(mobile);
+    if (!res.success) {
+      throw new Error(res.error?.message ?? "Could not send OTP.");
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     await logoutService();
     queryClient.clear();
@@ -117,6 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: user !== null,
         isLoading,
         login,
+        loginWithOtp,
+        sendLoginOtp,
         logout,
       }}
     >

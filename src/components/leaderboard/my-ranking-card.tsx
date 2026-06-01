@@ -11,6 +11,7 @@ import {
   getChangeColor,
   getRankTier,
 } from "@/lib/utils/format";
+import { formatRank } from "@/lib/utils/format-rank";
 import type { LeaderboardMyEntry, LeaderboardScoringParameter } from "@/lib/types";
 
 const TIER_STYLES = {
@@ -184,7 +185,7 @@ export function MyRankingCard({
           <div className="flex items-center gap-2">
             <Icon icon={faTrophy} className={cn("h-8 w-8", styles.rank)} aria-hidden />
             <span className={cn("font-display text-4xl font-bold tabular-nums sm:text-5xl", styles.rank)}>
-              #{rank}
+              {formatRank(rank)}
             </span>
           </div>
           {poolTotal > 0 && (

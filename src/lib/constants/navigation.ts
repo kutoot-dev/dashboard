@@ -71,6 +71,11 @@ const CORE_BRANCH_NAV: NavItem[] = [
     icon: faMoneyBillTransfer,
   },
   {
+    label: "Team",
+    href: "/team",
+    icon: faUsers,
+  },
+  {
     label: "Settings",
     href: "/store",
     icon: faGear,

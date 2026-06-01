@@ -95,7 +95,7 @@ export function LegalDocumentModal({
         onClick={onClose}
         aria-hidden
       />
-      <div className="glass-card relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-border/80 shadow-xl">
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-border/80 bg-card shadow-xl">
         <div className="border-b border-border px-5 py-4">
           <h2 className="font-display text-lg font-semibold text-foreground">
             {docSummary.title}
@@ -106,7 +106,7 @@ export function LegalDocumentModal({
         </div>
 
         <div
-          className="min-h-[40vh] flex-1 overflow-y-auto px-5 py-4"
+          className="min-h-[40vh] flex-1 overflow-y-auto bg-card px-5 py-4"
           onScroll={handleScroll}
         >
           {isLoading ? (

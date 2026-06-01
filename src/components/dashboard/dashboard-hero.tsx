@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { formatScore } from "@/lib/utils/format";
+import { formatRank } from "@/lib/utils/format-rank";
 import { cn } from "@/lib/utils/cn";
 
 interface DashboardHeroProps {
@@ -63,12 +64,12 @@ export function DashboardHero({
           </span>
         </div>
 
-        {typeof compositeRank === "number" && (
+        {typeof compositeRank === "number" && compositeRank >= 1 && (
           <div className="flex shrink-0 items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2.5">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Rank
             </span>
-            <span className="font-tabular text-lg font-semibold text-accent">#{compositeRank}</span>
+            <span className="font-tabular text-lg font-semibold text-accent">{formatRank(compositeRank)}</span>
           </div>
         )}
 

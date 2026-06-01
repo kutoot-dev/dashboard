@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils/cn";
 import { formatScore, formatScoreChange, getChangeColor } from "@/lib/utils/format";
+import { formatRank } from "@/lib/utils/format-rank";
 import type { LeaderboardEntry, LeaderboardScoringParameter } from "@/lib/types";
 
 const PODIUM_RANK_STYLES: Record<number, string> = {
@@ -50,7 +51,7 @@ export function LeaderboardRow({ row, parameter, isViewer }: LeaderboardRowProps
             podiumStyle ?? "border-border/60 bg-card/50 text-foreground",
           )}
         >
-          #{row.rank}
+          {formatRank(row.rank)}
         </span>
       </td>
       <td className="px-3 py-3">

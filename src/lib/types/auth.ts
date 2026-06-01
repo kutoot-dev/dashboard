@@ -7,6 +7,8 @@
 
 export type UserRole = "merchant" | "operations_hub";
 
+export type StorePivotRole = "owner" | "manager" | "staff";
+
 export interface AttachedLocationSummary {
   id: number | string;
   branch_name: string;
@@ -20,6 +22,8 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  /** Pivot role on merchant_location_user (owners can manage team). */
+  store_role?: StorePivotRole;
   branch_id: string | null;
   default_location_id?: string | null;
   attached_locations?: AttachedLocationSummary[];

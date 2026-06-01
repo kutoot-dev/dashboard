@@ -22,7 +22,7 @@ export default function OnboardLayout({
         <div className="absolute top-1/2 left-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/24 blur-3xl" />
       </div>
 
-      <header className="glass-topbar sticky top-0 z-30 border-b border-border/70">
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-5 sm:px-6 sm:py-3">
           <KutootLogo
             size="lg"

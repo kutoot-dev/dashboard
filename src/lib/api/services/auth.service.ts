@@ -111,6 +111,12 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
   const branchId = String(payload.shopId);
   const id = payload.sellerId ? String(payload.sellerId) : branchId;
   const role = payload.role === "operations_hub" ? "operations_hub" : "merchant";
+  const storeRole =
+    payload.role === "operations_hub"
+      ? undefined
+      : payload.role === "owner" || payload.role === "manager" || payload.role === "staff"
+        ? payload.role
+        : "owner";
   const defaultLocationId = payload.default_location_id
     ? String(payload.default_location_id)
     : branchId;
@@ -129,6 +135,7 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
     name: payload.shopName ?? payload.ownerName ?? "Merchant",
     email: payload.email ?? "",
     role,
+    store_role: role === "merchant" ? storeRole : undefined,
     branch_id: branchId,
     default_location_id: defaultLocationId,
     attached_locations: attached.length > 0 ? attached : undefined,
@@ -185,7 +192,12 @@ export async function login(username: string, password: string): Promise<ApiResp
     password,
   });
 
-  const envelope = res.data;
+  const user = persistLoginEnvelope(res.data);
+
+  return toAuthEnvelope(user, res.data.message);
+}
+
+function persistLoginEnvelope(envelope: MerchantLoginResponse): AuthUser | null {
   const token = envelope.data?.token;
   const user = normaliseAuthUser(envelope.data?.seller);
 
@@ -201,7 +213,37 @@ export async function login(username: string, password: string): Promise<ApiResp
     setAuthCookie(user);
   }
 
-  return toAuthEnvelope(user, envelope.message);
+  return user;
+}
+
+export async function sendLoginOtp(mobile: string): Promise<ApiResponse<null>> {
+  const res = await apiClient.post<GenericAuthResponse>("/auth/otp/send", { mobile });
+
+  return {
+    success: !!res.data.success,
+    data: null,
+    meta: buildMeta(),
+    error: res.data.success
+      ? null
+      : {
+          code: "OTP_SEND_FAILED",
+          message: res.data.message ?? "Could not send OTP.",
+        },
+  };
+}
+
+export async function loginWithOtp(
+  mobile: string,
+  otp: string,
+): Promise<ApiResponse<AuthUser | null>> {
+  const res = await apiClient.post<MerchantLoginResponse>("/auth/otp/login", {
+    mobile,
+    otp,
+  });
+
+  const user = persistLoginEnvelope(res.data);
+
+  return toAuthEnvelope(user, res.data.message);
 }
 
 /**
