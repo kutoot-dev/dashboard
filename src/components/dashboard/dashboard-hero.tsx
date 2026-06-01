@@ -72,12 +72,14 @@ export function DashboardHero({
           </div>
         )}
 
-        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/70 bg-card/60 px-3 py-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Active deals
-          </span>
-          <span className="font-tabular text-lg font-semibold text-foreground">{activeDeals}</span>
-        </div>
+        {typeof activeDeals === "number" && (
+          <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/70 bg-card/60 px-3 py-2.5">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Active deals
+            </span>
+            <span className="font-tabular text-lg font-semibold text-foreground">{activeDeals}</span>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -7,6 +7,7 @@
 
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import type { UserRole } from "@/lib/types/auth";
+import { MERCHANT_DEALS_ENABLED } from "@/lib/constants/features";
 import {
   faBookOpen,
   faBriefcase,
@@ -28,8 +29,7 @@ export interface NavItem {
   icon: IconDefinition;
 }
 
-/** Branch tab navigation items */
-export const BRANCH_NAV: NavItem[] = [
+const CORE_BRANCH_NAV: NavItem[] = [
   {
     label: "Dashboard",
     href: "/dashboard",
@@ -49,11 +49,6 @@ export const BRANCH_NAV: NavItem[] = [
     label: "Academy",
     href: "/academy",
     icon: faBookOpen,
-  },
-  {
-    label: "Deals",
-    href: "/deals",
-    icon: faTag,
   },
   {
     label: "Transactions",
@@ -81,6 +76,21 @@ export const BRANCH_NAV: NavItem[] = [
     icon: faGear,
   },
 ];
+
+const DEALS_NAV_ITEM: NavItem = {
+  label: "Deals",
+  href: "/deals",
+  icon: faTag,
+};
+
+/** Branch tab navigation items */
+export const BRANCH_NAV: NavItem[] = MERCHANT_DEALS_ENABLED
+  ? [
+      ...CORE_BRANCH_NAV.slice(0, 4),
+      DEALS_NAV_ITEM,
+      ...CORE_BRANCH_NAV.slice(4),
+    ]
+  : CORE_BRANCH_NAV;
 
 /** Demo-only: scoring / payout engine lab */
 export const DEMO_SCORING_ENGINE_NAV: NavItem = {

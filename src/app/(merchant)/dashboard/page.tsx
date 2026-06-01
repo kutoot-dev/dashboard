@@ -17,6 +17,7 @@ import { DashboardReferralCard } from "@/components/dashboard/dashboard-referral
 import { DashboardTabPanel } from "@/components/dashboard/dashboard-tab-panel";
 import { ImprovementModal } from "@/components/dashboard/improvement-modal";
 import { getMerchantDashboard, type MerchantScoreInsight } from "@/lib/api/services/merchant.service";
+import { MERCHANT_DEALS_ENABLED } from "@/lib/constants/features";
 import { SUB_SCORE_DESCRIPTIONS, SUB_SCORE_LABELS } from "@/lib/constants/scoring";
 import { formatINR } from "@/lib/utils/format";
 import { useToastStore } from "@/lib/stores/toast.store";
@@ -145,11 +146,11 @@ export default function DashboardPage() {
     }
 
     const shouldSuggestDeal =
-      key === "discount_aggression_score" ||
-      key === "user_growth_score" ||
-      key === "repeat_rate_score" ||
-      key === "gmv_score" ||
-      key === "platform_capture_score";
+      MERCHANT_DEALS_ENABLED &&
+      (key === "user_growth_score" ||
+        key === "repeat_rate_score" ||
+        key === "gmv_score" ||
+        key === "platform_capture_score");
 
     if (shouldSuggestDeal) {
       router.push(`/deals?recommended=1&source=scoring&metric=${encodeURIComponent(key)}`);
@@ -237,7 +238,7 @@ export default function DashboardPage() {
         userName={user?.name}
         compositeScore={compositeScore}
         compositeRank={compositeRank}
-        activeDeals={dashboard?.live?.active_deals ?? 0}
+        activeDeals={MERCHANT_DEALS_ENABLED ? (dashboard?.live?.active_deals ?? 0) : undefined}
       />
 
       {!dashboard && isLoading ? (

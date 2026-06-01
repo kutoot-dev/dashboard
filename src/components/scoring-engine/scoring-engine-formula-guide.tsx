@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import type { ScoringEngineOverview } from "@/lib/api/services/scoring-engine.service";
+import { DISCOUNT_HEALTH_ENABLED } from "@/lib/constants/features";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
 
-const SUB_SCORES: Array<{
+const ALL_SUB_SCORES: Array<{
   key: string;
   label: string;
   weightKey: string;
@@ -72,6 +73,10 @@ const SUB_SCORES: Array<{
     example: "Even spend across customers → fairness near 1.0; one whale customer lowers it.",
   },
 ];
+
+const SUB_SCORES = DISCOUNT_HEALTH_ENABLED
+  ? ALL_SUB_SCORES
+  : ALL_SUB_SCORES.filter((sub) => sub.key !== "discount");
 
 interface ScoringEngineFormulaGuideProps {
   weights: ScoringEngineOverview["config"]["weights"];

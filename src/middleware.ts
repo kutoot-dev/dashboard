@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { MERCHANT_DEALS_ENABLED } from "@/lib/constants/features";
 
 const AUTH_COOKIE = "kutoot_auth";
 const SESSION_COOKIE = "kutoot_session";
@@ -55,6 +56,10 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from login
   if (pathname === "/login" && isAuthenticated) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  if (!MERCHANT_DEALS_ENABLED && pathname.startsWith("/deals")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

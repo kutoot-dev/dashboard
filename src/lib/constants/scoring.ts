@@ -5,6 +5,8 @@
  * Weights are defaults and may be overridden via DB scoring_parameters.
  */
 
+import { DISCOUNT_HEALTH_ENABLED } from "@/lib/constants/features";
+
 export const SUB_SCORE_LABELS: Record<string, string> = {
   // Legacy aliases still used by a few pages
   trading_performance:        "Trading Performance",
@@ -63,8 +65,9 @@ export const SUB_SCORE_DESCRIPTIONS: Record<string, string> = {
  * Plain-language explanations for the leaderboard (readable by young students).
  */
 export const LEADERBOARD_PARAMETER_EXPLANATIONS: Record<string, string> = {
-  all:
-    "Your overall score mixes all 8 parts below—like points in a school report card. We add them up with fair weights. Higher total = higher rank on this list.",
+  all: DISCOUNT_HEALTH_ENABLED
+    ? "Your overall score mixes all 8 parts below—like points in a school report card. We add them up with fair weights. Higher total = higher rank on this list."
+    : "Your overall score mixes all 7 parts below—like points in a school report card. We add them up with fair weights. Higher total = higher rank on this list.",
   gmv_score:
     "How much money your shop sold today. We compare you with other shops. More sales than most shops = higher rank for this filter.",
   commission_score:
@@ -95,8 +98,7 @@ export const LEADERBOARD_COLUMN_EXPLANATIONS: Record<string, string> = {
     "How many bills were paid successfully today (paid or completed—not cancelled or failed).",
 };
 
-/** Display order for parameter meters */
-export const SUB_SCORE_ORDER: string[] = [
+const ALL_SUB_SCORE_ORDER: string[] = [
   "gmv_score",
   "commission_score",
   "platform_capture_score",
@@ -106,6 +108,11 @@ export const SUB_SCORE_ORDER: string[] = [
   "referral_score",
   "fairness_score",
 ];
+
+/** Display order for parameter meters (excludes disabled components). */
+export const SUB_SCORE_ORDER: string[] = DISCOUNT_HEALTH_ENABLED
+  ? ALL_SUB_SCORE_ORDER
+  : ALL_SUB_SCORE_ORDER.filter((key) => key !== "discount_aggression_score");
 
 export const IMPROVEMENT_TIPS: Record<string, string[]> = {
   trading_performance: [
@@ -187,7 +194,14 @@ export const SCORING_PARAMETER_DEFINITIONS: Record<string, { defaultValue: numbe
   platform_capture_weight: { defaultValue: 0.15, description: "Weight for platform capture sub-score." },
   user_growth_weight: { defaultValue: 0.15, description: "Weight for user growth sub-score." },
   repeat_rate_weight: { defaultValue: 0.15, description: "Weight for repeat-rate sub-score." },
-  discount_aggression_weight: { defaultValue: 0.10, description: "Weight for discount-aggression sub-score." },
+  ...(DISCOUNT_HEALTH_ENABLED
+    ? {
+        discount_aggression_weight: {
+          defaultValue: 0.1,
+          description: "Weight for discount-aggression sub-score.",
+        },
+      }
+    : {}),
   referral_weight: { defaultValue: 0.10, description: "Weight for referral sub-score." },
   fairness_weight: { defaultValue: 0.10, description: "Weight for fairness sub-score." },
   fatigue_top_n_threshold: { defaultValue: 10, description: "Top-N rank threshold for fatigue dampener." },

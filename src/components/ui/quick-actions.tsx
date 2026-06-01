@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils/cn";
 import {
   simulateTransaction,
 } from "@/lib/api/services/merchant.service";
+import { MERCHANT_DEALS_ENABLED } from "@/lib/constants/features";
 
 interface QuickActionsProps {
   className?: string;
@@ -50,15 +51,17 @@ export function QuickActions({ className, compact = true }: QuickActionsProps) {
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <button
-        id="quick-action-add-deal"
-        type="button"
-        onClick={() => router.push("/deals?recommended=1&source=quick-action")}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/35 bg-accent/15 px-2.5 text-[11px] font-semibold text-foreground shadow-[0_8px_18px_rgba(8,13,34,0.24)] transition-all hover:-translate-y-0.5 hover:border-accent/55 hover:bg-accent/22"
-      >
-        <Icon icon={faTags} className="h-3.5 w-3.5 text-accent" aria-hidden />
-        {compact && <span className="font-mono">Add Deals</span>}
-      </button>
+      {MERCHANT_DEALS_ENABLED && (
+        <button
+          id="quick-action-add-deal"
+          type="button"
+          onClick={() => router.push("/deals?recommended=1&source=quick-action")}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/35 bg-accent/15 px-2.5 text-[11px] font-semibold text-foreground shadow-[0_8px_18px_rgba(8,13,34,0.24)] transition-all hover:-translate-y-0.5 hover:border-accent/55 hover:bg-accent/22"
+        >
+          <Icon icon={faTags} className="h-3.5 w-3.5 text-accent" aria-hidden />
+          {compact && <span className="font-mono">Add Deals</span>}
+        </button>
+      )}
       {isDemoAccount && (
         <>
           <button
