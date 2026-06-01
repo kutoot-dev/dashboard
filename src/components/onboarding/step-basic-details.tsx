@@ -13,12 +13,15 @@ import { MultiPhotoCapture } from "./multi-photo-capture";
 import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { OtpInput } from "./otp-input";
+import { ApplicationStatusScreen } from "./application-status-screen";
 import {
   useCheckPhone,
   useCities,
+  useCreateApplication,
   useMerchantCategories,
   useSendEmailOtp,
   useStates,
+  useUpdateApplication,
   useVerifyEmailOtp,
 } from "@/lib/hooks";
 import {
@@ -26,11 +29,11 @@ import {
   VALIDATION_RULES,
   VOLUME_RANGES,
 } from "@/lib/constants/onboarding";
-import type { ApplicationStatus } from "@/lib/types";
+import type { ApplicationStatus, OnboardingApplication, WizardStepId } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { resolveAddressFromCoords } from "@/lib/utils/resolve-address-from-coords";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { faCircleCheck, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 interface StepBasicDetailsProps {
   onNext: () => void;
@@ -61,15 +64,30 @@ export function StepBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   return <FieldExecutiveBasicDetails onNext={onNext} onBack={onBack} />;
 }
 
+function buildGoogleMapsUrl(lat: number, long: number): string {
+  return `https://www.google.com/maps?q=${lat},${long}`;
+}
+
 function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
   const router = useRouter();
-  const { formData, updateFormData, phoneCheckResult, setPhoneCheckResult } =
-    useOnboardingStore();
+  const {
+    formData,
+    updateFormData,
+    phoneCheckResult,
+    setPhoneCheckResult,
+    applicationId,
+    setApplicationId,
+    completeStep,
+  } = useOnboardingStore();
   const pushToast = useToastStore((s) => s.push);
   const checkPhone = useCheckPhone();
   const sendEmailOtp = useSendEmailOtp();
   const verifyEmailOtp = useVerifyEmailOtp();
+  const createApp = useCreateApplication();
+  const updateApp = useUpdateApplication();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
   const [gpsStatus, setGpsStatus] = useState<string>("");
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const [selectedStateId, setSelectedStateId] = useState<string>("");
@@ -209,6 +227,7 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
+    const legalName = formData.legal_name ?? "";
     const ownerName = formData.owner_name ?? "";
     const shopName = formData.shop_name ?? "";
     const pinCode = formData.pin_code ?? "";
@@ -235,6 +254,12 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
       !VALIDATION_RULES.owner_name.pattern.test(ownerName)
     ) {
       e.owner_name = "If entered, must contain only letters and spaces.";
+    }
+
+    if (!isFeVisitOnly) {
+      if (legalName.trim().length < 2) {
+        e.legal_name = "Legal name must be at least 2 characters.";
+      }
     }
 
     if (shopName.length < 2) {
@@ -290,9 +315,102 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     return Object.keys(e).length === 0;
   };
 
-  const handleNext = () => {
-    if (validate()) {
+  const handleContinue = () => {
+    if (!validate()) return;
+
+    if (isFeVisitOnly) {
       onNext();
+      return;
+    }
+
+    const googleMapsLink =
+      formData.gps_lat != null && formData.gps_long != null
+        ? buildGoogleMapsUrl(formData.gps_lat, formData.gps_long)
+        : undefined;
+
+    const payload = {
+      channel: "field_executive" as const,
+      submitted_by: "field_executive" as const,
+      exec_id: formData.exec_id,
+      exec_employee_code: formData.exec_employee_code,
+      visit_outcome: formData.visit_outcome,
+      phone: formData.phone,
+      owner_name: formData.owner_name,
+      legal_name: formData.legal_name.trim() || undefined,
+      gst_business_name: formData.legal_name.trim() || undefined,
+      email: formData.owner_email || null,
+      email_verified: formData.owner_email ? formData.owner_email_verified : false,
+      shop_name: formData.shop_name.trim(),
+      door_no: formData.door_no || null,
+      shop_no: formData.shop_no || null,
+      year_of_establishment: formData.year_of_establishment || null,
+      business_ownership_type: formData.business_ownership_type || null,
+      sector_id: formData.sector_id,
+      sector_name: formData.sector_name,
+      locality: formData.locality,
+      city: formData.city,
+      state: formData.state,
+      pin_code: formData.pin_code,
+      branch_name: formData.branch_name || null,
+      referral_code: formData.referral_code.trim() || undefined,
+      storefront_photo_url: formData.storefront_photo_url,
+      storefront_photo_urls: formData.storefront_photo_urls,
+      gps_lat: formData.gps_lat,
+      gps_long: formData.gps_long,
+      gps_accuracy: formData.gps_accuracy,
+      google_maps_link: googleMapsLink,
+      operating_hours_start: formData.operating_hours_start || undefined,
+      operating_hours_end: formData.operating_hours_end || undefined,
+      expected_monthly_volume: formData.expected_monthly_volume || undefined,
+      stage: "submitted" as const,
+      status: "pending_review" as ApplicationStatus,
+      current_step: "basic_details" as WizardStepId,
+    };
+
+    const onSuccess = (appId: string) => {
+      setApplicationId(appId);
+      completeStep("basic_details");
+      setSubmittedApplicationId(appId);
+      setSubmitted(true);
+      pushToast({
+        variant: "success",
+        title: "Application submitted",
+        description: "The merchant application has been submitted for review.",
+      });
+    };
+
+    if (applicationId) {
+      updateApp.mutate(
+        { id: applicationId, data: payload as Partial<OnboardingApplication> },
+        {
+          onSuccess: () => onSuccess(applicationId),
+          onError: () => {
+            pushToast({
+              variant: "error",
+              title: "Submission failed",
+              description: "Could not submit the application. Please try again.",
+            });
+          },
+        },
+      );
+    } else {
+      createApp.mutate(payload as Partial<OnboardingApplication>, {
+        onSuccess: (res) => {
+          const appId = res.data?.application_id;
+          if (appId) {
+            onSuccess(appId);
+          } else {
+            setSubmitted(true);
+          }
+        },
+        onError: () => {
+          pushToast({
+            variant: "error",
+            title: "Submission failed",
+            description: "Could not submit the application. Please try again.",
+          });
+        },
+      });
     }
   };
 
@@ -368,6 +486,29 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
     }
     router.push(`/onboard/resume?${params.toString()}`);
   }, [formData.phone, router]);
+
+  if (submitted) {
+    if (submittedApplicationId) {
+      return (
+        <ApplicationStatusScreen
+          applicationId={submittedApplicationId}
+          phone={formData.phone ?? null}
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-4 py-12 text-center">
+        <div className="text-5xl text-success">
+          <FontAwesomeIcon icon={faCircleCheck} />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground">Application Submitted</h2>
+        <p className="mx-auto max-w-md text-muted-foreground">
+          The merchant application has been submitted. Our team will review it and get back to you.
+        </p>
+      </div>
+    );
+  }
 
   const handleSendEmailOtp = async () => {
     const email = formData.owner_email.trim().toLowerCase();
@@ -533,6 +674,19 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
           value={formData.owner_name}
           onChange={(e) => updateFormData({ owner_name: e.target.value })}
           maxLength={100}
+        />
+      </FieldWithInfo>
+
+      <FieldWithInfo
+        fieldInfo={ONBOARDING_FIELDS.legal_name}
+        required={!isFeVisitOnly}
+        error={errors.legal_name}
+      >
+        <Input
+          placeholder={ONBOARDING_FIELDS.legal_name.placeholder}
+          value={formData.legal_name}
+          onChange={(e) => updateFormData({ legal_name: e.target.value })}
+          maxLength={255}
         />
       </FieldWithInfo>
 
@@ -896,9 +1050,10 @@ function FieldExecutiveBasicDetails({ onNext, onBack }: StepBasicDetailsProps) {
         </Button>
         <Button
           variant="primary"
-          onClick={handleNext}
+          onClick={handleContinue}
+          loading={createApp.isPending || updateApp.isPending}
         >
-          Save & Continue
+          {isFeVisitOnly ? "Save & Continue" : "Submit Application"}
         </Button>
       </div>
     </div>

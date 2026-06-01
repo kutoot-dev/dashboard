@@ -89,6 +89,7 @@ export function StepReview({ onBack }: StepReviewProps) {
       inventory_handover_items: formData.inventory_handover_items,
       phone: formData.phone || null,
       owner_name: formData.owner_name || null,
+      legal_name: formData.legal_name || undefined,
       email: formData.owner_email || null,
       email_verified: formData.owner_email ? !!formData.owner_email_verified : false,
       shop_name: formData.shop_name,
@@ -120,7 +121,7 @@ export function StepReview({ onBack }: StepReviewProps) {
         privacy_accepted: formData.privacy_accepted,
         service_agreement_accepted: formData.service_agreement_accepted,
         gst_number: formData.gst_number || undefined,
-        gst_business_name: formData.gst_business_name || undefined,
+        gst_business_name: formData.gst_business_name || formData.legal_name || undefined,
         gst_business_address: formData.gst_business_address || undefined,
         gst_registration_status: formData.gst_status || undefined,
         gst_doc_photo_url: formData.gst_doc_photo_url || undefined,
@@ -369,6 +370,7 @@ export function StepReview({ onBack }: StepReviewProps) {
       <Section title="Basic Details" onEdit={() => goToStep("basic_details")}>
         {formData.phone && <Row label="Phone" value={`+91 ${formData.phone}`} />}
         {formData.owner_name && <Row label="Owner Name" value={formData.owner_name} />}
+        {formData.legal_name && <Row label="Legal Name" value={formData.legal_name} />}
         {formData.owner_email && <Row label="Email" value={formData.owner_email} />}
         <Row label="Shop Name" value={formData.shop_name} />
         {formData.door_no && <Row label="Door No" value={formData.door_no} />}

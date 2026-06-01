@@ -10,15 +10,7 @@ export function getActiveOnboardingSteps(
   }
   if (channel === "field_executive") {
     if (visitOutcome === "interested") {
-      return [
-        "identity",
-        "visit_outcome",
-        "basic_details",
-        "commission",
-        "kyc",
-        "bank",
-        "review",
-      ];
+      return ["identity", "visit_outcome", "basic_details"];
     }
     if (visitOutcome === null) {
       return ["identity", "visit_outcome"];
