@@ -30,6 +30,8 @@ import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 
 interface MerchantBasicDetailsProps {
   onBack: () => void;
+  /** FE visit-only flows continue to review instead of submitting here. */
+  onNext?: () => void;
 }
 
 const OTP_COUNTDOWN_SECONDS = 120;
@@ -49,7 +51,7 @@ function buildGoogleMapsUrl(lat: number, long: number): string {
   return `https://www.google.com/maps?q=${lat},${long}`;
 }
 
-export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
+export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsProps) {
   const router = useRouter();
   const {
     formData,
@@ -60,6 +62,11 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
     setPhoneCheckResult,
     completeStep,
   } = useOnboardingStore();
+  const isFieldExecutive = formData.channel === "field_executive";
+  const isFeVisitOnly =
+    isFieldExecutive &&
+    formData.visit_outcome !== "interested" &&
+    formData.visit_outcome !== null;
   const pushToast = useToastStore((s) => s.push);
   const checkPhone = useCheckPhone();
   const sendOtp = useSendOtp();
@@ -384,14 +391,18 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
   const handleSubmit = () => {
     if (!validate()) return;
 
+    if (isFeVisitOnly) {
+      completeStep("basic_details");
+      onNext?.();
+      return;
+    }
+
     const googleMapsLink =
       formData.gps_lat != null && formData.gps_long != null
         ? buildGoogleMapsUrl(formData.gps_lat, formData.gps_long)
         : undefined;
 
-    const payload = {
-      channel: "merchant" as const,
-      submitted_by: "merchant" as const,
+    const sharedPayload = {
       phone: formData.phone,
       owner_name: formData.owner_name,
       email: formData.owner_email || null,
@@ -413,6 +424,21 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
       current_step: "basic_details" as WizardStepId,
     };
 
+    const payload = isFieldExecutive
+      ? {
+          ...sharedPayload,
+          channel: "field_executive" as const,
+          submitted_by: "field_executive" as const,
+          exec_id: formData.exec_id,
+          exec_employee_code: formData.exec_employee_code,
+          visit_outcome: formData.visit_outcome,
+        }
+      : {
+          ...sharedPayload,
+          channel: "merchant" as const,
+          submitted_by: "merchant" as const,
+        };
+
     const onSuccess = (appId: string) => {
       setApplicationId(appId);
       completeStep("basic_details");
@@ -421,7 +447,9 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
       pushToast({
         variant: "success",
         title: "Application submitted",
-        description: "Your merchant application has been submitted for review.",
+        description: isFieldExecutive
+          ? "The merchant application has been submitted for review."
+          : "Your merchant application has been submitted for review.",
       });
     };
 
@@ -490,7 +518,9 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
         </div>
         <h2 className="text-2xl font-bold text-foreground">Application Submitted</h2>
         <p className="mx-auto max-w-md text-muted-foreground">
-          Your application has been submitted. Our team will review it and get back to you.
+          {isFieldExecutive
+            ? "The merchant application has been submitted. Our team will review it and get back to you."
+            : "Your application has been submitted. Our team will review it and get back to you."}
         </p>
       </div>
     );
@@ -825,7 +855,7 @@ export function MerchantBasicDetails({ onBack }: MerchantBasicDetailsProps) {
           onClick={handleSubmit}
           loading={createApp.isPending || updateApp.isPending}
         >
-          Submit Application
+          {isFeVisitOnly ? "Save & Continue" : "Submit Application"}
         </Button>
       </div>
     </div>
