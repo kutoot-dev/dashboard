@@ -16,6 +16,7 @@ import type {
   WithdrawPayoutInput,
 } from "@/lib/types/wallet";
 import { formatINR } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/cn";
 
 interface WalletWithdrawWizardProps {
   merchantId: string;
@@ -25,6 +26,7 @@ interface WalletWithdrawWizardProps {
 }
 
 type WizardStep = "bank" | "identity" | "documents" | "review" | "done";
+type GstPath = "gst" | "enrollment";
 
 const emptyForm: WithdrawPayoutInput = {
   bank_account_name: "",
@@ -49,6 +51,73 @@ const STEP_TITLES: Record<WizardStep, string> = {
   done: "Request submitted",
 };
 
+const GST_PORTAL_URL = "https://www.gst.gov.in/";
+const KUTOOT_SUPPORT_EMAIL = "support@kutoot.com";
+
+function GstEnrollmentHelpPanel() {
+  return (
+    <div className="rounded-lg border border-info/30 bg-info/5 p-4 text-sm">
+      <h3 className="font-semibold text-foreground">Generate enrollment number</h3>
+      <p className="mt-1 text-muted-foreground">
+        If you are a non-GST seller, generate an enrollment number from the GST portal
+        before completing withdrawal on Kutoot. Follow these steps:
+      </p>
+      <ol className="mt-3 list-decimal space-y-2 pl-4 text-foreground">
+        <li>
+          <span className="font-medium">Access the GST portal</span> — Go to{" "}
+          <a
+            href={GST_PORTAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-2 hover:text-primary/80"
+          >
+            gst.gov.in
+          </a>
+          .
+        </li>
+        <li>
+          <span className="font-medium">Navigate to Services</span> — From the top menu,
+          select <span className="text-foreground">Services → User Services</span>.
+        </li>
+        <li>
+          <span className="font-medium">Generate user ID</span> — Click{" "}
+          <span className="text-foreground">Generate User ID for Unregistered Applicant</span>.
+        </li>
+        <li>
+          <span className="font-medium">Choose e-commerce option</span> — For “Are you
+          applying to enroll as a supplier through E-Commerce Operators?”, select{" "}
+          <span className="text-foreground">
+            To Apply as a Supplier to e-Commerce Operators
+          </span>{" "}
+          to proceed.
+        </li>
+        <li>
+          <span className="font-medium">Fill mandatory details</span> — Seller name, PAN,
+          email, mobile, state of operation, complete address, HSN code, and captcha.
+        </li>
+        <li>
+          <span className="font-medium">Verify with OTP</span> — Enter the OTP sent to your
+          registered mobile and email.
+        </li>
+        <li>
+          <span className="font-medium">Get your enrollment number</span> — After
+          verification, your enrollment number is generated on the GSTN portal. Enter it
+          below and upload the enrollment certificate in the next step.
+        </li>
+      </ol>
+      <p className="mt-3 text-muted-foreground">
+        Questions?{" "}
+        <a
+          href={`mailto:${KUTOOT_SUPPORT_EMAIL}?subject=GST%20enrollment%20help`}
+          className="text-primary underline underline-offset-2 hover:text-primary/80"
+        >
+          {KUTOOT_SUPPORT_EMAIL}
+        </a>
+      </p>
+    </div>
+  );
+}
+
 export function WalletWithdrawWizard({
   merchantId,
   isOpen,
@@ -56,6 +125,7 @@ export function WalletWithdrawWizard({
   onSuccess,
 }: WalletWithdrawWizardProps) {
   const [step, setStep] = useState<WizardStep>("bank");
+  const [gstPath, setGstPath] = useState<GstPath>("gst");
   const [form, setForm] = useState<WithdrawPayoutInput>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkResult, setCheckResult] = useState<WithdrawCheckResult | null>(null);
@@ -64,6 +134,7 @@ export function WalletWithdrawWizard({
 
   const reset = () => {
     setStep("bank");
+    setGstPath("gst");
     setForm(emptyForm);
     setErrors({});
     setCheckResult(null);
@@ -73,6 +144,23 @@ export function WalletWithdrawWizard({
   const handleClose = () => {
     reset();
     onClose();
+  };
+
+  const selectGstPath = (path: GstPath) => {
+    setGstPath(path);
+    setForm((f) => ({
+      ...f,
+      gst_number: path === "gst" ? f.gst_number : "",
+      gst_enrollment_number: path === "enrollment" ? f.gst_enrollment_number : "",
+      gst_doc_photo_url: null,
+    }));
+    setErrors((e) => {
+      const next = { ...e };
+      delete next.gst_number;
+      delete next.gst_enrollment_number;
+      delete next.gst_doc_photo;
+      return next;
+    });
   };
 
   const validateBank = (): boolean => {
@@ -101,17 +189,41 @@ export function WalletWithdrawWizard({
       e.aadhaar_number = "Enter a valid 12-digit Aadhaar number.";
     }
 
-    const gst = (form.gst_number ?? "").trim().toUpperCase();
-    const enrollment = (form.gst_enrollment_number ?? "").trim().toUpperCase();
+    if (gstPath === "gst") {
+      const gst = (form.gst_number ?? "").trim().toUpperCase();
+      if (!gst) {
+        e.gst_number = "GST number is required.";
+      } else if (!VALIDATION_RULES.gst_number.pattern.test(gst)) {
+        e.gst_number = "Enter a valid 15-character GSTIN.";
+      }
+    } else {
+      const enrollment = (form.gst_enrollment_number ?? "").trim().toUpperCase();
+      if (!enrollment) {
+        e.gst_enrollment_number = "GST enrollment number is required.";
+      } else if (!/^[A-Z0-9]{8,20}$/.test(enrollment)) {
+        e.gst_enrollment_number =
+          "Enter a valid enrollment number (8–20 characters).";
+      }
+    }
 
-    if (gst && !VALIDATION_RULES.gst_number.pattern.test(gst)) {
-      e.gst_number = "Enter a valid 15-character GSTIN.";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const validateDocuments = (): boolean => {
+    const e: Record<string, string> = {};
+
+    if (!form.pan_doc_photo_url) {
+      e.pan_doc_photo = "PAN card photo is required.";
     }
-    if (enrollment && !/^[A-Z0-9]{8,20}$/.test(enrollment)) {
-      e.gst_enrollment_number = "Enter a valid enrollment number (8–20 characters).";
+    if (!form.aadhaar_doc_photo_url) {
+      e.aadhaar_doc_photo = "Aadhaar card photo is required.";
     }
-    if (gst && enrollment) {
-      e.gst_number = "Provide either GST number or enrollment number, not both.";
+    if (!form.gst_doc_photo_url) {
+      e.gst_doc_photo =
+        gstPath === "gst"
+          ? "GST certificate photo is required."
+          : "GST enrollment certificate photo is required.";
     }
 
     setErrors(e);
@@ -122,16 +234,22 @@ export function WalletWithdrawWizard({
     ...form,
     ifsc_code: form.ifsc_code.toUpperCase(),
     pan_number: form.pan_number.toUpperCase(),
-    gst_number: form.gst_number?.trim() ? form.gst_number.toUpperCase() : undefined,
-    gst_enrollment_number: form.gst_enrollment_number?.trim()
-      ? form.gst_enrollment_number.toUpperCase()
-      : undefined,
+    gst_number:
+      gstPath === "gst" && form.gst_number?.trim()
+        ? form.gst_number.toUpperCase()
+        : undefined,
+    gst_enrollment_number:
+      gstPath === "enrollment" && form.gst_enrollment_number?.trim()
+        ? form.gst_enrollment_number.toUpperCase()
+        : undefined,
     gst_doc_photo_url: form.gst_doc_photo_url || undefined,
     pan_doc_photo_url: form.pan_doc_photo_url || undefined,
     aadhaar_doc_photo_url: form.aadhaar_doc_photo_url || undefined,
   });
 
   const handleSaveAndCheck = async () => {
+    if (!validateDocuments()) return;
+
     setLoading(true);
     setSubmitError(null);
     try {
@@ -171,32 +289,32 @@ export function WalletWithdrawWizard({
   };
 
   const eligibility = checkResult?.eligibility;
-  const hasGst = Boolean(form.gst_number?.trim());
-  const hasEnrollment = Boolean(form.gst_enrollment_number?.trim());
 
-  const stepIndicator = (
-    <p className="text-xs text-muted-foreground">
-      Step{" "}
-      {step === "bank"
-        ? "1"
-        : step === "identity"
-          ? "2"
-          : step === "documents"
-            ? "3"
-            : "4"}{" "}
-      of 4
-    </p>
+  const stepNumber =
+    step === "bank" ? 1 : step === "identity" ? 2 : step === "documents" ? 3 : 4;
+
+  const stepFooter = (buttons: React.ReactNode) => (
+    <div className="sticky bottom-0 -mx-1 mt-4 border-t border-border/60 bg-card/95 pt-4 backdrop-blur-sm">
+      {buttons}
+    </div>
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={STEP_TITLES[step]}>
-      {step !== "done" && step !== "review" ? stepIndicator : null}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={STEP_TITLES[step]}
+      scrollable
+      maxWidthClass="max-w-lg"
+    >
+      {step !== "done" && step !== "review" ? (
+        <p className="mb-4 text-xs text-muted-foreground">Step {stepNumber} of 4</p>
+      ) : null}
 
       {step === "bank" ? (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            Enter your bank account details for payout. You can complete identity
-            and documents in the next steps.
+            Enter your bank account details for payout.
           </p>
           <Input
             label="Account holder name"
@@ -240,27 +358,29 @@ export function WalletWithdrawWizard({
           {errors.ifsc_code ? (
             <p className="text-xs text-loss -mt-2">{errors.ifsc_code}</p>
           ) : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                if (validateBank()) setStep("identity");
-              }}
-            >
-              Continue
-            </Button>
-          </div>
+          {stepFooter(
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (validateBank()) setStep("identity");
+                }}
+              >
+                Continue
+              </Button>
+            </div>,
+          )}
         </div>
       ) : null}
 
       {step === "identity" ? (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            PAN and Aadhaar are required. GST number or GST enrollment number is
-            optional.
+            PAN and Aadhaar are required. Provide either a GST number or a GST
+            enrollment number if you are not GST registered.
           </p>
           <Input
             label="PAN"
@@ -285,103 +405,151 @@ export function WalletWithdrawWizard({
           {errors.aadhaar_number ? (
             <p className="text-xs text-loss -mt-2">{errors.aadhaar_number}</p>
           ) : null}
-          <Input
-            label="GST number (optional)"
-            value={form.gst_number ?? ""}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                gst_number: e.target.value.toUpperCase().slice(0, 15),
-                gst_enrollment_number: e.target.value ? "" : f.gst_enrollment_number,
-              }))
-            }
-            disabled={hasEnrollment}
-          />
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">GST status</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => selectGstPath("gst")}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-sm transition-colors",
+                  gstPath === "gst"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground hover:border-border/80",
+                )}
+              >
+                I have GST
+              </button>
+              <button
+                type="button"
+                onClick={() => selectGstPath("enrollment")}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-sm transition-colors",
+                  gstPath === "enrollment"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground hover:border-border/80",
+                )}
+              >
+                No GST (enrollment)
+              </button>
+            </div>
+          </div>
+
+          {gstPath === "gst" ? (
+            <Input
+              label="GST number"
+              value={form.gst_number ?? ""}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  gst_number: e.target.value.toUpperCase().slice(0, 15),
+                }))
+              }
+            />
+          ) : (
+            <>
+              <GstEnrollmentHelpPanel />
+              <Input
+                label="GST enrollment number"
+                value={form.gst_enrollment_number ?? ""}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    gst_enrollment_number: e.target.value
+                      .toUpperCase()
+                      .slice(0, 20),
+                  }))
+                }
+              />
+            </>
+          )}
           {errors.gst_number ? (
             <p className="text-xs text-loss -mt-2">{errors.gst_number}</p>
           ) : null}
-          <Input
-            label="GST enrollment number (optional)"
-            value={form.gst_enrollment_number ?? ""}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                gst_enrollment_number: e.target.value.toUpperCase().slice(0, 20),
-                gst_number: e.target.value ? "" : f.gst_number,
-              }))
-            }
-            disabled={hasGst}
-          />
           {errors.gst_enrollment_number ? (
             <p className="text-xs text-loss -mt-2">{errors.gst_enrollment_number}</p>
           ) : null}
-          <div className="flex justify-between gap-2">
-            <Button type="button" variant="secondary" onClick={() => setStep("bank")}>
-              Back
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                if (validateIdentity()) setStep("documents");
-              }}
-            >
-              Continue
-            </Button>
-          </div>
+
+          {stepFooter(
+            <div className="flex justify-between gap-2">
+              <Button type="button" variant="secondary" onClick={() => setStep("bank")}>
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (validateIdentity()) setStep("documents");
+                }}
+              >
+                Continue
+              </Button>
+            </div>,
+          )}
         </div>
       ) : null}
 
       {step === "documents" ? (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            Upload supporting documents (optional). Your details will be saved
-            when you continue. Withdrawal can only be submitted after referral
-            targets are met.
+            Upload clear photos of all required documents. Withdrawal can only be
+            submitted after referral targets are met.
           </p>
           <PhotoCapture
-            label="PAN card photo (optional)"
+            label="PAN card photo"
             value={form.pan_doc_photo_url ?? null}
             onChange={(url) => setForm((f) => ({ ...f, pan_doc_photo_url: url }))}
-            hint="Clear photo of the PAN card front."
+            required
+            error={errors.pan_doc_photo}
+            hint="Required. Front side of PAN card, all text legible."
           />
           <PhotoCapture
-            label="Aadhaar card photo (optional)"
+            label="Aadhaar card photo"
             value={form.aadhaar_doc_photo_url ?? null}
             onChange={(url) =>
               setForm((f) => ({ ...f, aadhaar_doc_photo_url: url }))
             }
-            hint="Clear photo of the Aadhaar card front."
+            required
+            error={errors.aadhaar_doc_photo}
+            hint="Required. Front side of Aadhaar card."
           />
-          {(hasGst || hasEnrollment) && (
-            <PhotoCapture
-              label={
-                hasGst
-                  ? "GST certificate photo (optional)"
-                  : "GST enrollment certificate photo (optional)"
-              }
-              value={form.gst_doc_photo_url ?? null}
-              onChange={(url) => setForm((f) => ({ ...f, gst_doc_photo_url: url }))}
-              hint="Certificate or official letter showing GST registration or enrollment."
-            />
-          )}
+          {gstPath === "enrollment" ? <GstEnrollmentHelpPanel /> : null}
+          <PhotoCapture
+            label={
+              gstPath === "gst"
+                ? "GST certificate photo"
+                : "GST enrollment certificate photo"
+            }
+            value={form.gst_doc_photo_url ?? null}
+            onChange={(url) => setForm((f) => ({ ...f, gst_doc_photo_url: url }))}
+            required
+            error={errors.gst_doc_photo}
+            hint={
+              gstPath === "gst"
+                ? "Required. GST registration certificate or official printout."
+                : "Required. Official GST enrollment letter or certificate from the portal."
+            }
+          />
           {submitError ? <p className="text-sm text-loss">{submitError}</p> : null}
-          <div className="flex justify-between gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setStep("identity")}
-            >
-              Back
-            </Button>
-            <Button type="button" onClick={handleSaveAndCheck} disabled={loading}>
-              {loading ? "Saving…" : "Save & continue"}
-            </Button>
-          </div>
+          {stepFooter(
+            <div className="flex justify-between gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setStep("identity")}
+              >
+                Back
+              </Button>
+              <Button type="button" onClick={handleSaveAndCheck} disabled={loading}>
+                {loading ? "Saving…" : "Save & continue"}
+              </Button>
+            </div>,
+          )}
         </div>
       ) : null}
 
       {step === "review" && eligibility ? (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
             Your payout details have been saved. Available balance:{" "}
             {formatINR(checkResult?.available_balance ?? 0)}
@@ -430,22 +598,24 @@ export function WalletWithdrawWizard({
           {submitError ? (
             <p className="text-sm text-loss">{submitError}</p>
           ) : null}
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setStep("documents")}
-            >
-              Back
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading || !checkResult?.can_submit}
-            >
-              {loading ? "Submitting…" : "Submit withdrawal request"}
-            </Button>
-          </div>
+          {stepFooter(
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setStep("documents")}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading || !checkResult?.can_submit}
+              >
+                {loading ? "Submitting…" : "Submit withdrawal request"}
+              </Button>
+            </div>,
+          )}
         </div>
       ) : null}
 
