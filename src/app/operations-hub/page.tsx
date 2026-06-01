@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { useToastStore } from "@/lib/stores/toast.store";
 import {
   listOpsHubPlans,
@@ -28,6 +29,32 @@ function normalizeIndianMobileInput(value: string): string {
   }
 
   return digits;
+}
+
+function formatPriceCycle(cycle: string): string {
+  if (cycle === "monthly") return "mo";
+  if (cycle === "yearly") return "yr";
+  if (cycle === "one_time") return "once";
+  return cycle;
+}
+
+function formatPlanPrice(plan: OpsHubPlan): string {
+  const amount = plan.price_amount.toLocaleString("en-IN", {
+    maximumFractionDigits: 0,
+  });
+  return `₹${amount}/${formatPriceCycle(plan.price_cycle)}`;
+}
+
+function formatPlanLocations(max: number | null | undefined): string {
+  if (max == null || max <= 0) {
+    return "Unlimited merchants";
+  }
+  return `Up to ${max} merchant${max === 1 ? "" : "s"}`;
+}
+
+/** Single-line label for the plan dropdown. */
+function formatPlanOptionLabel(plan: OpsHubPlan): string {
+  return `${plan.name} — ${formatPlanPrice(plan)} · ${plan.commission_share_percentage}% commission · ${formatPlanLocations(plan.max_merchant_locations)}`;
 }
 
 function extractErrorMessage(error: unknown, fallback: string): string {
@@ -56,6 +83,20 @@ export default function OperationsHubPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const cleanMobile = useMemo(() => normalizeIndianMobileInput(mobile), [mobile]);
+
+  const selectedPlan = useMemo(
+    () => plans.find((plan) => String(plan.id) === planId) ?? null,
+    [plans, planId],
+  );
+
+  const planOptions = useMemo(
+    () =>
+      plans.map((plan) => ({
+        value: String(plan.id),
+        label: formatPlanOptionLabel(plan),
+      })),
+    [plans],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -304,23 +345,29 @@ export default function OperationsHubPage() {
           <label htmlFor="ops-hub-plan" className="text-sm font-medium text-foreground">
             Plan interested in
           </label>
-          <select
+          <Select
             id="ops-hub-plan"
             value={planId}
-            onChange={(e) => setPlanId(e.target.value)}
+            onChange={setPlanId}
+            options={planOptions}
+            placeholder={loadingPlans ? "Loading plans…" : "No plans available"}
             disabled={loadingPlans || plans.length === 0}
             required
-            className="min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
-          >
-            {plans.map((plan) => (
-              <option key={plan.id} value={plan.id}>
-                {plan.name}
-                {plan.price_amount != null
-                  ? ` — ₹${plan.price_amount}/${plan.price_cycle ?? "month"}`
-                  : ""}
-              </option>
-            ))}
-          </select>
+            className="min-h-11"
+          />
+          {selectedPlan ? (
+            <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">{selectedPlan.name}</p>
+              <ul className="mt-1 space-y-0.5">
+                <li>Price: {formatPlanPrice(selectedPlan)}</li>
+                <li>Commission share: {selectedPlan.commission_share_percentage}%</li>
+                <li>{formatPlanLocations(selectedPlan.max_merchant_locations)}</li>
+              </ul>
+              {selectedPlan.description ? (
+                <p className="mt-2 leading-relaxed">{selectedPlan.description}</p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <Button

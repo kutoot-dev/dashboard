@@ -7,7 +7,7 @@ export interface OpsHubPlan {
   price_amount: number;
   price_cycle: string;
   commission_share_percentage: number;
-  max_merchant_locations: number;
+  max_merchant_locations: number | null;
   description?: string | null;
 }
 
