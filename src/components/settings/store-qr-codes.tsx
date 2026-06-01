@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { AxiosResponse } from "axios";
-import { downloadMerchantQrCode, getMerchantQrCodes } from "@/lib/api/services/merchant.service";
+import {
+  downloadMerchantQrCode,
+  fetchMerchantQrSticker,
+  getMerchantQrCodes,
+} from "@/lib/api/services/merchant.service";
 import { ApiError } from "@/lib/api/client";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 import { useToastStore } from "@/lib/stores/toast.store";
@@ -44,6 +48,77 @@ function triggerDownload(response: AxiosResponse<Blob>, fallbackName: string): s
   return fileName;
 }
 
+function QrStickerPreview({
+  branchId,
+  qrCodeId,
+  uniqueCode,
+  alt,
+}: {
+  branchId: string;
+  qrCodeId: number;
+  uniqueCode: string;
+  alt: string;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+
+    setFailed(false);
+    setPreviewUrl(null);
+
+    fetchMerchantQrSticker(branchId, qrCodeId, "preview")
+      .then((response) => {
+        if (!active) {
+          return;
+        }
+        objectUrl = URL.createObjectURL(response.data);
+        setPreviewUrl(objectUrl);
+      })
+      .catch(() => {
+        if (active) {
+          setFailed(true);
+        }
+      });
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [branchId, qrCodeId]);
+
+  if (failed) {
+    return (
+      <div className="flex h-[300px] w-[200px] items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/30 px-3 text-center text-xs text-muted-foreground">
+        Preview unavailable
+      </div>
+    );
+  }
+
+  if (!previewUrl) {
+    return (
+      <div
+        className="h-[300px] w-[200px] animate-pulse rounded-xl bg-muted/50"
+        aria-label={`Loading preview for ${uniqueCode}`}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={previewUrl}
+      alt={alt}
+      className="h-auto w-[200px] rounded-xl border border-border/60 shadow-sm"
+      width={200}
+      height={300}
+    />
+  );
+}
+
 interface StoreQrCodesProps {
   branchId: string;
 }
@@ -68,7 +143,7 @@ export function StoreQrCodes({ branchId }: StoreQrCodesProps) {
       const response = await downloadMerchantQrCode(branchId, qrCodeId);
       const fileName = triggerDownload(response, `kutoot-qr-${uniqueCode}.png`);
       pushToast({
-        title: "QR code downloaded",
+        title: "QR sticker downloaded",
         description: fileName,
         variant: "success",
       });
@@ -85,56 +160,71 @@ export function StoreQrCodes({ branchId }: StoreQrCodesProps) {
       <div>
         <h2 className="text-lg font-semibold text-foreground">Store QR codes</h2>
         <p className="text-sm text-muted-foreground">
-          Download the QR codes linked to this branch for printing or display in your store.
+          Preview and download your Kutoot QR stickers (same layout as the printed standee) for
+          display in your store.
         </p>
       </div>
 
-      <Card className="space-y-3">
-        {showSkeleton && <ProfileRowsSkeleton rows={2} />}
+      <div className="space-y-4">
+        {showSkeleton && (
+          <Card className="p-4">
+            <ProfileRowsSkeleton rows={2} />
+          </Card>
+        )}
 
         {!showSkeleton && qrQuery.isError && (
-          <p className="text-sm text-muted-foreground">
+          <Card className="p-4 text-sm text-muted-foreground">
             Unable to load QR codes right now. Please refresh the page.
-          </p>
+          </Card>
         )}
 
         {!showSkeleton && !qrQuery.isError && qrCodes.length === 0 && (
-          <p className="text-sm text-muted-foreground">
+          <Card className="p-4 text-sm text-muted-foreground">
             No QR codes are linked to this store yet. Contact Kutoot support if you need a QR
             assigned.
-          </p>
+          </Card>
         )}
 
         {!showSkeleton &&
           qrCodes.map((qr) => (
-            <div
-              key={qr.id}
-              className="flex flex-col gap-3 border-b border-border/60 pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0 space-y-1 text-sm">
-                <p className="font-medium text-foreground">
-                  {qr.unique_code}
-                  {qr.is_primary ? (
-                    <span className="ml-2 rounded-md bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
-                      Primary
-                    </span>
-                  ) : null}
-                </p>
-                <p className="truncate text-muted-foreground">{qr.short_url}</p>
+            <Card key={qr.id} className="p-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                  <QrStickerPreview
+                    branchId={branchId}
+                    qrCodeId={qr.id}
+                    uniqueCode={qr.unique_code}
+                    alt={`QR sticker ${qr.unique_code}`}
+                  />
+                  <div className="space-y-1 text-center sm:text-left">
+                    <p className="text-sm font-semibold text-foreground">
+                      {qr.unique_code}
+                      {qr.is_primary ? (
+                        <span className="ml-2 rounded-md bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
+                          Primary
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Print-quality download includes the Kutoot background and centered QR.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0 self-center lg:self-start"
+                  loading={downloadingId === qr.id}
+                  onClick={() => handleDownload(qr.id, qr.unique_code)}
+                >
+                  Download sticker
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="shrink-0"
-                loading={downloadingId === qr.id}
-                onClick={() => handleDownload(qr.id, qr.unique_code)}
-              >
-                Download PNG
-              </Button>
-            </div>
+            </Card>
           ))}
-      </Card>
+      </div>
     </section>
   );
 }

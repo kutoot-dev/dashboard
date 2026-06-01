@@ -64,7 +64,6 @@ export interface MerchantQrCode {
   id: number;
   unique_code: string;
   is_primary: boolean;
-  short_url: string;
   linked_at: string | null;
 }
 
@@ -226,10 +225,20 @@ export async function getMerchantQrCodes(branchId: string) {
   return res.data;
 }
 
-export async function downloadMerchantQrCode(branchId: string, qrCodeId: number) {
-  return apiClient.get(`/merchant/${branchId}/qr-codes/${qrCodeId}/download`, {
+export async function fetchMerchantQrSticker(
+  branchId: string,
+  qrCodeId: number,
+  variant: "preview" | "download" = "preview",
+) {
+  return apiClient.get(`/merchant/${branchId}/qr-codes/${qrCodeId}/sticker`, {
+    params: { variant },
     responseType: "blob",
   });
+}
+
+/** @deprecated Use fetchMerchantQrSticker with variant=download */
+export async function downloadMerchantQrCode(branchId: string, qrCodeId: number) {
+  return fetchMerchantQrSticker(branchId, qrCodeId, "download");
 }
 
 // ── Transactions ─────────────────────────────────────────────────────────────
