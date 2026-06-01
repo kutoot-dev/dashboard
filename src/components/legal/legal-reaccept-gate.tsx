@@ -1,10 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { LegalDocumentSummary, PendingLegalAcceptance } from "@/lib/types";
 import { LegalDocumentModal } from "@/components/onboarding/legal-document-modal";
 import { useLegalStatus } from "@/lib/hooks/use-legal-documents";
-import { getRequiredLegalDocuments } from "@/lib/api/services/legal.service";
+import {
+  getLegalDocument,
+  getRequiredLegalDocuments,
+} from "@/lib/api/services/legal.service";
 
 type LegalReacceptGateProps = {
   children: React.ReactNode;
@@ -17,20 +21,43 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
     doc: LegalDocumentSummary;
     applicationId: string;
   } | null>(null);
+  const [openingKey, setOpeningKey] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<string | null>(null);
 
   const blocking = !isLoading && pending.length > 0;
 
   const openNext = async (item: PendingLegalAcceptance) => {
-    const required = await getRequiredLegalDocuments(String(item.merchant_location_id));
-    const match = required.data?.find((d) => d.id === item.document_id)
-      ?? required.data?.find((d) => d.slug === item.slug);
-    if (!match) {
-      return;
+    const itemKey = `${item.merchant_location_id}-${item.document_id}`;
+    setOpenError(null);
+    setOpeningKey(itemKey);
+
+    try {
+      const required = await getRequiredLegalDocuments(String(item.merchant_location_id));
+      let match =
+        required.data?.find((d) => d.id === item.document_id) ??
+        required.data?.find((d) => d.slug === item.slug);
+
+      if (!match) {
+        const detail = await getLegalDocument(item.document_id);
+        if (detail.success && detail.data) {
+          match = detail.data;
+        }
+      }
+
+      if (!match) {
+        setOpenError("Could not load this agreement. Please refresh and try again.");
+        return;
+      }
+
+      setActive({
+        doc: match,
+        applicationId: String(item.merchant_location_id),
+      });
+    } catch {
+      setOpenError("Could not load this agreement. Please check your connection and try again.");
+    } finally {
+      setOpeningKey(null);
     }
-    setActive({
-      doc: match,
-      applicationId: String(item.merchant_location_id),
-    });
   };
 
   const headline = useMemo(() => {
@@ -53,22 +80,34 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
           <p className="mt-1 text-xs text-muted-foreground">
             Please read each document in full and accept to continue using the merchant portal.
           </p>
+          {openError ? (
+            <p className="mt-3 text-sm text-error" role="alert">
+              {openError}
+            </p>
+          ) : null}
           <ul className="mt-4 space-y-2">
-            {pending.map((item) => (
-              <li
-                key={`${item.merchant_location_id}-${item.document_id}`}
-                className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
-              >
-                <span className="text-sm text-foreground">{item.title}</span>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-accent underline"
-                  onClick={() => void openNext(item)}
+            {pending.map((item) => {
+              const itemKey = `${item.merchant_location_id}-${item.document_id}`;
+              const isOpening = openingKey === itemKey;
+
+              return (
+                <li
+                  key={itemKey}
+                  className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                 >
-                  Read &amp; accept
-                </button>
-              </li>
-            ))}
+                  <span className="text-sm text-foreground">{item.title}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={isOpening}
+                    disabled={openingKey != null}
+                    onClick={() => void openNext(item)}
+                  >
+                    Read &amp; accept
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
@@ -78,6 +117,7 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
           document={active.doc}
           applicationId={active.applicationId}
           context="merchant_portal"
+          overlayClassName="z-[80]"
           onClose={() => setActive(null)}
           onAccepted={() => {
             setActive(null);
@@ -85,7 +125,6 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
           }}
         />
       ) : null}
-      <div className="pointer-events-none opacity-30">{children}</div>
     </>
   );
 }

@@ -13,6 +13,7 @@ type LegalDocumentModalProps = {
   document: LegalDocumentSummary | null;
   applicationId: string;
   context?: "onboarding" | "merchant_portal";
+  overlayClassName?: string;
   onClose: () => void;
   onAccepted: () => void;
 };
@@ -22,6 +23,7 @@ export function LegalDocumentModal({
   document: docSummary,
   applicationId,
   context = "onboarding",
+  overlayClassName = "z-[60]",
   onClose,
   onAccepted,
 }: LegalDocumentModalProps) {
@@ -78,7 +80,7 @@ export function LegalDocumentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className={`fixed inset-0 flex items-center justify-center p-4 ${overlayClassName}`}>
       <div
         className="absolute inset-0 bg-dark/80 backdrop-blur-md"
         onClick={onClose}
