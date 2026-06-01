@@ -5,7 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PhotoCapture } from "@/components/onboarding/photo-capture";
+import { DocumentUpload } from "@/components/wallet/document-upload";
 import { VALIDATION_RULES } from "@/lib/constants/onboarding";
 import {
   getPayoutDetails,
@@ -587,44 +587,44 @@ export function WalletWithdrawWizard({
       {!initialLoading && step === "documents" ? (
         <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            Upload clear photos of all required documents. They are saved to your
+            Upload clear photos or PDFs of all required documents. They are saved to your
             store profile. You can close and submit the withdrawal later once
             referral targets are met.
           </p>
-          <PhotoCapture
-            label="PAN card photo"
+          <DocumentUpload
+            label="PAN card document"
             value={form.pan_doc_photo_url ?? null}
             onChange={(url) => setForm((f) => ({ ...f, pan_doc_photo_url: url }))}
             required
             error={errors.pan_doc_photo}
-            hint="Required. Front side of PAN card, all text legible."
+            hint="Required. Photo or PDF of PAN card (front), all text legible."
           />
-          <PhotoCapture
-            label="Aadhaar card photo"
+          <DocumentUpload
+            label="Aadhaar card document"
             value={form.aadhaar_doc_photo_url ?? null}
             onChange={(url) =>
               setForm((f) => ({ ...f, aadhaar_doc_photo_url: url }))
             }
             required
             error={errors.aadhaar_doc_photo}
-            hint="Required. Front side of Aadhaar card."
+            hint="Required. Photo or PDF of Aadhaar card (front)."
           />
           {gstPath !== "none" ? (
             <>
               {gstPath === "enrollment" ? <GstEnrollmentHelpPanel /> : null}
-              <PhotoCapture
+              <DocumentUpload
                 label={
                   gstPath === "gst"
-                    ? "GST certificate photo (optional)"
-                    : "GST enrollment certificate photo (optional)"
+                    ? "GST certificate (optional)"
+                    : "GST enrollment certificate (optional)"
                 }
                 value={form.gst_doc_photo_url ?? null}
                 onChange={(url) => setForm((f) => ({ ...f, gst_doc_photo_url: url }))}
                 error={errors.gst_doc_photo}
                 hint={
                   gstPath === "gst"
-                    ? "Optional. GST registration certificate or official printout."
-                    : "Optional. Official GST enrollment letter or certificate from the portal."
+                    ? "Optional. Photo or PDF of GST registration certificate."
+                    : "Optional. Photo or PDF of GST enrollment letter from the portal."
                 }
               />
             </>
