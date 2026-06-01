@@ -58,7 +58,10 @@ export async function acceptLegalDocument(payload: {
         }
       : await collectLegalAcceptanceMetadata();
 
-  const res = await apiClient.post<ApiResponse<LegalAcceptResult>>("/legal/accept", {
+  const acceptPath =
+    payload.context === "merchant_portal" ? "/legal/portal/accept" : "/legal/accept";
+
+  const res = await apiClient.post<ApiResponse<LegalAcceptResult>>(acceptPath, {
     ...payload,
     ...metadata,
   });
