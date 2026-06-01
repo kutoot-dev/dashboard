@@ -28,7 +28,7 @@ interface WalletWithdrawWizardProps {
 }
 
 type WizardStep = "bank" | "identity" | "documents" | "review" | "done";
-type GstPath = "gst" | "enrollment";
+type GstPath = "none" | "gst" | "enrollment";
 
 const emptyForm: WithdrawPayoutInput = {
   bank_account_name: "",
@@ -140,7 +140,7 @@ export function WalletWithdrawWizard({
   onSuccess,
 }: WalletWithdrawWizardProps) {
   const [step, setStep] = useState<WizardStep>("bank");
-  const [gstPath, setGstPath] = useState<GstPath>("gst");
+  const [gstPath, setGstPath] = useState<GstPath>("none");
   const [form, setForm] = useState<WithdrawPayoutInput>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkResult, setCheckResult] = useState<WithdrawCheckResult | null>(null);
@@ -151,7 +151,7 @@ export function WalletWithdrawWizard({
 
   const reset = () => {
     setStep("bank");
-    setGstPath("gst");
+    setGstPath("none");
     setForm(emptyForm);
     setErrors({});
     setCheckResult(null);
@@ -224,6 +224,7 @@ export function WalletWithdrawWizard({
       ...f,
       gst_number: path === "gst" ? f.gst_number : "",
       gst_enrollment_number: path === "enrollment" ? f.gst_enrollment_number : "",
+      gst_doc_photo_url: path === "none" ? null : f.gst_doc_photo_url,
     }));
     setErrors((e) => {
       const next = { ...e };
@@ -260,21 +261,16 @@ export function WalletWithdrawWizard({
       e.aadhaar_number = "Enter a valid 12-digit Aadhaar number.";
     }
 
-    if (gstPath === "gst") {
-      const gst = (form.gst_number ?? "").trim().toUpperCase();
-      if (!gst) {
-        e.gst_number = "GST number is required.";
-      } else if (!VALIDATION_RULES.gst_number.pattern.test(gst)) {
-        e.gst_number = "Enter a valid 15-character GSTIN.";
-      }
-    } else {
-      const enrollment = (form.gst_enrollment_number ?? "").trim().toUpperCase();
-      if (!enrollment) {
-        e.gst_enrollment_number = "GST enrollment number is required.";
-      } else if (!/^[A-Z0-9]{8,20}$/.test(enrollment)) {
-        e.gst_enrollment_number =
-          "Enter a valid enrollment number (8–20 characters).";
-      }
+    const gst = (form.gst_number ?? "").trim().toUpperCase();
+    const enrollment = (form.gst_enrollment_number ?? "").trim().toUpperCase();
+
+    if (gst && enrollment) {
+      e.gst_number = "Provide either a GST number or enrollment number, not both.";
+    } else if (gst && !VALIDATION_RULES.gst_number.pattern.test(gst)) {
+      e.gst_number = "Enter a valid 15-character GSTIN.";
+    } else if (enrollment && !/^[A-Z0-9]{8,20}$/.test(enrollment)) {
+      e.gst_enrollment_number =
+        "Enter a valid enrollment number (8–20 characters).";
     }
 
     setErrors(e);
@@ -290,13 +286,6 @@ export function WalletWithdrawWizard({
     if (!form.aadhaar_doc_photo_url) {
       e.aadhaar_doc_photo = "Aadhaar card photo is required.";
     }
-    if (!form.gst_doc_photo_url) {
-      e.gst_doc_photo =
-        gstPath === "gst"
-          ? "GST certificate photo is required."
-          : "GST enrollment certificate photo is required.";
-    }
-
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -305,14 +294,10 @@ export function WalletWithdrawWizard({
     ...form,
     ifsc_code: form.ifsc_code.toUpperCase(),
     pan_number: form.pan_number.toUpperCase(),
-    gst_number:
-      gstPath === "gst" && form.gst_number?.trim()
-        ? form.gst_number.toUpperCase()
-        : undefined,
-    gst_enrollment_number:
-      gstPath === "enrollment" && form.gst_enrollment_number?.trim()
-        ? form.gst_enrollment_number.toUpperCase()
-        : undefined,
+    gst_number: form.gst_number?.trim() ? form.gst_number.toUpperCase() : undefined,
+    gst_enrollment_number: form.gst_enrollment_number?.trim()
+      ? form.gst_enrollment_number.toUpperCase()
+      : undefined,
     gst_doc_photo_url: form.gst_doc_photo_url || undefined,
     pan_doc_photo_url: form.pan_doc_photo_url || undefined,
     aadhaar_doc_photo_url: form.aadhaar_doc_photo_url || undefined,
@@ -474,8 +459,8 @@ export function WalletWithdrawWizard({
       {!initialLoading && step === "identity" ? (
         <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            PAN and Aadhaar are required. Provide either a GST number or a GST
-            enrollment number if you are not GST registered.
+            PAN and Aadhaar are required. GST number and enrollment details are
+            optional.
           </p>
           <Input
             label="PAN"
@@ -502,8 +487,22 @@ export function WalletWithdrawWizard({
           ) : null}
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">GST status</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-sm font-medium text-foreground">
+              GST details <span className="font-normal text-muted-foreground">(optional)</span>
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => selectGstPath("none")}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-sm transition-colors",
+                  gstPath === "none"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground hover:border-border/80",
+                )}
+              >
+                Skip GST
+              </button>
               <button
                 type="button"
                 onClick={() => selectGstPath("gst")}
@@ -526,14 +525,14 @@ export function WalletWithdrawWizard({
                     : "border-border text-muted-foreground hover:border-border/80",
                 )}
               >
-                No GST (enrollment)
+                Enrollment only
               </button>
             </div>
           </div>
 
           {gstPath === "gst" ? (
             <Input
-              label="GST number"
+              label="GST number (optional)"
               value={form.gst_number ?? ""}
               onChange={(e) =>
                 setForm((f) => ({
@@ -542,11 +541,12 @@ export function WalletWithdrawWizard({
                 }))
               }
             />
-          ) : (
+          ) : null}
+          {gstPath === "enrollment" ? (
             <>
               <GstEnrollmentHelpPanel />
               <Input
-                label="GST enrollment number"
+                label="GST enrollment number (optional)"
                 value={form.gst_enrollment_number ?? ""}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -558,7 +558,7 @@ export function WalletWithdrawWizard({
                 }
               />
             </>
-          )}
+          ) : null}
           {errors.gst_number ? (
             <p className="text-xs text-loss -mt-2">{errors.gst_number}</p>
           ) : null}
@@ -609,23 +609,26 @@ export function WalletWithdrawWizard({
             error={errors.aadhaar_doc_photo}
             hint="Required. Front side of Aadhaar card."
           />
-          {gstPath === "enrollment" ? <GstEnrollmentHelpPanel /> : null}
-          <PhotoCapture
-            label={
-              gstPath === "gst"
-                ? "GST certificate photo"
-                : "GST enrollment certificate photo"
-            }
-            value={form.gst_doc_photo_url ?? null}
-            onChange={(url) => setForm((f) => ({ ...f, gst_doc_photo_url: url }))}
-            required
-            error={errors.gst_doc_photo}
-            hint={
-              gstPath === "gst"
-                ? "Required. GST registration certificate or official printout."
-                : "Required. Official GST enrollment letter or certificate from the portal."
-            }
-          />
+          {gstPath !== "none" ? (
+            <>
+              {gstPath === "enrollment" ? <GstEnrollmentHelpPanel /> : null}
+              <PhotoCapture
+                label={
+                  gstPath === "gst"
+                    ? "GST certificate photo (optional)"
+                    : "GST enrollment certificate photo (optional)"
+                }
+                value={form.gst_doc_photo_url ?? null}
+                onChange={(url) => setForm((f) => ({ ...f, gst_doc_photo_url: url }))}
+                error={errors.gst_doc_photo}
+                hint={
+                  gstPath === "gst"
+                    ? "Optional. GST registration certificate or official printout."
+                    : "Optional. Official GST enrollment letter or certificate from the portal."
+                }
+              />
+            </>
+          ) : null}
           {submitError ? <p className="text-sm text-loss">{submitError}</p> : null}
           {saveSuccess ? (
             <p className="text-sm text-success">{saveSuccess}</p>

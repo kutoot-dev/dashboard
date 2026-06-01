@@ -46,7 +46,7 @@ export interface WithdrawCheckResult {
 export interface WalletPayoutDetailsResponse {
   payout: WithdrawPayoutInput;
   payout_kyc_saved: boolean;
-  gst_path: "gst" | "enrollment";
+  gst_path: "none" | "gst" | "enrollment";
 }
 
 export interface WithdrawPayoutInput {
