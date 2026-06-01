@@ -58,10 +58,9 @@ export async function acceptLegalDocument(payload: {
         }
       : await collectLegalAcceptanceMetadata();
 
-  const acceptPath =
-    payload.context === "merchant_portal" ? "/legal/portal/accept" : "/legal/accept";
-
-  const res = await apiClient.post<ApiResponse<LegalAcceptResult>>(acceptPath, {
+  // Portal re-accept is keyed off `context: merchant_portal` in the body. The dedicated
+  // POST /legal/portal/accept route exists on newer backends but is not on dev yet.
+  const res = await apiClient.post<ApiResponse<LegalAcceptResult>>("/legal/accept", {
     ...payload,
     ...metadata,
   });
