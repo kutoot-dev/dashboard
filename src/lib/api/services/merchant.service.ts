@@ -60,6 +60,14 @@ export interface OnboardingProfile {
   sections: OnboardingProfileSection[];
 }
 
+export interface MerchantQrCode {
+  id: number;
+  unique_code: string;
+  is_primary: boolean;
+  short_url: string;
+  linked_at: string | null;
+}
+
 export interface StoreProfile {
   id: number;
   name: string;
@@ -209,6 +217,19 @@ export async function getOnboardingProfile(branchId: string) {
     `/merchant/${branchId}/store/onboarding-profile`,
   );
   return res.data;
+}
+
+export async function getMerchantQrCodes(branchId: string) {
+  const res = await apiClient.get<ApiResponse<{ qr_codes: MerchantQrCode[] }>>(
+    `/merchant/${branchId}/qr-codes`,
+  );
+  return res.data;
+}
+
+export async function downloadMerchantQrCode(branchId: string, qrCodeId: number) {
+  return apiClient.get(`/merchant/${branchId}/qr-codes/${qrCodeId}/download`, {
+    responseType: "blob",
+  });
 }
 
 // ── Transactions ─────────────────────────────────────────────────────────────

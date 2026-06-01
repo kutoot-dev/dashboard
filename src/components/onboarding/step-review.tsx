@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
+import { LegalAcceptanceBlock } from "@/components/onboarding/legal-acceptance-block";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { useCreateApplication, useUpdateApplication } from "@/lib/hooks";
@@ -37,6 +38,7 @@ export function StepReview({ onBack }: StepReviewProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [duplicatePhoneError, setDuplicatePhoneError] = useState<string | null>(null);
+  const [legalComplete, setLegalComplete] = useState(false);
 
   const isFeVisitOnly =
     formData.channel === "field_executive" &&
@@ -49,16 +51,8 @@ export function StepReview({ onBack }: StepReviewProps) {
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     // For visit-only records, no T&C acceptance needed
-    if (!isFeVisitOnly) {
-      if (!formData.terms_accepted) {
-        e.terms = ONBOARDING_STRINGS.TERMS_REQUIRED;
-      }
-      if (!formData.service_agreement_accepted) {
-        e.service_agreement = ONBOARDING_STRINGS.SERVICE_AGREEMENT_REQUIRED;
-      }
-      if (!formData.privacy_accepted) {
-        e.privacy = ONBOARDING_STRINGS.PRIVACY_REQUIRED;
-      }
+    if (!isFeVisitOnly && !legalComplete) {
+      e.legal = "Please read and accept all required legal agreements.";
     }
 
     if (Object.keys(e).length > 0) {
@@ -117,9 +111,6 @@ export function StepReview({ onBack }: StepReviewProps) {
         commission_model: "flat",
         commission_agreed: formData.commission_agreed,
         minimum_commission_percentage: formData.minimum_commission_percentage ?? undefined,
-        terms_accepted: formData.terms_accepted,
-        privacy_accepted: formData.privacy_accepted,
-        service_agreement_accepted: formData.service_agreement_accepted,
         gst_number: formData.gst_number || undefined,
         gst_business_name: formData.gst_business_name || formData.legal_name || undefined,
         gst_business_address: formData.gst_business_address || undefined,
@@ -523,121 +514,14 @@ export function StepReview({ onBack }: StepReviewProps) {
         </>
       )}
 
-      {/* Terms & Privacy */}
-      {/* Terms & Privacy — only for full onboarding applications */}
       {!isFeVisitOnly && (
-        <div className="space-y-3 pt-2">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.terms_accepted}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                useOnboardingStore.getState().updateFormData({ terms_accepted: checked });
-                if (checked) {
-                  setErrors((prev) => {
-                    if (!prev.terms) return prev;
-                    const next = { ...prev };
-                    delete next.terms;
-
-                    return next;
-                  });
-                }
-              }}
-              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
-            />
-            <span className="text-sm text-foreground">
-              I have read and accept the{" "}
-              <a
-                href="/merchant-terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent underline"
-              >
-                Terms & Conditions
-              </a>
-              .
-            </span>
-          </label>
-          {errors.terms && (
-            <p className="text-xs text-error pl-7">{errors.terms}</p>
-          )}
-
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.service_agreement_accepted}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                useOnboardingStore.getState().updateFormData({
-                  service_agreement_accepted: checked,
-                });
-                if (checked) {
-                  setErrors((prev) => {
-                    if (!prev.service_agreement) return prev;
-                    const next = { ...prev };
-                    delete next.service_agreement;
-
-                    return next;
-                  });
-                }
-              }}
-              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
-            />
-            <span className="text-sm text-foreground">
-              I have read and accept the{" "}
-              <a
-                href="/merchant-service-agreement"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent underline"
-              >
-                Merchant Service Agreement
-              </a>{" "}
-              (commissions, settlements, and platform fees).
-            </span>
-          </label>
-          {errors.service_agreement && (
-            <p className="text-xs text-error pl-7">{errors.service_agreement}</p>
-          )}
-
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.privacy_accepted}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                useOnboardingStore.getState().updateFormData({ privacy_accepted: checked });
-                if (checked) {
-                  setErrors((prev) => {
-                    if (!prev.privacy) return prev;
-                    const next = { ...prev };
-                    delete next.privacy;
-
-                    return next;
-                  });
-                }
-              }}
-              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
-            />
-            <span className="text-sm text-foreground">
-              I accept the{" "}
-              <a
-                href="/privacy-policy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent underline"
-              >
-                Privacy Policy
-              </a>{" "}
-              and
-              consent to data processing as described.
-            </span>
-          </label>
-          {errors.privacy && (
-            <p className="text-xs text-error pl-7">{errors.privacy}</p>
-          )}
-        </div>
+        <>
+          <LegalAcceptanceBlock
+            applicationId={applicationId}
+            onCompletenessChange={setLegalComplete}
+          />
+          {errors.legal ? <p className="text-xs text-error">{errors.legal}</p> : null}
+        </>
       )}
 
       {/* Hidden honeypot field */}

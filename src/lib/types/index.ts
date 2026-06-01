@@ -17,3 +17,4 @@ export * from "./onboarding";
 export * from "./discover";
 export * from "./academy";
 export * from "./wallet";
+export * from "./legal";

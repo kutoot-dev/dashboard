@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ProfileRowsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 import { OnboardingProfileSections } from "@/components/settings/onboarding-profile-sections";
+import { StoreQrCodes } from "@/components/settings/store-qr-codes";
 
 function formatTime(value: string | null | undefined): string {
   if (!value) return "--";
@@ -124,6 +125,8 @@ export default function StorePage() {
           </Card>
         </div>
       </section>
+
+      {branchId ? <StoreQrCodes branchId={branchId} /> : null}
 
       <section className="space-y-4">
         <div>

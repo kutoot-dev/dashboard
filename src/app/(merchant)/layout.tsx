@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
+import { LegalReacceptGate } from "@/components/legal/legal-reaccept-gate";
 import { useAuth } from "@/components/providers/auth-provider";
 import { clearAuthSession } from "@/lib/api/services/auth.service";
 
@@ -34,5 +35,9 @@ export default function MerchantLayout({ children }: MerchantLayoutProps) {
     );
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <LegalReacceptGate>
+      <AppShell>{children}</AppShell>
+    </LegalReacceptGate>
+  );
 }

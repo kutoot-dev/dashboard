@@ -11,6 +11,7 @@ import { MapLocationPicker } from "./map-location-picker";
 import { DuplicateAlert } from "./duplicate-alert";
 import { OtpInput } from "./otp-input";
 import { ApplicationStatusScreen } from "./application-status-screen";
+import { LegalAcceptanceBlock } from "./legal-acceptance-block";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import {
   useCheckPhone,
@@ -89,6 +90,8 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
+  const [legalComplete, setLegalComplete] = useState(false);
+  const draftCreateStarted = useRef(false);
 
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [phoneOtp, setPhoneOtp] = useState("");
@@ -123,6 +126,63 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       updateFormData({ commission_model: "flat" });
     }
   }, [formData.commission_model, updateFormData]);
+
+  useEffect(() => {
+    if (applicationId || isFeVisitOnly || draftCreateStarted.current) {
+      return;
+    }
+
+    const canCreateDraft =
+      isFieldExecutive ||
+      (formData.phone?.length === 10 && formData.merchant_phone_verified);
+
+    if (!canCreateDraft || !formData.channel) {
+      return;
+    }
+
+    draftCreateStarted.current = true;
+
+    createApp.mutate(
+      {
+        channel: formData.channel,
+        phone: formData.phone || undefined,
+        owner_name: formData.owner_name || undefined,
+        shop_name: formData.shop_name || undefined,
+        exec_id: formData.exec_id || undefined,
+        exec_employee_code: formData.exec_employee_code || undefined,
+        visit_outcome: formData.visit_outcome || undefined,
+        stage: "in_progress",
+        current_step: "basic_details",
+      } as Partial<OnboardingApplication>,
+      {
+        onSuccess: (res) => {
+          const id = res.data?.application_id;
+          if (id) {
+            setApplicationId(id);
+          } else {
+            draftCreateStarted.current = false;
+          }
+        },
+        onError: () => {
+          draftCreateStarted.current = false;
+        },
+      },
+    );
+  }, [
+    applicationId,
+    createApp,
+    formData.channel,
+    formData.exec_employee_code,
+    formData.exec_id,
+    formData.merchant_phone_verified,
+    formData.owner_name,
+    formData.phone,
+    formData.shop_name,
+    formData.visit_outcome,
+    isFeVisitOnly,
+    isFieldExecutive,
+    setApplicationId,
+  ]);
 
   useEffect(() => {
     if (isFeVisitOnly) {
@@ -472,11 +532,8 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       } else if (formData.commission_rate > VALIDATION_RULES.commission_rate.max) {
         e.commission_rate = ONBOARDING_STRINGS.COMMISSION_MAX_ERROR;
       }
-      if (!formData.terms_accepted) {
-        e.terms = ONBOARDING_STRINGS.TERMS_REQUIRED;
-      }
-      if (!formData.service_agreement_accepted) {
-        e.service_agreement = ONBOARDING_STRINGS.SERVICE_AGREEMENT_REQUIRED;
+      if (!legalComplete) {
+        e.legal = "Please read and accept all required legal agreements.";
       }
     }
 
@@ -527,8 +584,6 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       commission_rate: formData.commission_rate ?? undefined,
       commission_model: "flat" as const,
       minimum_commission_percentage: formData.minimum_commission_percentage ?? undefined,
-      terms_accepted: formData.terms_accepted,
-      service_agreement_accepted: formData.service_agreement_accepted,
       stage: "submitted" as const,
       status: "pending_review" as ApplicationStatus,
       current_step: "basic_details" as WizardStepId,
@@ -1049,80 +1104,13 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       )}
 
       {!isFeVisitOnly && (
-        <div className="space-y-3 rounded-lg border border-border p-4">
-          <p className="text-sm font-medium text-foreground">Agreements</p>
-          <p className="text-xs text-muted-foreground">
-            Please review and accept the following before submitting your application.
-          </p>
-
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={formData.terms_accepted}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                updateFormData({ terms_accepted: checked });
-                if (checked) {
-                  setErrors((prev) => {
-                    if (!prev.terms) return prev;
-                    const next = { ...prev };
-                    delete next.terms;
-                    return next;
-                  });
-                }
-              }}
-              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
-            />
-            <span className="text-sm text-foreground">
-              I have read and accept the{" "}
-              <a
-                href="/merchant-terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent underline"
-              >
-                Terms & Conditions
-              </a>
-              .
-            </span>
-          </label>
-          {errors.terms && <p className="pl-7 text-xs text-error">{errors.terms}</p>}
-
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={formData.service_agreement_accepted}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                updateFormData({ service_agreement_accepted: checked });
-                if (checked) {
-                  setErrors((prev) => {
-                    if (!prev.service_agreement) return prev;
-                    const next = { ...prev };
-                    delete next.service_agreement;
-                    return next;
-                  });
-                }
-              }}
-              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
-            />
-            <span className="text-sm text-foreground">
-              I have read and accept the{" "}
-              <a
-                href="/merchant-service-agreement"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent underline"
-              >
-                Merchant Service Agreement
-              </a>{" "}
-              (commissions, settlements, and platform fees).
-            </span>
-          </label>
-          {errors.service_agreement && (
-            <p className="pl-7 text-xs text-error">{errors.service_agreement}</p>
-          )}
-        </div>
+        <>
+          <LegalAcceptanceBlock
+            applicationId={applicationId}
+            onCompletenessChange={setLegalComplete}
+          />
+          {errors.legal ? <p className="text-xs text-error">{errors.legal}</p> : null}
+        </>
       )}
 
       <div className="flex justify-between pt-4">
