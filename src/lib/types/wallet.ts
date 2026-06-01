@@ -48,6 +48,11 @@ export interface WithdrawPayoutInput {
   ifsc_code: string;
   pan_number: string;
   aadhaar_number: string;
+  gst_number?: string;
+  gst_enrollment_number?: string;
+  gst_doc_photo_url?: string | null;
+  pan_doc_photo_url?: string | null;
+  aadhaar_doc_photo_url?: string | null;
   amount?: number;
 }
 
