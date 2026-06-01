@@ -81,14 +81,18 @@ export function LegalDocumentModal({
       });
 
       if (!res.success) {
-        setError("Could not record acceptance. Please try again.");
+        setError(res.message ?? "Could not record acceptance. Please try again.");
         return;
       }
 
       onAccepted();
       onClose();
-    } catch {
-      setError("Could not record acceptance. Please try again.");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Could not record acceptance. Please try again.";
+      setError(message);
     } finally {
       setIsCollectingMetadata(false);
     }

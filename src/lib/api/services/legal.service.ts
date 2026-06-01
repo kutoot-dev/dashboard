@@ -6,7 +6,7 @@ import type {
   LegalStatusResponse,
 } from "@/lib/types";
 import { collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
-import apiClient from "../client";
+import apiClient, { ApiError } from "../client";
 
 export { collectDeviceInfo, collectAcceptanceLocation, collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
 
@@ -58,12 +58,23 @@ export async function acceptLegalDocument(payload: {
         }
       : await collectLegalAcceptanceMetadata();
 
-  // Portal re-accept is keyed off `context: merchant_portal` in the body. The dedicated
-  // POST /legal/portal/accept route exists on newer backends but is not on dev yet.
-  const res = await apiClient.post<ApiResponse<LegalAcceptResult>>("/legal/accept", {
-    ...payload,
-    ...metadata,
-  });
+  const body = { ...payload, ...metadata };
+
+  if (payload.context === "merchant_portal") {
+    try {
+      const res = await apiClient.post<ApiResponse<LegalAcceptResult>>(
+        "/legal/portal/accept",
+        body,
+      );
+      return res.data;
+    } catch (error) {
+      if (!(error instanceof ApiError) || (error.status !== 404 && error.status !== 405)) {
+        throw error;
+      }
+    }
+  }
+
+  const res = await apiClient.post<ApiResponse<LegalAcceptResult>>("/legal/accept", body);
 
   return res.data;
 }
