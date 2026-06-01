@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -22,7 +22,7 @@ import {
   useVerifyEmailOtp,
   useVerifyOtp,
 } from "@/lib/hooks";
-import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
+import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus, OnboardingApplication, WizardStepId } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -98,6 +98,94 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
   const [emailOtpMessage, setEmailOtpMessage] = useState("");
+  const [commissionInput, setCommissionInput] = useState(
+    formData.commission_rate?.toString() || "",
+  );
+
+  const selectedCategory = useMemo(
+    () => merchantCategories.find((c) => String(c.id) === formData.sector_id),
+    [merchantCategories, formData.sector_id],
+  );
+  const categoryMinCommission = useMemo(() => {
+    const rawFromApplication = formData.minimum_commission_percentage;
+    const raw =
+      rawFromApplication != null
+        ? rawFromApplication
+        : selectedCategory?.minimum_commission_percentage;
+    if (raw == null || Number.isNaN(Number(raw))) {
+      return VALIDATION_RULES.commission_rate.min;
+    }
+    return Math.max(VALIDATION_RULES.commission_rate.min, Number(raw));
+  }, [formData.minimum_commission_percentage, selectedCategory]);
+
+  useEffect(() => {
+    if (formData.commission_model !== "flat") {
+      updateFormData({ commission_model: "flat" });
+    }
+  }, [formData.commission_model, updateFormData]);
+
+  useEffect(() => {
+    if (isFeVisitOnly) {
+      return;
+    }
+    const current = formData.commission_rate;
+    if (current === null) {
+      updateFormData({ commission_rate: categoryMinCommission });
+      setCommissionInput(categoryMinCommission.toString());
+      return;
+    }
+    if (current < categoryMinCommission) {
+      updateFormData({ commission_rate: categoryMinCommission });
+      setCommissionInput(categoryMinCommission.toString());
+    }
+  }, [
+    categoryMinCommission,
+    formData.commission_rate,
+    isFeVisitOnly,
+    updateFormData,
+  ]);
+
+  useEffect(() => {
+    setCommissionInput(formData.commission_rate?.toString() || "");
+  }, [formData.commission_rate]);
+
+  const handleRateInputChange = (value: string) => {
+    setCommissionInput(value);
+
+    const num = parseFloat(value);
+    if (value === "" || value === ".") {
+      updateFormData({ commission_rate: null });
+      return;
+    }
+
+    if (!isNaN(num)) {
+      const clamped = Math.min(
+        VALIDATION_RULES.commission_rate.max,
+        Math.max(categoryMinCommission, num),
+      );
+      updateFormData({ commission_rate: clamped });
+    }
+  };
+
+  const handleRateSliderChange = (value: string) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+      return;
+    }
+
+    const clamped = Math.min(
+      VALIDATION_RULES.commission_rate.max,
+      Math.max(categoryMinCommission, num),
+    );
+    setCommissionInput(clamped.toString());
+    updateFormData({ commission_rate: clamped });
+    setErrors((prev) => {
+      if (!prev.commission_rate) return prev;
+      const next = { ...prev };
+      delete next.commission_rate;
+      return next;
+    });
+  };
 
   const [gpsStatus, setGpsStatus] = useState<string>("");
 
@@ -375,6 +463,23 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
         "If provided, referral code must be in format ML-000123 (or numeric location id).";
     }
 
+    if (!isFeVisitOnly) {
+      if (
+        formData.commission_rate === null ||
+        formData.commission_rate < categoryMinCommission
+      ) {
+        e.commission_rate = `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
+      } else if (formData.commission_rate > VALIDATION_RULES.commission_rate.max) {
+        e.commission_rate = ONBOARDING_STRINGS.COMMISSION_MAX_ERROR;
+      }
+      if (!formData.terms_accepted) {
+        e.terms = ONBOARDING_STRINGS.TERMS_REQUIRED;
+      }
+      if (!formData.service_agreement_accepted) {
+        e.service_agreement = ONBOARDING_STRINGS.SERVICE_AGREEMENT_REQUIRED;
+      }
+    }
+
     if (Object.keys(e).length > 0) {
       const firstMessage = Object.values(e)[0] ?? "Please review the highlighted fields.";
       pushToast({
@@ -419,6 +524,11 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       gps_accuracy: formData.gps_accuracy,
       google_maps_link: googleMapsLink,
       referral_code: formData.referral_code.trim() || undefined,
+      commission_rate: formData.commission_rate ?? undefined,
+      commission_model: "flat" as const,
+      minimum_commission_percentage: formData.minimum_commission_percentage ?? undefined,
+      terms_accepted: formData.terms_accepted,
+      service_agreement_accepted: formData.service_agreement_accepted,
       stage: "submitted" as const,
       status: "pending_review" as ApplicationStatus,
       current_step: "basic_details" as WizardStepId,
@@ -585,12 +695,19 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
             if (
               categoryMin != null &&
               !Number.isNaN(categoryMin) &&
-              formData.commission_rate != null &&
-              formData.commission_rate < categoryMin
+              (formData.commission_rate == null || formData.commission_rate < categoryMin)
             ) {
               patch.commission_rate = categoryMin;
             }
             updateFormData(patch);
+            setCommissionInput(
+              String(
+                patch.commission_rate ??
+                  formData.commission_rate ??
+                  categoryMin ??
+                  categoryMinCommission,
+              ),
+            );
             setErrors((prev) => {
               const next = { ...prev };
               delete next.sector;
@@ -601,6 +718,91 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
           disabled={categoriesLoading || categoriesError || sectorSelectOptions.length === 0}
         />
       </FieldWithInfo>
+
+      {!isFeVisitOnly && (
+        <FieldWithInfo
+          fieldInfo={ONBOARDING_FIELDS.commission_rate}
+          required
+          error={errors.commission_rate}
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {selectedCategory ? (
+                <>
+                  For{" "}
+                  <span className="font-medium text-foreground">{selectedCategory.name}</span>, the
+                  minimum commission is{" "}
+                  <span className="font-medium text-foreground">
+                    {categoryMinCommission.toFixed(2)}%
+                  </span>
+                  . Adjust using the slider below.
+                </>
+              ) : (
+                "Select a business category above to set your commission rate."
+              )}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <p className="text-sm text-muted-foreground">
+                Category minimum:{" "}
+                <span className="font-medium text-foreground">
+                  {categoryMinCommission.toFixed(2)}%
+                </span>
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder={categoryMinCommission.toFixed(2)}
+                  value={commissionInput}
+                  onChange={(e) => handleRateInputChange(e.target.value)}
+                  min={categoryMinCommission}
+                  max={VALIDATION_RULES.commission_rate.max}
+                  step={0.01}
+                  className="w-32"
+                  disabled={!formData.sector_id}
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={categoryMinCommission}
+              max={VALIDATION_RULES.commission_rate.max}
+              step={0.25}
+              value={formData.commission_rate ?? categoryMinCommission}
+              onChange={(e) => handleRateSliderChange(e.target.value)}
+              className="w-full accent-accent disabled:opacity-50"
+              aria-label="Commission rate percentage"
+              disabled={!formData.sector_id}
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{categoryMinCommission.toFixed(2)}%</span>
+              <span>{VALIDATION_RULES.commission_rate.max.toFixed(2)}%</span>
+            </div>
+            {formData.commission_rate != null && formData.commission_rate > 0 && (
+              <div className="mt-2 rounded-md border border-border bg-card p-3">
+                <p className="text-sm text-muted-foreground">On a ₹1,000 transaction:</p>
+                <div className="mt-1 flex flex-col gap-1">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-foreground">
+                      Kutoot fee: ₹{((1000 * formData.commission_rate) / 100).toFixed(2)}
+                    </span>
+                    <span className="text-sm text-foreground">
+                      GST (18%): ₹
+                      {(((1000 * formData.commission_rate) / 100) * 0.18).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-end border-t border-border pt-1">
+                    <span className="text-sm text-success">
+                      Merchant receives: ₹
+                      {(1000 - ((1000 * formData.commission_rate) / 100) * 1.18).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </FieldWithInfo>
+      )}
 
       <FieldWithInfo
         fieldInfo={ONBOARDING_FIELDS.owner_name}
@@ -843,6 +1045,83 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
           >
             Open in Google Maps
           </a>
+        </div>
+      )}
+
+      {!isFeVisitOnly && (
+        <div className="space-y-3 rounded-lg border border-border p-4">
+          <p className="text-sm font-medium text-foreground">Agreements</p>
+          <p className="text-xs text-muted-foreground">
+            Please review and accept the following before submitting your application.
+          </p>
+
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={formData.terms_accepted}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                updateFormData({ terms_accepted: checked });
+                if (checked) {
+                  setErrors((prev) => {
+                    if (!prev.terms) return prev;
+                    const next = { ...prev };
+                    delete next.terms;
+                    return next;
+                  });
+                }
+              }}
+              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
+            />
+            <span className="text-sm text-foreground">
+              I have read and accept the{" "}
+              <a
+                href="/merchant-terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                Terms & Conditions
+              </a>
+              .
+            </span>
+          </label>
+          {errors.terms && <p className="pl-7 text-xs text-error">{errors.terms}</p>}
+
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={formData.service_agreement_accepted}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                updateFormData({ service_agreement_accepted: checked });
+                if (checked) {
+                  setErrors((prev) => {
+                    if (!prev.service_agreement) return prev;
+                    const next = { ...prev };
+                    delete next.service_agreement;
+                    return next;
+                  });
+                }
+              }}
+              className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent"
+            />
+            <span className="text-sm text-foreground">
+              I have read and accept the{" "}
+              <a
+                href="/merchant-service-agreement"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                Merchant Service Agreement
+              </a>{" "}
+              (commissions, settlements, and platform fees).
+            </span>
+          </label>
+          {errors.service_agreement && (
+            <p className="pl-7 text-xs text-error">{errors.service_agreement}</p>
+          )}
         </div>
       )}
 
