@@ -97,7 +97,9 @@ export function WalletWithdrawWizard({
     try {
       const res = await checkWithdraw(merchantId, payload());
       if (!res.success || !res.data) {
-        setSubmitError(res.message ?? "Could not verify withdrawal eligibility.");
+        setSubmitError(
+          res.error?.message ?? "Could not verify withdrawal eligibility.",
+        );
         return;
       }
       setCheckResult(res.data);
@@ -116,7 +118,7 @@ export function WalletWithdrawWizard({
     try {
       const res = await submitWithdraw(merchantId, payload());
       if (!res.success) {
-        setSubmitError(res.message ?? "Withdrawal could not be submitted.");
+        setSubmitError(res.error?.message ?? "Withdrawal could not be submitted.");
         return;
       }
       setStep("done");

@@ -12,6 +12,7 @@ import {
   getWallet,
   getWithdrawals,
 } from "@/lib/api/services/wallet.service";
+import type { WalletSummary } from "@/lib/types/wallet";
 import { formatINR } from "@/lib/utils/format";
 import { StatCardsSkeleton } from "@/components/ui/loading-skeletons";
 
@@ -31,7 +32,9 @@ export default function WalletPage() {
     enabled: Boolean(branchId),
   });
 
-  const wallet = walletQuery.data?.success ? walletQuery.data.data : null;
+  const wallet: WalletSummary | null = walletQuery.data?.success
+    ? walletQuery.data.data
+    : null;
   const withdrawals =
     withdrawalsQuery.data?.success ? withdrawalsQuery.data.data?.items ?? [] : [];
 

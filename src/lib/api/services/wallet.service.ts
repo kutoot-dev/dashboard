@@ -1,5 +1,5 @@
+import type { ApiResponse } from "@/lib/types/api";
 import type {
-  ApiResponse,
   WalletSummary,
   WithdrawCheckResult,
   WithdrawPayoutInput,
