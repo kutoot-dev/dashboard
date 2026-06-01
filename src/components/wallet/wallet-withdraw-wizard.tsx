@@ -56,6 +56,19 @@ const STEP_TITLES: Record<WizardStep, string> = {
 const GST_PORTAL_URL = "https://www.gst.gov.in/";
 const KUTOOT_SUPPORT_EMAIL = "support@kutoot.com";
 
+const KYC_MISSING_LABELS: Record<string, string> = {
+  gst_or_enrollment: "GST number or GST enrollment number",
+  gst_verification: "GST verification",
+  gst_document: "GST or enrollment certificate",
+  pan_number: "PAN number",
+  pan_verification: "PAN verification",
+  pan_document: "PAN card photo",
+  aadhaar_number: "Aadhaar number",
+  aadhaar_document: "Aadhaar card photo",
+  bank_details: "Bank account details",
+  bank_verification: "Bank verification",
+};
+
 function GstEnrollmentHelpPanel() {
   return (
     <div className="rounded-lg border border-info/30 bg-info/5 p-4 text-sm">
@@ -667,6 +680,21 @@ export function WalletWithdrawWizard({
                 {eligibility.kyc_complete ? "Yes" : "No"}
               </Badge>
             </div>
+            {!eligibility.kyc_complete && eligibility.kyc_missing.length > 0 ? (
+              <div className="text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">Still needed:</p>
+                <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                  {eligibility.kyc_missing.map((key) => (
+                    <li key={key}>{KYC_MISSING_LABELS[key] ?? key}</li>
+                  ))}
+                </ul>
+                <p className="mt-2">
+                  If you already saved everything, tap{" "}
+                  <span className="font-medium text-foreground">Edit details</span>{" "}
+                  and save again to refresh verification status.
+                </p>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">Customer referrals</span>
               <Badge
