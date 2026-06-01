@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { LegalDocumentSummary } from "@/lib/types";
 import { collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
@@ -8,6 +8,7 @@ import {
   useAcceptLegalDocument,
   useLegalDocument,
 } from "@/lib/hooks/use-legal-documents";
+import { useScrollToBottom } from "@/lib/hooks/use-scroll-to-bottom";
 
 type LegalDocumentModalProps = {
   open: boolean;
@@ -28,27 +29,23 @@ export function LegalDocumentModal({
   onClose,
   onAccepted,
 }: LegalDocumentModalProps) {
-  const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCollectingMetadata, setIsCollectingMetadata] = useState(false);
 
   const { data: docDetail, isLoading } = useLegalDocument(open && docSummary ? docSummary.id : null);
   const acceptMutation = useAcceptLegalDocument();
 
+  const contentReady = open && !isLoading && Boolean(docDetail?.content);
+  const { scrolledToBottom, scrollRef, handleScroll } = useScrollToBottom(
+    contentReady,
+    docSummary?.id,
+  );
+
   useEffect(() => {
     if (open) {
-      setScrolledToBottom(false);
       setError(null);
     }
   }, [open, docSummary?.id]);
-
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    if (atBottom) {
-      setScrolledToBottom(true);
-    }
-  }, []);
 
   if (!open || !docSummary) {
     return null;
@@ -106,6 +103,7 @@ export function LegalDocumentModal({
         </div>
 
         <div
+          ref={scrollRef}
           className="min-h-[40vh] flex-1 overflow-y-auto bg-card px-5 py-4"
           onScroll={handleScroll}
         >
