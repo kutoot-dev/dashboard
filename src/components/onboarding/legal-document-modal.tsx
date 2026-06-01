@@ -13,7 +13,10 @@ import { useScrollToBottom } from "@/lib/hooks/use-scroll-to-bottom";
 type LegalDocumentModalProps = {
   open: boolean;
   document: LegalDocumentSummary | null;
-  applicationId: string;
+  /** Onboarding application (merchant location) id */
+  applicationId?: string | null;
+  /** Portal re-accept: store this acceptance applies to */
+  merchantLocationId?: number | null;
   context?: "onboarding" | "merchant_portal";
   overlayClassName?: string;
   onClose: () => void;
@@ -24,6 +27,7 @@ export function LegalDocumentModal({
   open,
   document: docSummary,
   applicationId,
+  merchantLocationId,
   context = "onboarding",
   overlayClassName = "z-[60]",
   onClose,
@@ -55,6 +59,11 @@ export function LegalDocumentModal({
   const canAccept = !requiresScroll || scrolledToBottom;
 
   const handleAccept = async () => {
+    if (context !== "merchant_portal" && !applicationId) {
+      setError("Application is required to record acceptance.");
+      return;
+    }
+
     setError(null);
     setIsCollectingMetadata(true);
     try {
@@ -63,9 +72,11 @@ export function LegalDocumentModal({
         document_id: docSummary.id,
         version: docSummary.version,
         content_hash: docSummary.content_hash,
-        application_id: applicationId,
         scroll_completed: requiresScroll ? scrolledToBottom : true,
         context,
+        ...(context === "merchant_portal"
+          ? { merchant_location_id: merchantLocationId ?? undefined }
+          : { application_id: applicationId ?? undefined }),
         ...metadata,
       });
 

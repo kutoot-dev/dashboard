@@ -46,9 +46,11 @@ export function useAcceptLegalDocument() {
     mutationFn: acceptLegalDocument,
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["legal", "required"] });
-      queryClient.invalidateQueries({
-        queryKey: ["legal", "required", variables.application_id],
-      });
+      if (variables.application_id) {
+        queryClient.invalidateQueries({
+          queryKey: ["legal", "required", variables.application_id],
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["legal", "status"] });
     },
   });

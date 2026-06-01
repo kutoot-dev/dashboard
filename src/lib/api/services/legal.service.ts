@@ -10,11 +10,14 @@ import apiClient from "../client";
 
 export { collectDeviceInfo, collectAcceptanceLocation, collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
 
-export async function getRequiredLegalDocuments(applicationId?: string | null) {
+export async function getRequiredLegalDocuments(
+  applicationId?: string | null,
+  options?: { context?: "onboarding" | "merchant_portal" },
+) {
   const res = await apiClient.get<ApiResponse<LegalDocumentSummary[]>>("/legal/required", {
     params: {
       audience: "merchant",
-      context: "onboarding",
+      context: options?.context ?? "onboarding",
       ...(applicationId ? { application_id: applicationId } : {}),
     },
   });
@@ -34,7 +37,8 @@ export async function acceptLegalDocument(payload: {
   document_id: number;
   version: string;
   content_hash?: string;
-  application_id: string;
+  application_id?: string;
+  merchant_location_id?: number;
   scroll_completed: boolean;
   device_info?: Record<string, string>;
   acceptance_latitude?: number;

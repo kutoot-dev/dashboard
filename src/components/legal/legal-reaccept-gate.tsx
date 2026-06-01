@@ -19,7 +19,7 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
   const pending = status?.requires_legal_acceptance ?? [];
   const [active, setActive] = useState<{
     doc: LegalDocumentSummary;
-    applicationId: string;
+    merchantLocationId: number;
   } | null>(null);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const [openError, setOpenError] = useState<string | null>(null);
@@ -32,7 +32,9 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
     setOpeningKey(itemKey);
 
     try {
-      const required = await getRequiredLegalDocuments(String(item.merchant_location_id));
+      const required = await getRequiredLegalDocuments(String(item.merchant_location_id), {
+        context: "merchant_portal",
+      });
       let match =
         required.data?.find((d) => d.id === item.document_id) ??
         required.data?.find((d) => d.slug === item.slug);
@@ -51,7 +53,7 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
 
       setActive({
         doc: match,
-        applicationId: String(item.merchant_location_id),
+        merchantLocationId: item.merchant_location_id,
       });
     } catch {
       setOpenError("Could not load this agreement. Please check your connection and try again.");
@@ -115,7 +117,7 @@ export function LegalReacceptGate({ children }: LegalReacceptGateProps) {
         <LegalDocumentModal
           open
           document={active.doc}
-          applicationId={active.applicationId}
+          merchantLocationId={active.merchantLocationId}
           context="merchant_portal"
           overlayClassName="z-[80]"
           onClose={() => setActive(null)}
