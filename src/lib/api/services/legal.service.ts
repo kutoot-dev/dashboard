@@ -5,20 +5,10 @@ import type {
   LegalDocumentSummary,
   LegalStatusResponse,
 } from "@/lib/types";
+import { collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
 import apiClient from "../client";
 
-export function collectDeviceInfo(): Record<string, string> {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  return {
-    platform: navigator.platform ?? "unknown",
-    language: navigator.language ?? "unknown",
-    screen: `${window.screen.width}x${window.screen.height}`,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? "unknown",
-  };
-}
+export { collectDeviceInfo, collectAcceptanceLocation, collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
 
 export async function getRequiredLegalDocuments(applicationId?: string | null) {
   const res = await apiClient.get<ApiResponse<LegalDocumentSummary[]>>("/legal/required", {
@@ -47,11 +37,26 @@ export async function acceptLegalDocument(payload: {
   application_id: string;
   scroll_completed: boolean;
   device_info?: Record<string, string>;
+  acceptance_latitude?: number;
+  acceptance_longitude?: number;
+  acceptance_accuracy_meters?: number;
   context?: "onboarding" | "merchant_portal";
 }) {
+  const metadata =
+    payload.device_info &&
+    payload.acceptance_latitude != null &&
+    payload.acceptance_longitude != null
+      ? {
+          device_info: payload.device_info,
+          acceptance_latitude: payload.acceptance_latitude,
+          acceptance_longitude: payload.acceptance_longitude,
+          acceptance_accuracy_meters: payload.acceptance_accuracy_meters,
+        }
+      : await collectLegalAcceptanceMetadata();
+
   const res = await apiClient.post<ApiResponse<LegalAcceptResult>>("/legal/accept", {
     ...payload,
-    device_info: payload.device_info ?? collectDeviceInfo(),
+    ...metadata,
   });
 
   return res.data;

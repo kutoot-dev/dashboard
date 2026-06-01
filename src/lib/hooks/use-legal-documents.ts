@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   acceptLegalDocument,
   collectDeviceInfo,
+  collectLegalAcceptanceMetadata,
   getLegalDocument,
   getLegalStatus,
   getRequiredLegalDocuments,
@@ -67,4 +68,4 @@ export function useLegalStatus(enabled = true) {
   });
 }
 
-export { collectDeviceInfo };
+export { collectDeviceInfo, collectLegalAcceptanceMetadata };

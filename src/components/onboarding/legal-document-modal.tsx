@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { LegalDocumentSummary } from "@/lib/types";
+import { collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
 import {
   useAcceptLegalDocument,
   useLegalDocument,
@@ -29,6 +30,7 @@ export function LegalDocumentModal({
 }: LegalDocumentModalProps) {
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCollectingMetadata, setIsCollectingMetadata] = useState(false);
 
   const { data: docDetail, isLoading } = useLegalDocument(open && docSummary ? docSummary.id : null);
   const acceptMutation = useAcceptLegalDocument();
@@ -57,7 +59,9 @@ export function LegalDocumentModal({
 
   const handleAccept = async () => {
     setError(null);
+    setIsCollectingMetadata(true);
     try {
+      const metadata = await collectLegalAcceptanceMetadata();
       const res = await acceptMutation.mutateAsync({
         document_id: docSummary.id,
         version: docSummary.version,
@@ -65,6 +69,7 @@ export function LegalDocumentModal({
         application_id: applicationId,
         scroll_completed: requiresScroll ? scrolledToBottom : true,
         context,
+        ...metadata,
       });
 
       if (!res.success) {
@@ -76,8 +81,12 @@ export function LegalDocumentModal({
       onClose();
     } catch {
       setError("Could not record acceptance. Please try again.");
+    } finally {
+      setIsCollectingMetadata(false);
     }
   };
+
+  const isSubmitting = isCollectingMetadata || acceptMutation.isPending;
 
   return (
     <div className={`fixed inset-0 flex items-center justify-center p-4 ${overlayClassName}`}>
@@ -118,8 +127,8 @@ export function LegalDocumentModal({
           <Button
             variant="primary"
             className="w-full"
-            disabled={!canAccept || acceptMutation.isPending || isLoading}
-            loading={acceptMutation.isPending}
+            disabled={!canAccept || isSubmitting || isLoading}
+            loading={isSubmitting}
             onClick={handleAccept}
           >
             I have read and accept
