@@ -44,7 +44,7 @@ export default function WalletPage() {
     <div className="space-y-6">
       <PageHeader
         title="Wallet"
-        description="Promotional balance and withdrawal requests"
+        subtitle="Promotional balance and withdrawal requests"
       />
 
       {walletQuery.isLoading ? (
