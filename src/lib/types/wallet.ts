@@ -16,6 +16,8 @@ export interface WalletSummary {
   registration_bonus_granted: boolean;
   recent_transactions: WalletTransactionItem[];
   has_pending_withdrawal: boolean;
+  payout_kyc_saved?: boolean;
+  can_submit_withdrawal?: boolean;
 }
 
 export interface ReferralProgress {
@@ -38,6 +40,13 @@ export interface WithdrawCheckResult {
   available_balance: number;
   eligibility: WithdrawEligibility;
   can_submit: boolean;
+  payout_kyc_saved?: boolean;
+}
+
+export interface WalletPayoutDetailsResponse {
+  payout: WithdrawPayoutInput;
+  payout_kyc_saved: boolean;
+  gst_path: "gst" | "enrollment";
 }
 
 export interface WithdrawPayoutInput {

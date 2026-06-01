@@ -38,8 +38,18 @@ export function WalletBalanceCard({
         onClick={onWithdraw}
         disabled={withdrawDisabled || wallet.available_balance <= 0}
       >
-        Withdraw
+        {wallet.payout_kyc_saved && wallet.can_submit_withdrawal
+          ? "Submit withdrawal"
+          : wallet.payout_kyc_saved
+            ? "View withdrawal status"
+            : "Set up withdrawal"}
       </Button>
+      {wallet.payout_kyc_saved && !wallet.can_submit_withdrawal ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Your bank and KYC details are saved. You can submit a withdrawal once
+          referral targets are met.
+        </p>
+      ) : null}
       {wallet.has_pending_withdrawal ? (
         <p className="mt-2 text-xs text-warning">
           You already have a withdrawal request in progress.

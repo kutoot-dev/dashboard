@@ -1,6 +1,7 @@
 import type { ApiResponse } from "@/lib/types/api";
 import type {
   WalletSummary,
+  WalletPayoutDetailsResponse,
   WithdrawCheckResult,
   WithdrawPayoutInput,
   WithdrawalHistoryItem,
@@ -14,6 +15,32 @@ export async function getWallet(merchantId: string) {
   return res.data;
 }
 
+export async function getPayoutDetails(merchantId: string) {
+  const res = await apiClient.get<ApiResponse<WalletPayoutDetailsResponse>>(
+    `/merchant/${merchantId}/wallet/payout-details`,
+  );
+  return res.data;
+}
+
+export async function savePayoutDetails(
+  merchantId: string,
+  payload: WithdrawPayoutInput,
+) {
+  const res = await apiClient.put<ApiResponse<WithdrawCheckResult>>(
+    `/merchant/${merchantId}/wallet/payout-details`,
+    payload,
+  );
+  return res.data;
+}
+
+export async function getWithdrawEligibility(merchantId: string) {
+  const res = await apiClient.get<ApiResponse<WithdrawCheckResult>>(
+    `/merchant/${merchantId}/wallet/withdraw/eligibility`,
+  );
+  return res.data;
+}
+
+/** @deprecated Prefer savePayoutDetails */
 export async function checkWithdraw(
   merchantId: string,
   payload: WithdrawPayoutInput,
@@ -27,8 +54,12 @@ export async function checkWithdraw(
 
 export async function submitWithdraw(
   merchantId: string,
-  payload: WithdrawPayoutInput,
+  options: { useSavedPayout?: boolean; payload?: WithdrawPayoutInput } = {},
 ) {
+  const body = options.useSavedPayout
+    ? { use_saved_payout: true }
+    : options.payload;
+
   const res = await apiClient.post<
     ApiResponse<{
       id: number;
@@ -36,7 +67,7 @@ export async function submitWithdraw(
       status: string;
       requested_at: string | null;
     }>
-  >(`/merchant/${merchantId}/wallet/withdraw`, payload);
+  >(`/merchant/${merchantId}/wallet/withdraw`, body);
   return res.data;
 }
 

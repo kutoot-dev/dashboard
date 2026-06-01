@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { PhotoCapture } from "@/components/onboarding/photo-capture";
 import { VALIDATION_RULES } from "@/lib/constants/onboarding";
 import {
-  checkWithdraw,
+  getPayoutDetails,
+  getWithdrawEligibility,
+  savePayoutDetails,
   submitWithdraw,
 } from "@/lib/api/services/wallet.service";
 import type {
@@ -130,7 +132,9 @@ export function WalletWithdrawWizard({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkResult, setCheckResult] = useState<WithdrawCheckResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const reset = () => {
     setStep("bank");
@@ -139,6 +143,7 @@ export function WalletWithdrawWizard({
     setErrors({});
     setCheckResult(null);
     setSubmitError(null);
+    setSaveSuccess(null);
   };
 
   const handleClose = () => {
@@ -146,13 +151,66 @@ export function WalletWithdrawWizard({
     onClose();
   };
 
+  const applyPayoutToForm = useCallback(
+    (payout: WithdrawPayoutInput, path: GstPath) => {
+      setGstPath(path);
+      setForm({
+        bank_account_name: payout.bank_account_name ?? "",
+        bank_name: payout.bank_name ?? "",
+        bank_branch_name: payout.bank_branch_name ?? "",
+        account_number: payout.account_number ?? "",
+        ifsc_code: payout.ifsc_code ?? "",
+        pan_number: payout.pan_number ?? "",
+        aadhaar_number: payout.aadhaar_number ?? "",
+        gst_number: payout.gst_number ?? "",
+        gst_enrollment_number: payout.gst_enrollment_number ?? "",
+        gst_doc_photo_url: payout.gst_doc_photo_url ?? null,
+        pan_doc_photo_url: payout.pan_doc_photo_url ?? null,
+        aadhaar_doc_photo_url: payout.aadhaar_doc_photo_url ?? null,
+      });
+    },
+    [],
+  );
+
+  const loadSavedState = useCallback(async () => {
+    setInitialLoading(true);
+    setSubmitError(null);
+    try {
+      const detailsRes = await getPayoutDetails(merchantId);
+      if (detailsRes.success && detailsRes.data) {
+        const { payout, payout_kyc_saved, gst_path } = detailsRes.data;
+        applyPayoutToForm(payout, gst_path);
+
+        if (payout_kyc_saved) {
+          const eligRes = await getWithdrawEligibility(merchantId);
+          if (eligRes.success && eligRes.data) {
+            setCheckResult(eligRes.data);
+            setStep("review");
+            return;
+          }
+        }
+      }
+      setStep("bank");
+    } catch {
+      setStep("bank");
+    } finally {
+      setInitialLoading(false);
+    }
+  }, [merchantId, applyPayoutToForm]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    void loadSavedState();
+  }, [isOpen, loadSavedState]);
+
   const selectGstPath = (path: GstPath) => {
     setGstPath(path);
     setForm((f) => ({
       ...f,
       gst_number: path === "gst" ? f.gst_number : "",
       gst_enrollment_number: path === "enrollment" ? f.gst_enrollment_number : "",
-      gst_doc_photo_url: null,
     }));
     setErrors((e) => {
       const next = { ...e };
@@ -247,25 +305,45 @@ export function WalletWithdrawWizard({
     aadhaar_doc_photo_url: form.aadhaar_doc_photo_url || undefined,
   });
 
-  const handleSaveAndCheck = async () => {
-    if (!validateDocuments()) return;
-
+  const persistPayoutDetails = async (): Promise<boolean> => {
     setLoading(true);
     setSubmitError(null);
+    setSaveSuccess(null);
     try {
-      const res = await checkWithdraw(merchantId, payload());
+      const res = await savePayoutDetails(merchantId, payload());
       if (!res.success || !res.data) {
-        setSubmitError(
-          res.error?.message ?? "Could not save details or check eligibility.",
-        );
-        return;
+        setSubmitError(res.error?.message ?? "Could not save your details.");
+        return false;
       }
       setCheckResult(res.data);
-      setStep("review");
+      return true;
     } catch {
-      setSubmitError("Could not save details or check eligibility. Please try again.");
+      setSubmitError("Could not save your details. Please try again.");
+      return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
+    if (!validateDocuments()) return;
+    const saved = await persistPayoutDetails();
+    if (saved) {
+      setStep("review");
+    }
+  };
+
+  const handleSaveAndClose = async () => {
+    if (!validateDocuments()) return;
+    const saved = await persistPayoutDetails();
+    if (saved) {
+      setSaveSuccess(
+        "Your bank and KYC details are saved. Return here to submit a withdrawal when referral targets are met.",
+      );
+      onSuccess();
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
     }
   };
 
@@ -274,7 +352,7 @@ export function WalletWithdrawWizard({
     setLoading(true);
     setSubmitError(null);
     try {
-      const res = await submitWithdraw(merchantId, payload());
+      const res = await submitWithdraw(merchantId, { useSavedPayout: true });
       if (!res.success) {
         setSubmitError(res.error?.message ?? "Withdrawal could not be submitted.");
         return;
@@ -307,11 +385,15 @@ export function WalletWithdrawWizard({
       scrollable
       maxWidthClass="max-w-lg"
     >
-      {step !== "done" && step !== "review" ? (
+      {initialLoading ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+      ) : null}
+
+      {!initialLoading && step !== "done" && step !== "review" ? (
         <p className="mb-4 text-xs text-muted-foreground">Step {stepNumber} of 4</p>
       ) : null}
 
-      {step === "bank" ? (
+      {!initialLoading && step === "bank" ? (
         <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
             Enter your bank account details for payout.
@@ -376,7 +458,7 @@ export function WalletWithdrawWizard({
         </div>
       ) : null}
 
-      {step === "identity" ? (
+      {!initialLoading && step === "identity" ? (
         <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
             PAN and Aadhaar are required. Provide either a GST number or a GST
@@ -489,11 +571,12 @@ export function WalletWithdrawWizard({
         </div>
       ) : null}
 
-      {step === "documents" ? (
+      {!initialLoading && step === "documents" ? (
         <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            Upload clear photos of all required documents. Withdrawal can only be
-            submitted after referral targets are met.
+            Upload clear photos of all required documents. They are saved to your
+            store profile. You can close and submit the withdrawal later once
+            referral targets are met.
           </p>
           <PhotoCapture
             label="PAN card photo"
@@ -531,8 +614,11 @@ export function WalletWithdrawWizard({
             }
           />
           {submitError ? <p className="text-sm text-loss">{submitError}</p> : null}
+          {saveSuccess ? (
+            <p className="text-sm text-success">{saveSuccess}</p>
+          ) : null}
           {stepFooter(
-            <div className="flex justify-between gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
               <Button
                 type="button"
                 variant="secondary"
@@ -540,20 +626,40 @@ export function WalletWithdrawWizard({
               >
                 Back
               </Button>
-              <Button type="button" onClick={handleSaveAndCheck} disabled={loading}>
-                {loading ? "Saving…" : "Save & continue"}
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleSaveAndClose}
+                  disabled={loading}
+                >
+                  {loading ? "Saving…" : "Save & close"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSaveAndContinue}
+                  disabled={loading}
+                >
+                  {loading ? "Saving…" : "Save & continue"}
+                </Button>
+              </div>
             </div>,
           )}
         </div>
       ) : null}
 
-      {step === "review" && eligibility ? (
+      {!initialLoading && step === "review" && eligibility ? (
         <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            Your payout details have been saved. Available balance:{" "}
+            Your bank and KYC details are saved on Kutoot. Available balance:{" "}
             {formatINR(checkResult?.available_balance ?? 0)}
           </p>
+          {!checkResult?.can_submit ? (
+            <p className="text-sm text-muted-foreground">
+              You can close this window and return later to submit your withdrawal
+              when targets are reached.
+            </p>
+          ) : null}
           <div className="rounded-lg border border-border/70 bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">KYC complete</span>
@@ -599,13 +705,16 @@ export function WalletWithdrawWizard({
             <p className="text-sm text-loss">{submitError}</p>
           ) : null}
           {stepFooter(
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={handleClose}>
+                Close
+              </Button>
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => setStep("documents")}
               >
-                Back
+                Edit details
               </Button>
               <Button
                 type="button"
@@ -619,7 +728,7 @@ export function WalletWithdrawWizard({
         </div>
       ) : null}
 
-      {step === "done" ? (
+      {!initialLoading && step === "done" ? (
         <div className="space-y-4">
           <p className="text-sm text-foreground">
             Your withdrawal request has been submitted. Our team will transfer the
