@@ -68,6 +68,8 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
     isFieldExecutive &&
     formData.visit_outcome !== "interested" &&
     formData.visit_outcome !== null;
+  const requiresPhoneOtpVerification =
+    !isFieldExecutive || formData.visit_outcome === "interested";
   const pushToast = useToastStore((s) => s.push);
   const checkPhone = useCheckPhone();
   const sendOtp = useSendOtp();
@@ -496,7 +498,7 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
     }
     if (!VALIDATION_RULES.phone.pattern.test(formData.phone)) {
       e.phone = "Enter a valid 10-digit Indian mobile number starting with 6-9.";
-    } else if (!formData.merchant_phone_verified) {
+    } else if (requiresPhoneOtpVerification && !formData.merchant_phone_verified) {
       e.phone = "Please verify your mobile number via OTP.";
     }
 
@@ -898,14 +900,14 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
               maxLength={10}
               inputMode="numeric"
               className="flex-1"
-              disabled={formData.merchant_phone_verified}
+              disabled={requiresPhoneOtpVerification && formData.merchant_phone_verified}
             />
-            {formData.merchant_phone_verified && (
+            {requiresPhoneOtpVerification && formData.merchant_phone_verified && (
               <span className="text-xs font-medium text-success">Verified</span>
             )}
           </div>
 
-          {!formData.merchant_phone_verified && (
+          {requiresPhoneOtpVerification && !formData.merchant_phone_verified && (
             <>
               {!phoneOtpSent ? (
                 <Button
