@@ -81,7 +81,7 @@ export function LegalDocumentModal({
       });
 
       if (!res.success) {
-        setError(res.message ?? "Could not record acceptance. Please try again.");
+        setError(res.error?.message ?? "Could not record acceptance. Please try again.");
         return;
       }
 
