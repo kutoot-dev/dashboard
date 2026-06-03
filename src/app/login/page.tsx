@@ -15,7 +15,7 @@ const DEMO_LOGIN_PASSWORD = "Kutoot@123";
 type LoginMode = "password" | "otp";
 
 export default function LoginPage() {
-  const { login, loginWithOtp, sendLoginOtp, isAuthenticated, isLoading } = useAuth();
+  const { login, loginWithOtp, sendLoginOtp, isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
 
   const [mode, setMode] = useState<LoginMode>("password");
@@ -29,9 +29,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/dashboard");
+      router.replace(user?.requires_basic_details ? "/complete-basic-details" : "/dashboard");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, user?.requires_basic_details]);
 
   async function signIn(resolvedUsername: string, resolvedPassword: string) {
     setSubmitting(true);

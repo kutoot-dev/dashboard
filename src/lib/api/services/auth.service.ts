@@ -23,6 +23,8 @@ interface MerchantSellerPayload {
   email?: string;
   is_test?: boolean;
   scoring_engine_enabled?: boolean;
+  requires_basic_details?: boolean;
+  requires_wallet_kyc?: boolean;
   status?: string;
   role?: string;
   default_location_id?: string | number;
@@ -144,6 +146,8 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
       payload.scoring_engine_enabled !== undefined
         ? Boolean(payload.scoring_engine_enabled)
         : Boolean(payload.is_test),
+    requires_basic_details: Boolean(payload.requires_basic_details),
+    requires_wallet_kyc: Boolean(payload.requires_wallet_kyc),
   };
 }
 

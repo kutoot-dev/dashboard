@@ -23,9 +23,11 @@ import {
   useVerifyEmailOtp,
   useVerifyOtp,
 } from "@/lib/hooks";
+import { savePanelBasicDetails } from "@/lib/api/services/merchant.service";
 import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus, OnboardingApplication, WizardStepId } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
+import { useAuth } from "@/components/providers/auth-provider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 
@@ -33,6 +35,10 @@ interface MerchantBasicDetailsProps {
   onBack: () => void;
   /** FE visit-only flows continue to review instead of submitting here. */
   onNext?: () => void;
+  /** Panel post-OTP flow: reuse this form without phone/email OTP re-verification. */
+  mode?: "onboarding" | "panel";
+  branchId?: string;
+  onComplete?: () => void;
 }
 
 const OTP_COUNTDOWN_SECONDS = 120;
@@ -52,8 +58,16 @@ function buildGoogleMapsUrl(lat: number, long: number): string {
   return `https://www.google.com/maps?q=${lat},${long}`;
 }
 
-export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsProps) {
+export function MerchantBasicDetails({
+  onBack,
+  onNext,
+  mode = "onboarding",
+  branchId,
+  onComplete,
+}: MerchantBasicDetailsProps) {
   const router = useRouter();
+  const { refreshUser } = useAuth();
+  const isPanelMode = mode === "panel";
   const {
     formData,
     updateFormData,
@@ -69,7 +83,9 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
     formData.visit_outcome !== "interested" &&
     formData.visit_outcome !== null;
   const requiresPhoneOtpVerification =
-    !isFieldExecutive || formData.visit_outcome === "interested";
+    !isPanelMode && (!isFieldExecutive || formData.visit_outcome === "interested");
+  const requiresEmailOtpVerification = !isPanelMode;
+  const [panelSaving, setPanelSaving] = useState(false);
   const pushToast = useToastStore((s) => s.push);
   const checkPhone = useCheckPhone();
   const sendOtp = useSendOtp();
@@ -130,6 +146,16 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
   }, [formData.commission_model, updateFormData]);
 
   useEffect(() => {
+    if (isPanelMode) {
+      if (formData.phone?.length === 10 && !formData.merchant_phone_verified) {
+        updateFormData({
+          merchant_phone_verified: true,
+          merchant_otp_phone: formData.phone,
+        });
+      }
+      return;
+    }
+
     if (applicationId || isFeVisitOnly || draftCreateStarted.current) {
       return;
     }
@@ -183,7 +209,9 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
     formData.visit_outcome,
     isFeVisitOnly,
     isFieldExecutive,
+    isPanelMode,
     setApplicationId,
+    updateFormData,
   ]);
 
   useEffect(() => {
@@ -278,11 +306,18 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       const clean = normalizeIndianMobileInput(value);
       updateFormData({
         phone: clean,
-        merchant_phone_verified: false,
+        merchant_phone_verified: isPanelMode ? true : false,
       });
       setPhoneOtp("");
       setPhoneOtpSent(false);
       setPhoneOtpMessage("");
+
+      if (isPanelMode || clean.length !== 10) {
+        if (!isPanelMode) {
+          setPhoneCheckResult(null);
+        }
+        return;
+      }
 
       if (clean.length === 10) {
         checkPhone.mutate(clean, {
@@ -304,7 +339,7 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
         setPhoneCheckResult(null);
       }
     },
-    [checkPhone, setPhoneCheckResult, updateFormData],
+    [checkPhone, isPanelMode, setPhoneCheckResult, updateFormData],
   );
 
   const handleSendPhoneOtp = async () => {
@@ -507,7 +542,7 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         e.owner_email = "Enter a valid email address.";
-      } else if (!formData.owner_email_verified) {
+      } else if (requiresEmailOtpVerification && !formData.owner_email_verified) {
         e.owner_email = "Please verify email via OTP.";
       }
     }
@@ -552,8 +587,79 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
     return Object.keys(e).length === 0;
   };
 
+  const handlePanelSubmit = async () => {
+    if (!validate() || !branchId) {
+      return;
+    }
+
+    const googleMapsLink =
+      formData.gps_lat != null && formData.gps_long != null
+        ? buildGoogleMapsUrl(formData.gps_lat, formData.gps_long)
+        : undefined;
+
+    setPanelSaving(true);
+    try {
+      const res = await savePanelBasicDetails(branchId, {
+        legal_name: formData.legal_name.trim(),
+        shop_name: formData.shop_name.trim(),
+        sector_id: formData.sector_id ?? "",
+        sector_name: formData.sector_name,
+        owner_name: formData.owner_name,
+        owner_email: formData.owner_email || undefined,
+        phone: formData.phone,
+        merchant_phone_verified: true,
+        referral_code: formData.referral_code.trim() || undefined,
+        commission_rate: formData.commission_rate,
+        commission_model: "flat",
+        minimum_commission_percentage:
+          formData.minimum_commission_percentage != null
+            ? Number(formData.minimum_commission_percentage)
+            : undefined,
+        storefront_photo_url: formData.storefront_photo_url,
+        storefront_photo_urls: formData.storefront_photo_urls,
+        storefront_photo_status: formData.storefront_photo_status,
+        gps_lat: formData.gps_lat,
+        gps_long: formData.gps_long,
+        gps_accuracy: formData.gps_accuracy ?? undefined,
+        google_maps_link: googleMapsLink,
+      });
+
+      if (!res.success) {
+        pushToast({
+          variant: "error",
+          title: "Could not save",
+          description: res.error?.message ?? "Please try again.",
+        });
+        return;
+      }
+
+      pushToast({
+        variant: "success",
+        title: "Profile saved",
+        description: "Your basic details are complete. Welcome to Kutoot Business.",
+      });
+
+      await refreshUser();
+
+      onComplete?.();
+    } catch {
+      pushToast({
+        variant: "error",
+        title: "Could not save",
+        description: "Please check your connection and try again.",
+      });
+    } finally {
+      setPanelSaving(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (!validate()) return;
+
+    if (isPanelMode) {
+      void handlePanelSubmit();
+      return;
+    }
 
     if (isFeVisitOnly) {
       completeStep("basic_details");
@@ -698,8 +804,9 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       <div>
         <h2 className="text-xl font-bold text-foreground">Basic Details</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tell us about your business. Phone number is mandatory; email is optional but must be
-          verified if provided.
+          {isPanelMode
+            ? "Complete your shop profile to start using the merchant panel. Your mobile number was verified at login."
+            : "Tell us about your business. Phone number is mandatory; email is optional but must be verified if provided."}
         </p>
       </div>
 
@@ -900,9 +1007,13 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
               maxLength={10}
               inputMode="numeric"
               className="flex-1"
-              disabled={requiresPhoneOtpVerification && formData.merchant_phone_verified}
+              disabled={
+                isPanelMode ||
+                (requiresPhoneOtpVerification && formData.merchant_phone_verified)
+              }
             />
-            {requiresPhoneOtpVerification && formData.merchant_phone_verified && (
+            {(isPanelMode ||
+              (requiresPhoneOtpVerification && formData.merchant_phone_verified)) && (
               <span className="text-xs font-medium text-success">Verified</span>
             )}
           </div>
@@ -1000,7 +1111,9 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
           }}
           disabled={!!formData.owner_email_verified}
         />
-        {formData.owner_email && !formData.owner_email_verified && (
+        {requiresEmailOtpVerification &&
+          formData.owner_email &&
+          !formData.owner_email_verified && (
           <>
             <div className="mt-2 flex flex-wrap gap-2">
               <Button
@@ -1036,7 +1149,7 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
             )}
           </>
         )}
-        {formData.owner_email_verified && (
+        {requiresEmailOtpVerification && formData.owner_email_verified && (
           <p className="mt-1 text-xs text-success">Email verified.</p>
         )}
         {(errors.owner_email || emailOtpMessage) && (
@@ -1105,10 +1218,10 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
         </div>
       )}
 
-      {!isFeVisitOnly && (
+      {(!isFeVisitOnly || isPanelMode) && (
         <>
           <LegalAcceptanceBlock
-            applicationId={applicationId}
+            applicationId={isPanelMode ? (branchId ?? null) : applicationId}
             onCompletenessChange={setLegalComplete}
           />
           {errors.legal ? <p className="text-xs text-error">{errors.legal}</p> : null}
@@ -1116,15 +1229,25 @@ export function MerchantBasicDetails({ onBack, onNext }: MerchantBasicDetailsPro
       )}
 
       <div className="flex justify-between pt-4">
-        <Button variant="ghost" onClick={onBack}>
-          Back
-        </Button>
+        {!isPanelMode ? (
+          <Button variant="ghost" onClick={onBack}>
+            Back
+          </Button>
+        ) : (
+          <span />
+        )}
         <Button
           variant="primary"
           onClick={handleSubmit}
-          loading={createApp.isPending || updateApp.isPending}
+          loading={isPanelMode ? panelSaving : createApp.isPending || updateApp.isPending}
         >
-          {isFeVisitOnly ? "Save & Continue" : "Submit Application"}
+          {isPanelMode
+            ? panelSaving
+              ? "Saving…"
+              : "Save & continue"
+            : isFeVisitOnly
+              ? "Save & Continue"
+              : "Submit Application"}
         </Button>
       </div>
     </div>

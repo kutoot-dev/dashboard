@@ -218,6 +218,65 @@ export async function getOnboardingProfile(branchId: string) {
   return res.data;
 }
 
+export interface PanelBasicDetailsForm {
+  legal_name: string;
+  shop_name: string;
+  sector_id: string;
+  sector_name?: string;
+  owner_name: string;
+  owner_email?: string;
+  owner_email_verified?: boolean;
+  phone: string;
+  merchant_phone_verified?: boolean;
+  merchant_otp_phone?: string;
+  referral_code?: string;
+  commission_rate: number | null;
+  commission_model?: string;
+  minimum_commission_percentage?: number | null;
+  storefront_photo_url?: string | null;
+  storefront_photo_urls: string[];
+  storefront_photo_status?: string;
+  gps_lat: number | null;
+  gps_long: number | null;
+  gps_accuracy?: number | null;
+  google_maps_link?: string;
+}
+
+export interface PanelBasicDetailsStatus {
+  requires_basic_details: boolean;
+  basic_details_missing: string[];
+  requires_wallet_kyc: boolean;
+  panel_basic_details_completed_at: string | null;
+}
+
+export async function getPanelBasicDetailsStatus(branchId: string) {
+  const res = await apiClient.get<ApiResponse<PanelBasicDetailsStatus>>(
+    `/merchant/${branchId}/basic-details/status`,
+  );
+  return res.data;
+}
+
+export async function getPanelBasicDetails(branchId: string) {
+  const res = await apiClient.get<
+    ApiResponse<{ form: PanelBasicDetailsForm; requires_basic_details: boolean }>
+  >(`/merchant/${branchId}/basic-details`);
+  return res.data;
+}
+
+export async function savePanelBasicDetails(
+  branchId: string,
+  payload: PanelBasicDetailsForm,
+) {
+  const res = await apiClient.put<
+    ApiResponse<{
+      requires_basic_details: boolean;
+      panel_basic_details_completed_at: string | null;
+      form: PanelBasicDetailsForm;
+    }>
+  >(`/merchant/${branchId}/basic-details`, payload);
+  return res.data;
+}
+
 export async function getMerchantQrCodes(branchId: string) {
   const res = await apiClient.get<ApiResponse<{ qr_codes: MerchantQrCode[] }>>(
     `/merchant/${branchId}/qr-codes`,

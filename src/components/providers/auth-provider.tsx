@@ -40,6 +40,7 @@ interface AuthContextValue {
   loginWithOtp: (mobile: string, otp: string) => Promise<void>;
   sendLoginOtp: (mobile: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           syncOpsHubSelectedLocation(res.data);
           setUser(res.data);
         }
-        router.push("/dashboard");
+        router.push(res.data?.requires_basic_details ? "/complete-basic-details" : "/dashboard");
       } else {
         throw new Error(res.error?.message ?? "Login failed");
       }
@@ -116,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           syncOpsHubSelectedLocation(res.data);
           setUser(res.data);
         }
-        router.push("/dashboard");
+        router.push(res.data?.requires_basic_details ? "/complete-basic-details" : "/dashboard");
       } else {
         throw new Error(res.error?.message ?? "Login failed");
       }
@@ -138,6 +139,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }, [router, queryClient]);
 
+  const refreshUser = useCallback(async () => {
+    const res = await getMe();
+    if (res.success && res.data) {
+      syncOpsHubSelectedLocation(res.data);
+      setUser(res.data);
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -148,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithOtp,
         sendLoginOtp,
         logout,
+        refreshUser,
       }}
     >
       {children}

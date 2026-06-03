@@ -30,6 +30,10 @@ export interface AuthUser {
   is_test?: boolean;
   /** Demo merchant or demo-ops hub only — controls Score Engine nav. */
   scoring_engine_enabled?: boolean;
+  /** Post-login onboarding: merchant panel basic details (onboarding step). */
+  requires_basic_details?: boolean;
+  /** Wallet access needs bank + KYC documents saved first. */
+  requires_wallet_kyc?: boolean;
 }
 
 export interface LoginRequest {

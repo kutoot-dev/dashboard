@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { LegalReacceptGate } from "@/components/legal/legal-reaccept-gate";
+import { MerchantPanelBasicDetailsGate } from "@/components/onboarding/merchant-panel-basic-details-gate";
 import { useAuth } from "@/components/providers/auth-provider";
 import { clearAuthSession } from "@/lib/api/services/auth.service";
 
@@ -37,7 +38,9 @@ export default function MerchantLayout({ children }: MerchantLayoutProps) {
 
   return (
     <LegalReacceptGate>
-      <AppShell>{children}</AppShell>
+      <MerchantPanelBasicDetailsGate>
+        <AppShell>{children}</AppShell>
+      </MerchantPanelBasicDetailsGate>
     </LegalReacceptGate>
   );
 }

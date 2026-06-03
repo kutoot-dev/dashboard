@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { WalletBalanceCard } from "@/components/wallet/wallet-balance-card";
 import { WalletWithdrawWizard } from "@/components/wallet/wallet-withdraw-wizard";
 import { WalletWithdrawalHistory } from "@/components/wallet/wallet-withdrawal-history";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/providers/auth-provider";
 import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import {
   getWallet,
@@ -17,8 +19,10 @@ import { formatINR } from "@/lib/utils/format";
 import { StatCardsSkeleton } from "@/components/ui/loading-skeletons";
 
 export default function WalletPage() {
+  const { user, refreshUser } = useAuth();
   const branchId = useEffectiveBranchId();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const needsWalletKyc = Boolean(user?.requires_wallet_kyc);
 
   const walletQuery = useQuery({
     queryKey: ["wallet", branchId],
@@ -41,7 +45,14 @@ export default function WalletPage() {
   const refetchAll = () => {
     walletQuery.refetch();
     withdrawalsQuery.refetch();
+    void refreshUser();
   };
+
+  useEffect(() => {
+    if (needsWalletKyc && branchId) {
+      setWithdrawOpen(true);
+    }
+  }, [needsWalletKyc, branchId]);
 
   return (
     <div className="space-y-6">
@@ -49,6 +60,19 @@ export default function WalletPage() {
         title="Wallet"
         subtitle="Promotional balance and withdrawal requests"
       />
+
+      {needsWalletKyc ? (
+        <Card className="border-primary/30 bg-primary/5 p-6">
+          <h2 className="text-sm font-semibold text-foreground">Complete payout details</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Before you can use your wallet for withdrawals, add your bank account, PAN, Aadhaar,
+            optional GST or enrollment number, and upload the required documents.
+          </p>
+          <Button type="button" className="mt-4" onClick={() => setWithdrawOpen(true)}>
+            Add bank & KYC details
+          </Button>
+        </Card>
+      ) : null}
 
       {walletQuery.isLoading ? (
         <StatCardsSkeleton count={1} />
