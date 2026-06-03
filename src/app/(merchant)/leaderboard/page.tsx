@@ -190,6 +190,12 @@ export default function LeaderboardPage() {
 
   const [parameter, setParameter] = useState<LeaderboardScoringParameter>("all");
 
+  useEffect(() => {
+    if (!LEADERBOARD_PARAMETERS.includes(parameter)) {
+      setParameter("all");
+    }
+  }, [parameter]);
+
   const [scoreDate, setScoreDate] = useState(todayIso);
 
   const [search, setSearch] = useState("");

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ScoringEngineOverview } from "@/lib/api/services/scoring-engine.service";
-import { DISCOUNT_HEALTH_ENABLED } from "@/lib/constants/features";
+import { DISCOUNT_HEALTH_CONFIGURABLE } from "@/lib/constants/features";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
 
@@ -74,7 +74,7 @@ const ALL_SUB_SCORES: Array<{
   },
 ];
 
-const SUB_SCORES = DISCOUNT_HEALTH_ENABLED
+const SUB_SCORES = DISCOUNT_HEALTH_CONFIGURABLE
   ? ALL_SUB_SCORES
   : ALL_SUB_SCORES.filter((sub) => sub.key !== "discount");
 
