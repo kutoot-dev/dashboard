@@ -3,6 +3,7 @@ import { Inter, Poppins, Roboto_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import "@/styles/legal-rich-content.css";
 
 const inter = Inter({
   variable: "--font-sans-ui",

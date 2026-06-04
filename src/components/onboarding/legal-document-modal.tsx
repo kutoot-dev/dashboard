@@ -126,7 +126,7 @@ export function LegalDocumentModal({
             <p className="text-sm text-muted-foreground">Loading document…</p>
           ) : docDetail?.content ? (
             <div
-              className="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground"
+              className="legal-rich-content max-w-none"
               dangerouslySetInnerHTML={{ __html: docDetail.content }}
             />
           ) : (

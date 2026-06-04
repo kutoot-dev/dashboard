@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { Icon } from "leaflet";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 
@@ -45,6 +46,15 @@ const MapClickHandler = dynamic(
 
 export function MapLocationPicker({ value, onSelect }: MapLocationPickerProps) {
   const [open, setOpen] = useState(false);
+  const [markerIcon, setMarkerIcon] = useState<Icon | null>(null);
+
+  useEffect(() => {
+    if (!open || markerIcon) return;
+    void import("@/lib/leaflet-marker-icon").then((mod) => {
+      setMarkerIcon(mod.leafletMarkerIcon);
+    });
+  }, [open, markerIcon]);
+
   const center = useMemo<[number, number]>(() => {
     if (value) return [value.lat, value.long];
     return [20.5937, 78.9629]; // India center
@@ -68,7 +78,9 @@ export function MapLocationPicker({ value, onSelect }: MapLocationPickerProps) {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {value && <Marker position={[value.lat, value.long]} />}
+              {value && markerIcon && (
+                <Marker position={[value.lat, value.long]} icon={markerIcon} />
+              )}
             </MapContainer>
           </div>
           <p className="text-xs text-muted-foreground">

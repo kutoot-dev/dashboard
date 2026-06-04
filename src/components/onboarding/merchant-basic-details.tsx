@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { PhoneNumberInput } from "@/components/ui/phone-number-input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FieldWithInfo } from "./field-with-info";
@@ -128,6 +129,9 @@ export function MerchantBasicDetails({
     [merchantCategories, formData.sector_id],
   );
   const categoryMinCommission = useMemo(() => {
+    if (isPanelMode) {
+      return VALIDATION_RULES.commission_rate.min;
+    }
     const rawFromApplication = formData.minimum_commission_percentage;
     const raw =
       rawFromApplication != null
@@ -137,7 +141,7 @@ export function MerchantBasicDetails({
       return VALIDATION_RULES.commission_rate.min;
     }
     return Math.max(VALIDATION_RULES.commission_rate.min, Number(raw));
-  }, [formData.minimum_commission_percentage, selectedCategory]);
+  }, [formData.minimum_commission_percentage, selectedCategory, isPanelMode]);
 
   useEffect(() => {
     if (formData.commission_model !== "flat") {
@@ -218,13 +222,14 @@ export function MerchantBasicDetails({
     if (isFeVisitOnly) {
       return;
     }
+    const floor = isPanelMode ? VALIDATION_RULES.commission_rate.min : categoryMinCommission;
     const current = formData.commission_rate;
     if (current === null) {
-      updateFormData({ commission_rate: categoryMinCommission });
-      setCommissionInput(categoryMinCommission.toString());
+      updateFormData({ commission_rate: floor });
+      setCommissionInput(floor.toString());
       return;
     }
-    if (current < categoryMinCommission) {
+    if (!isPanelMode && current < categoryMinCommission) {
       updateFormData({ commission_rate: categoryMinCommission });
       setCommissionInput(categoryMinCommission.toString());
     }
@@ -232,6 +237,7 @@ export function MerchantBasicDetails({
     categoryMinCommission,
     formData.commission_rate,
     isFeVisitOnly,
+    isPanelMode,
     updateFormData,
   ]);
 
@@ -565,7 +571,9 @@ export function MerchantBasicDetails({
         formData.commission_rate === null ||
         formData.commission_rate < categoryMinCommission
       ) {
-        e.commission_rate = `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
+        e.commission_rate = isPanelMode
+          ? ONBOARDING_STRINGS.COMMISSION_MIN_ERROR
+          : `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
       } else if (formData.commission_rate > VALIDATION_RULES.commission_rate.max) {
         e.commission_rate = ONBOARDING_STRINGS.COMMISSION_MAX_ERROR;
       }
@@ -854,9 +862,12 @@ export function MerchantBasicDetails({
             const patch: Parameters<typeof updateFormData>[0] = {
               sector_id: v,
               sector_name: opt?.name || "",
-              minimum_commission_percentage: opt?.minimum_commission_percentage ?? null,
+              minimum_commission_percentage: isPanelMode
+                ? null
+                : (opt?.minimum_commission_percentage ?? null),
             };
             if (
+              !isPanelMode &&
               categoryMin != null &&
               !Number.isNaN(categoryMin) &&
               (formData.commission_rate == null || formData.commission_rate < categoryMin)
@@ -891,7 +902,16 @@ export function MerchantBasicDetails({
         >
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {selectedCategory ? (
+              {isPanelMode ? (
+                <>
+                  Set your commission rate from{" "}
+                  <span className="font-medium text-foreground">0%</span> up to{" "}
+                  <span className="font-medium text-foreground">
+                    {VALIDATION_RULES.commission_rate.max.toFixed(2)}%
+                  </span>
+                  . Category minimums do not apply here.
+                </>
+              ) : selectedCategory ? (
                 <>
                   For{" "}
                   <span className="font-medium text-foreground">{selectedCategory.name}</span>, the
@@ -906,16 +926,18 @@ export function MerchantBasicDetails({
               )}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-              <p className="text-sm text-muted-foreground">
-                Category minimum:{" "}
-                <span className="font-medium text-foreground">
-                  {categoryMinCommission.toFixed(2)}%
-                </span>
-              </p>
+              {!isPanelMode && (
+                <p className="text-sm text-muted-foreground">
+                  Category minimum:{" "}
+                  <span className="font-medium text-foreground">
+                    {categoryMinCommission.toFixed(2)}%
+                  </span>
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
-                  placeholder={categoryMinCommission.toFixed(2)}
+                  placeholder={isPanelMode ? "0" : categoryMinCommission.toFixed(2)}
                   value={commissionInput}
                   onChange={(e) => handleRateInputChange(e.target.value)}
                   min={categoryMinCommission}
@@ -996,27 +1018,20 @@ export function MerchantBasicDetails({
 
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.phone} required error={errors.phone}>
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex shrink-0 items-center justify-center rounded-lg border border-border/80 bg-background/40 px-3 py-2 text-sm text-muted-foreground backdrop-blur-sm">
-              +91
-            </div>
-            <Input
-              placeholder="9876543210"
-              value={formData.phone}
-              onChange={(e) => handlePhoneChange(e.target.value)}
-              maxLength={10}
-              inputMode="numeric"
-              className="flex-1"
-              disabled={
-                isPanelMode ||
-                (requiresPhoneOtpVerification && formData.merchant_phone_verified)
-              }
-            />
-            {(isPanelMode ||
-              (requiresPhoneOtpVerification && formData.merchant_phone_verified)) && (
-              <span className="text-xs font-medium text-success">Verified</span>
-            )}
-          </div>
+          <PhoneNumberInput
+            placeholder="9876543210"
+            value={formData.phone}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            maxLength={10}
+            disabled={
+              isPanelMode ||
+              (requiresPhoneOtpVerification && formData.merchant_phone_verified)
+            }
+            verified={
+              isPanelMode ||
+              (requiresPhoneOtpVerification && formData.merchant_phone_verified)
+            }
+          />
 
           {requiresPhoneOtpVerification && !formData.merchant_phone_verified && (
             <>

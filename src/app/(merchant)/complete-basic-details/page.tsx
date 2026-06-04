@@ -49,7 +49,7 @@ export default function CompleteBasicDetailsPage() {
       referral_code: form.referral_code ?? "",
       commission_rate: form.commission_rate,
       commission_model: "flat",
-      minimum_commission_percentage: form.minimum_commission_percentage ?? null,
+      minimum_commission_percentage: null,
       storefront_photo_url: form.storefront_photo_url ?? null,
       storefront_photo_urls: form.storefront_photo_urls ?? [],
       storefront_photo_status:

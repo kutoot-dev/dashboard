@@ -5,6 +5,7 @@ const AUTH_COOKIE = "kutoot_auth";
 const SESSION_COOKIE = "kutoot_session";
 
 const MERCHANT_ROUTES = [
+  "/complete-basic-details",
   "/dashboard",
   "/leaderboard",
   "/payouts",
@@ -81,6 +82,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/complete-basic-details",
     "/dashboard",
     "/dashboard/:path*",
     "/leaderboard/:path*",
