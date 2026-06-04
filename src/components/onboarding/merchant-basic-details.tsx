@@ -641,10 +641,16 @@ export function MerchantBasicDetails({
         return;
       }
 
+      const walletCredited =
+        res.data?.wallet?.registration_bonus_granted &&
+        (res.data.wallet.balance ?? 0) > 0;
+
       pushToast({
         variant: "success",
         title: "Profile saved",
-        description: "Your basic details are complete. Welcome to Kutoot Business.",
+        description: walletCredited
+          ? `Your basic details are complete. ₹${res.data!.wallet!.balance.toLocaleString("en-IN")} has been credited to your wallet.`
+          : "Your basic details are complete. Welcome to Kutoot Business.",
       });
 
       await refreshUser();

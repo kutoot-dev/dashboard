@@ -272,6 +272,11 @@ export async function savePanelBasicDetails(
       requires_basic_details: boolean;
       panel_basic_details_completed_at: string | null;
       form: PanelBasicDetailsForm;
+      wallet?: {
+        balance: number;
+        available_balance: number;
+        registration_bonus_granted: boolean;
+      } | null;
     }>
   >(`/merchant/${branchId}/basic-details`, payload);
   return res.data;
