@@ -1215,7 +1215,11 @@ export function MerchantBasicDetails({
         }}
         required
         error={errors.storefront_photo}
-        hint="Take or upload photos of your shop front. You can add up to 5 images. Photos are stored securely after submission."
+        hint={
+          isPanelMode
+            ? "Take or upload photos of your shop front (up to 5). The same images are saved to your store media gallery when you submit."
+            : "Take or upload photos of your shop front. You can add up to 5 images. Photos are stored securely after submission."
+        }
         useDeviceCamera
       />
 
