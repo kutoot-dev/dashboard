@@ -13,8 +13,12 @@
 export type MerchantStage =
   // Prospecting
   | "lead"
+  | "basic_details_submitted"
+  | "bank_details_submitted"
+  | "kyc_submitted"
   // Field visit outcomes
   | "revisit"
+  | "follow_up"
   | "owner_absent"
   | "shop_closed"
   | "competitor_user"
@@ -40,7 +44,11 @@ export type MerchantStagePhase =
 
 export const STAGE_LABELS: Record<MerchantStage, string> = {
   lead: "Lead",
+  basic_details_submitted: "Basic Details Submitted",
+  bank_details_submitted: "Bank Details Submitted",
+  kyc_submitted: "KYC Submitted",
   revisit: "Revisit",
+  follow_up: "Follow Up",
   owner_absent: "Owner Absent",
   shop_closed: "Shop Closed",
   competitor_user: "Competitor User",
@@ -59,7 +67,11 @@ export const STAGE_LABELS: Record<MerchantStage, string> = {
 
 export const STAGE_PHASES: Record<MerchantStage, MerchantStagePhase> = {
   lead: "prospecting",
+  basic_details_submitted: "onboarding",
+  bank_details_submitted: "onboarding",
+  kyc_submitted: "onboarding",
   revisit: "visit",
+  follow_up: "visit",
   owner_absent: "visit",
   shop_closed: "visit",
   competitor_user: "visit",
@@ -82,6 +94,7 @@ export const STAGE_PHASES: Record<MerchantStage, MerchantStagePhase> = {
  */
 export const SCHEDULE_STAGES: ReadonlySet<MerchantStage> = new Set([
   "revisit",
+  "follow_up",
   "owner_absent",
   "shop_closed",
   "competitor_user",
@@ -253,6 +266,8 @@ export interface OnboardingApplication {
 
   // Step 4: KYC
   gst_number: string | null;
+  gst_enrollment_number?: string | null;
+  gst_registration_status?: string | null;
   gst_status: KycVerificationStatus;
   gst_business_name: string | null;
   gst_business_address: string | null;

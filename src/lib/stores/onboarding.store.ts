@@ -45,6 +45,8 @@ interface OnboardingFormData {
   state: string;
   pin_code: string;
   referral_code: string;
+  merchant_referral_code: string;
+  lead_source_id: string;
   branch_name: string;
   storefront_photo_url: string | null;
   storefront_photo_urls: string[];
@@ -62,6 +64,8 @@ interface OnboardingFormData {
 
   // Step 4
   gst_number: string;
+  gst_enrollment_number: string;
+  gst_registration_status: string;
   gst_status: string;
   gst_business_name: string | null;
   gst_business_address: string | null;
@@ -165,6 +169,8 @@ const initialFormData: OnboardingFormData = {
   state: "",
   pin_code: "",
   referral_code: "",
+  merchant_referral_code: "",
+  lead_source_id: "",
   branch_name: "",
   storefront_photo_url: null,
   storefront_photo_urls: [],
@@ -180,6 +186,8 @@ const initialFormData: OnboardingFormData = {
   commission_agreed: false,
 
   gst_number: "",
+  gst_enrollment_number: "",
+  gst_registration_status: "",
   gst_status: "not_started",
   gst_business_name: null,
   gst_business_address: null,
@@ -326,6 +334,18 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
             typeof (app as Record<string, unknown>).email_verified === "boolean"
               ? ((app as Record<string, unknown>).email_verified as boolean)
               : state.formData.owner_email_verified,
+          gst_enrollment_number:
+            (app as Record<string, unknown>).gst_enrollment_number?.toString() ||
+            state.formData.gst_enrollment_number,
+          gst_registration_status:
+            (app as Record<string, unknown>).gst_registration_status?.toString() ||
+            state.formData.gst_registration_status,
+          merchant_referral_code:
+            (app as Record<string, unknown>).merchant_referral_code?.toString() ||
+            state.formData.merchant_referral_code,
+          referral_code:
+            (app as Record<string, unknown>).referral_code?.toString() ||
+            state.formData.referral_code,
         },
         applicationId: app.application_id || state.applicationId,
         currentStep: app.current_step || state.currentStep,

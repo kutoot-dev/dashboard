@@ -25,6 +25,7 @@ import {
   useVerifyOtp,
 } from "@/lib/hooks";
 import { savePanelBasicDetails } from "@/lib/api/services/merchant.service";
+import { resolveAddressFromCoords } from "@/lib/utils/resolve-address-from-coords";
 import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import type { ApplicationStatus, OnboardingApplication, WizardStepId } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
@@ -84,7 +85,9 @@ export function MerchantBasicDetails({
     formData.visit_outcome !== "interested" &&
     formData.visit_outcome !== null;
   const requiresPhoneOtpVerification =
-    !isPanelMode && (!isFieldExecutive || formData.visit_outcome === "interested");
+    !isPanelMode &&
+    formData.channel !== "merchant" &&
+    (!isFieldExecutive || formData.visit_outcome === "interested");
   const requiresEmailOtpVerification = !isPanelMode;
   const [panelSaving, setPanelSaving] = useState(false);
   const pushToast = useToastStore((s) => s.push);
@@ -469,11 +472,26 @@ export function MerchantBasicDetails({
         gps_long: coords.long,
         ...(coords.accuracy != null ? { gps_accuracy: coords.accuracy } : {}),
       });
-      setGpsStatus("Location coordinates captured.");
+      setGpsStatus("Location coordinates captured. Resolving address…");
       setErrors((prev) => {
         const next = { ...prev };
         delete next.gps;
         return next;
+      });
+
+      void resolveAddressFromCoords(coords.lat, coords.long).then((address) => {
+        if (!address) {
+          setGpsStatus("Location captured. Could not auto-fill city/state — you can enter them below.");
+          return;
+        }
+
+        updateFormData({
+          pin_code: address.pin_code ?? "",
+          state: address.state ?? "",
+          city: address.city ?? "",
+          locality: address.locality ?? "",
+        });
+        setGpsStatus("Location and address captured from map.");
       });
     },
     [updateFormData],
@@ -541,6 +559,12 @@ export function MerchantBasicDetails({
       e.phone = "Enter a valid 10-digit Indian mobile number starting with 6-9.";
     } else if (requiresPhoneOtpVerification && !formData.merchant_phone_verified) {
       e.phone = "Please verify your mobile number via OTP.";
+    } else if (
+      !isPanelMode &&
+      formData.channel === "merchant" &&
+      !formData.merchant_phone_verified
+    ) {
+      e.phone = "Please verify your mobile number in the Identity step.";
     }
 
     const email = formData.owner_email.trim();
@@ -681,6 +705,12 @@ export function MerchantBasicDetails({
       return;
     }
 
+    if (formData.channel === "merchant" && onNext) {
+      completeStep("basic_details");
+      onNext();
+      return;
+    }
+
     const googleMapsLink =
       formData.gps_lat != null && formData.gps_long != null
         ? buildGoogleMapsUrl(formData.gps_lat, formData.gps_long)
@@ -696,6 +726,10 @@ export function MerchantBasicDetails({
       shop_name: formData.shop_name.trim(),
       sector_id: formData.sector_id,
       sector_name: formData.sector_name,
+      locality: formData.locality || undefined,
+      city: formData.city || undefined,
+      state: formData.state || undefined,
+      pin_code: formData.pin_code || undefined,
       storefront_photo_url: formData.storefront_photo_url,
       storefront_photo_urls: formData.storefront_photo_urls,
       gps_lat: formData.gps_lat,
@@ -706,7 +740,7 @@ export function MerchantBasicDetails({
       commission_rate: formData.commission_rate ?? undefined,
       commission_model: "flat" as const,
       minimum_commission_percentage: formData.minimum_commission_percentage ?? undefined,
-      stage: "submitted" as const,
+      stage: "basic_details_submitted" as const,
       status: "pending_review" as ApplicationStatus,
       current_step: "basic_details" as WizardStepId,
     };
@@ -1022,6 +1056,16 @@ export function MerchantBasicDetails({
         />
       </FieldWithInfo>
 
+      {formData.merchant_referral_code ? (
+        <div className="rounded-lg border border-border bg-card/50 p-3 space-y-1">
+          <p className="text-sm font-medium text-foreground">Your merchant referral code</p>
+          <p className="font-mono text-sm text-primary">{formData.merchant_referral_code}</p>
+          <p className="text-xs text-muted-foreground">
+            Share this code so other merchants can refer you. The code above is who referred you.
+          </p>
+        </div>
+      ) : null}
+
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.phone} required error={errors.phone}>
         <div className="space-y-3">
           <PhoneNumberInput
@@ -1031,13 +1075,22 @@ export function MerchantBasicDetails({
             maxLength={10}
             disabled={
               isPanelMode ||
+              formData.channel === "merchant" ||
               (requiresPhoneOtpVerification && formData.merchant_phone_verified)
             }
             verified={
               isPanelMode ||
+              formData.channel === "merchant" ||
               (requiresPhoneOtpVerification && formData.merchant_phone_verified)
             }
           />
+
+          {formData.channel === "merchant" && formData.merchant_phone_verified && (
+            <p className="text-xs text-success flex items-center gap-1">
+              <FontAwesomeIcon icon={faCircleCheck} className="w-3 h-3" />
+              Verified in Identity step
+            </p>
+          )}
 
           {requiresPhoneOtpVerification && !formData.merchant_phone_verified && (
             <>
@@ -1208,6 +1261,39 @@ export function MerchantBasicDetails({
         </Button>
         {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
         {errors.gps && <p className="text-xs text-error">{errors.gps}</p>}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.locality} error={errors.locality}>
+            <Input
+              placeholder={ONBOARDING_FIELDS.locality.placeholder}
+              value={formData.locality}
+              onChange={(e) => updateFormData({ locality: e.target.value })}
+            />
+          </FieldWithInfo>
+          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.pin_code} error={errors.pin_code}>
+            <Input
+              placeholder={ONBOARDING_FIELDS.pin_code?.placeholder ?? "560001"}
+              value={formData.pin_code}
+              onChange={(e) =>
+                updateFormData({ pin_code: e.target.value.replace(/\D/g, "").slice(0, 6) })
+              }
+              maxLength={6}
+            />
+          </FieldWithInfo>
+          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} error={errors.city}>
+            <Input
+              placeholder={ONBOARDING_FIELDS.city?.placeholder ?? "City"}
+              value={formData.city}
+              onChange={(e) => updateFormData({ city: e.target.value })}
+            />
+          </FieldWithInfo>
+          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} error={errors.state}>
+            <Input
+              placeholder={ONBOARDING_FIELDS.state?.placeholder ?? "State"}
+              value={formData.state}
+              onChange={(e) => updateFormData({ state: e.target.value })}
+            />
+          </FieldWithInfo>
+        </div>
       </div>
 
       <MultiPhotoCapture
@@ -1272,7 +1358,9 @@ export function MerchantBasicDetails({
               : "Save & continue"
             : isFeVisitOnly
               ? "Save & Continue"
-              : "Submit Application"}
+              : formData.channel === "merchant" && onNext
+                ? "Save & Continue"
+                : "Submit Application"}
         </Button>
       </div>
     </div>

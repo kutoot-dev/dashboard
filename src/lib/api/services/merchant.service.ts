@@ -211,6 +211,32 @@ export async function updateStoreProfile(branchId: string, payload: UpdateStoreP
   return res.data;
 }
 
+export interface StoreMediaItem {
+  id: number;
+  url: string;
+  thumb?: string;
+  is_approved: boolean;
+  created_at?: string;
+}
+
+export async function listStoreMedia(branchId: string) {
+  const res = await apiClient.get<ApiResponse<{ media: StoreMediaItem[] }>>(
+    `/merchant/${branchId}/store/media`,
+  );
+  return res.data;
+}
+
+export async function uploadStoreMedia(branchId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<ApiResponse<StoreMediaItem>>(
+    `/merchant/${branchId}/store/media`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}
+
 export async function getOnboardingProfile(branchId: string) {
   const res = await apiClient.get<ApiResponse<OnboardingProfile>>(
     `/merchant/${branchId}/store/onboarding-profile`,

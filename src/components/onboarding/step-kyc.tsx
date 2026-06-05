@@ -171,28 +171,63 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
       )}
 
       {/* GST Number */}
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.gst_number} error={errors.gst_number}>
-        <div className="flex items-center gap-2">
+      <div className="rounded-lg border border-border bg-card/40 p-4 space-y-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">GST registration</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            If you already have a GSTIN, enter it below for automatic verification. If your
+            registration is still in progress, enter your GST enrollment / ARN number instead.
+            You can complete GST later from your wallet settings.
+          </p>
+        </div>
+
+        <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.gst_number} error={errors.gst_number}>
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder={ONBOARDING_FIELDS.gst_number.placeholder}
+              value={formData.gst_number}
+              onChange={(e) =>
+                updateFormData({
+                  gst_number: e.target.value.toUpperCase().slice(0, 15),
+                })
+              }
+              onBlur={handleGstBlur}
+              maxLength={15}
+              className="uppercase"
+            />
+            {statusBadge(formData.gst_status)}
+          </div>
+          {formData.gst_business_address && (
+            <p className="text-xs text-muted-foreground">
+              Address: {formData.gst_business_address}
+            </p>
+          )}
+        </FieldWithInfo>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">
+            GST enrollment / ARN number
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Use this if you applied for GST but do not have a GSTIN yet.
+          </p>
           <Input
-            placeholder={ONBOARDING_FIELDS.gst_number.placeholder}
-            value={formData.gst_number}
+            placeholder="e.g. AAFCA1234D2024"
+            value={formData.gst_enrollment_number}
             onChange={(e) =>
               updateFormData({
-                gst_number: e.target.value.toUpperCase().slice(0, 15),
+                gst_enrollment_number: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                gst_registration_status: "enrollment_pending",
               })
             }
-            onBlur={handleGstBlur}
-            maxLength={15}
+            maxLength={20}
             className="uppercase"
           />
-          {statusBadge(formData.gst_status)}
+          {errors.gst_enrollment_number && (
+            <p className="text-xs text-error">{errors.gst_enrollment_number}</p>
+          )}
         </div>
-        {formData.gst_business_address && (
-          <p className="text-xs text-muted-foreground">
-            Address: {formData.gst_business_address}
-          </p>
-        )}
-      </FieldWithInfo>
+      </div>
 
       {/* GST Document Photo */}
       <PhotoCapture

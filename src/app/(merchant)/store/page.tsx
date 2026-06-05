@@ -10,6 +10,7 @@ import { ProfileRowsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 import { OnboardingProfileSections } from "@/components/settings/onboarding-profile-sections";
 import { StoreQrCodes } from "@/components/settings/store-qr-codes";
+import { StoreMediaGallery } from "@/components/settings/store-media-gallery";
 
 function formatTime(value: string | null | undefined): string {
   if (!value) return "--";
@@ -127,6 +128,8 @@ export default function StorePage() {
       </section>
 
       {branchId ? <StoreQrCodes branchId={branchId} /> : null}
+
+      {branchId ? <StoreMediaGallery branchId={branchId} /> : null}
 
       <section className="space-y-4">
         <div>

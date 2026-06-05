@@ -112,6 +112,7 @@ export function StepReview({ onBack }: StepReviewProps) {
         commission_agreed: formData.commission_agreed,
         minimum_commission_percentage: formData.minimum_commission_percentage ?? undefined,
         gst_number: formData.gst_number || undefined,
+        gst_enrollment_number: formData.gst_enrollment_number || undefined,
         gst_business_name: formData.gst_business_name || formData.legal_name || undefined,
         gst_business_address: formData.gst_business_address || undefined,
         gst_registration_status: formData.gst_status || undefined,
@@ -138,7 +139,9 @@ export function StepReview({ onBack }: StepReviewProps) {
       }),
       stage: isFeVisitOnly
         ? ((formData.visit_outcome ?? "revisit") as string)
-        : "submitted",
+        : formData.channel === "merchant"
+          ? "kyc_submitted"
+          : "basic_details_submitted",
       status: (isFeVisitOnly ? "visit_record" : "pending_review") as ApplicationStatus,
       current_step: "review" as WizardStepId,
       website_url: formData.website_url, // honeypot

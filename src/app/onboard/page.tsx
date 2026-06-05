@@ -18,6 +18,7 @@ import { useApplication, useUpdateApplication, useCreateApplication } from "@/li
 import { useToastStore } from "@/lib/stores/toast.store";
 import { ApiError } from "@/lib/api/client";
 import { getActiveOnboardingSteps } from "@/lib/onboarding/get-active-steps";
+import { resolveOnboardingStageForStep } from "@/lib/onboarding/resolve-onboarding-stage";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
 import type {
   WizardStepId,
@@ -218,23 +219,26 @@ export default function OnboardPage() {
         return;
       }
 
-      // FE interested: completing bank is a mid-point submission for admin review.
-      const isFeBank =
-        fromStep === "bank" &&
-        formData.channel === "field_executive" &&
-        formData.visit_outcome === "interested";
-
       const payload = {
         current_step: fromStep,
         ...formData,
-        stage: (isFeBank ? "submitted" : "in_progress") as MerchantStage,
+        stage: resolveOnboardingStageForStep(
+          fromStep,
+          formData.channel,
+          formData.visit_outcome,
+        ),
       } as Record<string, unknown>;
 
       if (applicationId) {
         updateApp.mutate(
           { id: applicationId, data: payload as Partial<OnboardingApplication> },
           {
-            onSuccess: () => {
+            onSuccess: (res) => {
+              if (res.data?.merchant_referral_code) {
+                useOnboardingStore.getState().updateFormData({
+                  merchant_referral_code: res.data.merchant_referral_code,
+                });
+              }
               advance();
             },
             onError: (error) => {
@@ -251,6 +255,11 @@ export default function OnboardPage() {
           onSuccess: (res) => {
             if (res.data?.application_id) {
               useOnboardingStore.getState().setApplicationId(res.data.application_id);
+            }
+            if (res.data?.merchant_referral_code) {
+              useOnboardingStore.getState().updateFormData({
+                merchant_referral_code: res.data.merchant_referral_code,
+              });
             }
             advance();
           },
