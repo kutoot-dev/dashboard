@@ -28,9 +28,9 @@ export const metadata: Metadata = {
   title: "Kutoot — Branch Performance Terminal",
   description: "Universal branch performance competition platform for India",
   icons: {
-    icon: [{ url: "/k-logo.png", type: "image/png" }],
-    apple: "/k-logo.png",
-    shortcut: "/k-logo.png",
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: "/favicon.svg",
+    shortcut: "/favicon.svg",
   },
 };
 

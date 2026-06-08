@@ -7,7 +7,6 @@ import { Icon } from "@/components/ui/icon";
 import { getMerchantNav } from "@/lib/constants/navigation";
 import { faChevronLeft } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
-import { canAccessScoringEngine } from "@/lib/utils/scoring-engine-access";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils/cn";
 
@@ -15,7 +14,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
-  const navItems = getMerchantNav(canAccessScoringEngine(user), user?.role ?? "merchant");
+  const navItems = getMerchantNav(user?.role ?? "merchant", user?.store_role);
 
   return (
     <aside

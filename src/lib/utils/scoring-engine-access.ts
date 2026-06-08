@@ -1,6 +1,6 @@
 import type { AuthUser } from "@/lib/types";
 
-/** Whether the Score Engine nav/page is available for this session. */
+/** Whether the Score Engine page is available for this session. */
 export function canAccessScoringEngine(user: AuthUser | null | undefined): boolean {
   if (!user) {
     return false;

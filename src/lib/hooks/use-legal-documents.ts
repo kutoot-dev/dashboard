@@ -10,11 +10,14 @@ import {
   getRequiredLegalDocuments,
 } from "@/lib/api/services/legal.service";
 
-export function useRequiredLegalDocuments(applicationId?: string | null) {
+export function useRequiredLegalDocuments(
+  applicationId?: string | null,
+  options?: { context?: "onboarding" | "merchant_portal" },
+) {
   return useQuery({
-    queryKey: ["legal", "required", applicationId ?? "none"],
+    queryKey: ["legal", "required", applicationId ?? "none", options?.context ?? "onboarding"],
     queryFn: async () => {
-      const res = await getRequiredLegalDocuments(applicationId);
+      const res = await getRequiredLegalDocuments(applicationId, options);
       if (!res.success) {
         throw new Error("Failed to load required agreements");
       }
@@ -49,6 +52,11 @@ export function useAcceptLegalDocument() {
       if (variables.application_id) {
         queryClient.invalidateQueries({
           queryKey: ["legal", "required", variables.application_id],
+        });
+      }
+      if (variables.merchant_location_id != null) {
+        queryClient.invalidateQueries({
+          queryKey: ["legal", "required", String(variables.merchant_location_id)],
         });
       }
       queryClient.invalidateQueries({ queryKey: ["legal", "status"] });

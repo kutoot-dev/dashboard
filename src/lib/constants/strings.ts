@@ -240,6 +240,10 @@ export const PAYOUTS = {
   COL_DAILY_POOL: "Bonus pool",
   COL_YOUR_SHARE: "Your share",
   COL_STATUS: "Status",
+  COL_INVOICE: "Invoice",
+  INVOICE_RAISED: "Raised",
+  INVOICE_PENDING: "Not raised",
+  DOWNLOAD_INVOICE: "Download PDF",
   EMPTY: "No bonus payout records yet.",
 } as const;
 

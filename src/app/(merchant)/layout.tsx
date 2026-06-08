@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { LegalReacceptGate } from "@/components/legal/legal-reaccept-gate";
 import { MerchantPanelBasicDetailsGate } from "@/components/onboarding/merchant-panel-basic-details-gate";
 import { useAuth } from "@/components/providers/auth-provider";
 import { clearAuthSession } from "@/lib/api/services/auth.service";
+import { isRouteAllowedForStoreRole } from "@/lib/utils/store-access";
 
 interface MerchantLayoutProps {
   children: React.ReactNode;
 }
 
 export default function MerchantLayout({ children }: MerchantLayoutProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -22,6 +24,16 @@ export default function MerchantLayout({ children }: MerchantLayoutProps) {
       router.replace("/login");
     }
   }, [isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user) {
+      return;
+    }
+
+    if (!isRouteAllowedForStoreRole(pathname, user.store_role)) {
+      router.replace("/transactions");
+    }
+  }, [isAuthenticated, isLoading, pathname, router, user]);
 
   if (isLoading || !isAuthenticated) {
     return (

@@ -82,7 +82,7 @@ export function KutootIcon({ size = "md", className }: KutootIconProps) {
 
   return (
     <Image
-      src="/k-logo.png"
+      src="/k-logo.svg"
       alt="Kutoot"
       width={iconSize.width}
       height={iconSize.height}

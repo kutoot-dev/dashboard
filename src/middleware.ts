@@ -10,15 +10,20 @@ const MERCHANT_ROUTES = [
   "/leaderboard",
   "/payouts",
   "/transactions",
+  "/reports",
   "/visitors",
   "/deals",
   "/store",
   "/discover",
   "/academy",
   "/merchant-referral",
+  "/team",
+  "/wallet",
 ];
 
-function parseAuthUser(cookie: { value: string } | undefined): { role?: string } | null {
+const STORE_TEAM_MEMBER_ROUTES = ["/transactions", "/reports"];
+
+function parseAuthUser(cookie: { value: string } | undefined): { role?: string; store_role?: string } | null {
   if (!cookie?.value) return null;
 
   try {
@@ -50,9 +55,12 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = hasActiveSession(request);
 
   if (pathname === "/") {
-    return NextResponse.redirect(
-      new URL(isAuthenticated ? "/dashboard" : "/login", request.url),
-    );
+    const user = parseAuthUser(request.cookies.get(AUTH_COOKIE));
+    const home =
+      isAuthenticated && user?.role === "merchant" && user.store_role === "manager"
+        ? "/transactions"
+        : "/dashboard";
+    return NextResponse.redirect(new URL(isAuthenticated ? home : "/login", request.url));
   }
 
   // Redirect authenticated users away from login
@@ -73,6 +81,17 @@ export function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(loginUrl);
     }
+
+    const user = parseAuthUser(request.cookies.get(AUTH_COOKIE));
+    if (user?.role === "merchant" && user.store_role === "manager") {
+      const allowed = STORE_TEAM_MEMBER_ROUTES.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`),
+      );
+      if (!allowed) {
+        return NextResponse.redirect(new URL("/transactions", request.url));
+      }
+    }
+
     return NextResponse.next();
   }
 
@@ -88,6 +107,7 @@ export const config = {
     "/leaderboard/:path*",
     "/payouts/:path*",
     "/transactions/:path*",
+    "/reports/:path*",
     "/visitors/:path*",
     "/deals/:path*",
     "/store/:path*",

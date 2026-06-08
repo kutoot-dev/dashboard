@@ -4,20 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import { BRANCH_NAV } from "@/lib/constants/navigation";
+import { getMerchantNav } from "@/lib/constants/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils/cn";
 
 export function TabBar() {
   const pathname = usePathname();
-  const { isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const navItems = BRANCH_NAV;
+  const navItems = getMerchantNav(user?.role ?? "merchant", user?.store_role);
 
   if (!mounted || isLoading) return null;
 

@@ -63,6 +63,16 @@ export async function getBranchVolume(id: string) {
   return res.data;
 }
 
+export interface BranchPayoutInvoice {
+  invoice_number: string;
+  invoice_date: string | null;
+  amount: number;
+  gst_amount: number;
+  total_amount: number;
+  status: string;
+  download_url: string;
+}
+
 /** Single day bonus payout from the payout engine */
 export interface BranchPayoutHistoryItem {
   payout_id: string;
@@ -72,6 +82,7 @@ export interface BranchPayoutHistoryItem {
   your_share: number;
   rank: number | null;
   status: string;
+  invoice?: BranchPayoutInvoice | null;
 }
 
 /** Live or settled projection for the current calendar day */
@@ -109,6 +120,12 @@ export async function getBranchPayouts(id: string) {
     `/branches/${id}/payouts`,
   );
   return res.data;
+}
+
+export async function downloadPayoutInvoice(branchId: string, payoutId: string) {
+  return apiClient.get(`/merchant/${branchId}/payouts/${payoutId}/invoice`, {
+    responseType: "blob",
+  });
 }
 
 /** Branch score-history item (daily with breakdown) */

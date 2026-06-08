@@ -16,10 +16,12 @@ import { LegalAcceptanceBlock } from "./legal-acceptance-block";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import {
   useCheckPhone,
+  useCities,
   useCreateApplication,
   useMerchantCategories,
   useSendEmailOtp,
   useSendOtp,
+  useStates,
   useUpdateApplication,
   useVerifyEmailOtp,
   useVerifyOtp,
@@ -103,6 +105,18 @@ export function MerchantBasicDetails({
     isLoading: categoriesLoading,
     isError: categoriesError,
   } = useMerchantCategories();
+  const { states, isLoading: statesLoading } = useStates();
+  const [selectedStateId, setSelectedStateId] = useState<number | null>(null);
+  const { cities, isLoading: citiesLoading } = useCities(selectedStateId);
+
+  const stateSelectOptions = useMemo(
+    () => states.map((s) => ({ value: String(s.id), label: s.name })),
+    [states],
+  );
+  const citySelectOptions = useMemo(
+    () => cities.map((name) => ({ value: name, label: name })),
+    [cities],
+  );
 
   const sectorSelectOptions = merchantCategories.map((c) => ({
     value: String(c.id),
@@ -288,6 +302,16 @@ export function MerchantBasicDetails({
 
   const [gpsStatus, setGpsStatus] = useState<string>("");
 
+  useEffect(() => {
+    if (!formData.state || selectedStateId != null) {
+      return;
+    }
+    const match = states.find((s) => s.name === formData.state);
+    if (match && match.id > 0) {
+      setSelectedStateId(match.id);
+    }
+  }, [formData.state, selectedStateId, states]);
+
   const phoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -472,7 +496,7 @@ export function MerchantBasicDetails({
         gps_long: coords.long,
         ...(coords.accuracy != null ? { gps_accuracy: coords.accuracy } : {}),
       });
-      setGpsStatus("Location coordinates captured. Resolving address…");
+      setGpsStatus("Location coordinates captured. Resolving PIN and locality…");
       setErrors((prev) => {
         const next = { ...prev };
         delete next.gps;
@@ -481,20 +505,18 @@ export function MerchantBasicDetails({
 
       void resolveAddressFromCoords(coords.lat, coords.long).then((address) => {
         if (!address) {
-          setGpsStatus("Location captured. Could not auto-fill city/state — you can enter them below.");
+          setGpsStatus("Location captured. Select state and city from the lists below.");
           return;
         }
 
         updateFormData({
-          pin_code: address.pin_code ?? "",
-          state: address.state ?? "",
-          city: address.city ?? "",
-          locality: address.locality ?? "",
+          pin_code: address.pin_code ?? formData.pin_code,
+          locality: address.locality ?? formData.locality,
         });
-        setGpsStatus("Location and address captured from map.");
+        setGpsStatus("Location captured. Select state and city from the lists below.");
       });
     },
-    [updateFormData],
+    [formData.locality, formData.pin_code, updateFormData],
   );
 
   const pickCurrentLocation = useCallback(() => {
@@ -585,6 +607,12 @@ export function MerchantBasicDetails({
     if (formData.gps_lat == null || formData.gps_long == null) {
       e.gps = "Select location on map or use current location to capture latitude and longitude.";
     }
+    if (!selectedStateId || selectedStateId <= 0) {
+      e.state = "Select a state.";
+    }
+    if (!formData.city) {
+      e.city = "Select a city.";
+    }
     if (formData.referral_code && !/^(ML-\d+|\d+)$/i.test(formData.referral_code.trim())) {
       e.referral_code =
         "If provided, referral code must be in format ML-000123 (or numeric location id).";
@@ -650,6 +678,10 @@ export function MerchantBasicDetails({
         storefront_photo_url: formData.storefront_photo_url,
         storefront_photo_urls: formData.storefront_photo_urls,
         storefront_photo_status: formData.storefront_photo_status,
+        locality: formData.locality || undefined,
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        pin_code: formData.pin_code || undefined,
         gps_lat: formData.gps_lat,
         gps_long: formData.gps_long,
         gps_accuracy: formData.gps_accuracy ?? undefined,
@@ -1279,18 +1311,46 @@ export function MerchantBasicDetails({
               maxLength={6}
             />
           </FieldWithInfo>
-          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} error={errors.city}>
-            <Input
-              placeholder={ONBOARDING_FIELDS.city?.placeholder ?? "City"}
-              value={formData.city}
-              onChange={(e) => updateFormData({ city: e.target.value })}
+          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} error={errors.state}>
+            <Select
+              placeholder={statesLoading ? "Loading states…" : "Select state"}
+              options={stateSelectOptions}
+              value={selectedStateId != null && selectedStateId > 0 ? String(selectedStateId) : ""}
+              onChange={(value) => {
+                const stateId = value ? Number(value) : null;
+                const stateName = states.find((s) => String(s.id) === value)?.name ?? "";
+                setSelectedStateId(stateId && stateId > 0 ? stateId : null);
+                updateFormData({ state: stateName, city: "" });
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.state;
+                  delete next.city;
+                  return next;
+                });
+              }}
+              disabled={statesLoading}
             />
           </FieldWithInfo>
-          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} error={errors.state}>
-            <Input
-              placeholder={ONBOARDING_FIELDS.state?.placeholder ?? "State"}
-              value={formData.state}
-              onChange={(e) => updateFormData({ state: e.target.value })}
+          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} error={errors.city}>
+            <Select
+              placeholder={
+                !selectedStateId || selectedStateId <= 0
+                  ? "Select state first"
+                  : citiesLoading
+                    ? "Loading cities…"
+                    : "Select city"
+              }
+              options={citySelectOptions}
+              value={formData.city}
+              onChange={(value) => {
+                updateFormData({ city: value });
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.city;
+                  return next;
+                });
+              }}
+              disabled={!selectedStateId || selectedStateId <= 0 || citiesLoading}
             />
           </FieldWithInfo>
         </div>
@@ -1333,6 +1393,8 @@ export function MerchantBasicDetails({
         <>
           <LegalAcceptanceBlock
             applicationId={isPanelMode ? (branchId ?? null) : applicationId}
+            merchantLocationId={isPanelMode && branchId ? Number(branchId) : null}
+            context={isPanelMode ? "merchant_portal" : "onboarding"}
             onCompletenessChange={setLegalComplete}
           />
           {errors.legal ? <p className="text-xs text-error">{errors.legal}</p> : null}

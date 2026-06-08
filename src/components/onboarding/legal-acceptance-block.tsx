@@ -8,15 +8,20 @@ import type { LegalDocumentSummary } from "@/lib/types";
 
 type LegalAcceptanceBlockProps = {
   applicationId: string | null;
+  merchantLocationId?: number | null;
+  context?: "onboarding" | "merchant_portal";
   onCompletenessChange?: (allAccepted: boolean) => void;
 };
 
 export function LegalAcceptanceBlock({
   applicationId,
+  merchantLocationId = null,
+  context = "onboarding",
   onCompletenessChange,
 }: LegalAcceptanceBlockProps) {
   const { data: documents = [], isLoading, isError, refetch } = useRequiredLegalDocuments(
     applicationId ?? null,
+    { context },
   );
   const [activeDoc, setActiveDoc] = useState<LegalDocumentSummary | null>(null);
 
@@ -98,7 +103,9 @@ export function LegalAcceptanceBlock({
       <LegalDocumentModal
         open={activeDoc != null}
         document={activeDoc}
-        applicationId={applicationId}
+        applicationId={context === "onboarding" ? applicationId : null}
+        merchantLocationId={merchantLocationId ?? (applicationId ? Number(applicationId) : null)}
+        context={context}
         onClose={() => setActiveDoc(null)}
         onAccepted={() => {
           setActiveDoc(null);

@@ -262,6 +262,10 @@ export interface PanelBasicDetailsForm {
   storefront_photo_url?: string | null;
   storefront_photo_urls: string[];
   storefront_photo_status?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  pin_code?: string;
   gps_lat: number | null;
   gps_long: number | null;
   gps_accuracy?: number | null;

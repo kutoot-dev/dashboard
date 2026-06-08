@@ -118,20 +118,20 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
   },
   city: {
     label: "City",
-    placeholder: "Bengaluru",
+    placeholder: "Select city",
     tooltip: {
       title: "City Name",
-      description: "Auto-filled from PIN code. Edit if incorrect.",
+      description: "Choose your city from the list after selecting a state.",
       example: "Bengaluru, Mumbai, Jaipur",
       whyNeeded: "Used for location-based scoring and regional analytics.",
     },
   },
   state: {
     label: "State",
-    placeholder: "Karnataka",
+    placeholder: "Select state",
     tooltip: {
       title: "State Name",
-      description: "Auto-filled from PIN code. Edit if incorrect.",
+      description: "Choose your state from the official India states list.",
       example: "Karnataka, Maharashtra, Rajasthan",
       whyNeeded: "Required for GST verification and regional compliance.",
     },
@@ -142,7 +142,7 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     tooltip: {
       title: "6-digit PIN Code",
       description:
-        "Enter your shop's PIN code. City and state will be automatically filled.",
+        "Enter your shop's 6-digit PIN code. State and city must be selected separately.",
       example: "560034 (Koramangala, Bengaluru)",
       whyNeeded:
         "Used to identify your location tier (metro, tier-1, tier-2, etc.) for fair scoring.",

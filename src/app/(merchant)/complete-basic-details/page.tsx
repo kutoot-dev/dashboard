@@ -54,6 +54,10 @@ export default function CompleteBasicDetailsPage() {
       storefront_photo_urls: form.storefront_photo_urls ?? [],
       storefront_photo_status:
         form.storefront_photo_status === "uploaded" ? "uploaded" : "pending",
+      locality: form.locality ?? "",
+      city: form.city ?? "",
+      state: form.state ?? "",
+      pin_code: form.pin_code ?? "",
       gps_lat: form.gps_lat,
       gps_long: form.gps_long,
       gps_accuracy: form.gps_accuracy ?? null,

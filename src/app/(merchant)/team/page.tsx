@@ -20,7 +20,9 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const isOwner = user?.store_role === "owner";
+  const isOpsHub = user?.role === "operations_hub";
+  const isOwner = user?.store_role === "owner" || isOpsHub;
+  const canViewTeam = isOwner;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,12 +42,12 @@ export default function TeamPage() {
   }, []);
 
   useEffect(() => {
-    if (isOwner || user?.store_role === "manager") {
+    if (canViewTeam) {
       void load();
     } else {
       setLoading(false);
     }
-  }, [isOwner, user?.store_role, load]);
+  }, [canViewTeam, load]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -85,7 +87,7 @@ export default function TeamPage() {
     }
   }
 
-  if (!isOwner && user?.store_role !== "manager") {
+  if (!canViewTeam) {
     return (
       <div className="p-6">
         <p className="text-sm text-muted-foreground">You do not have access to team management.</p>

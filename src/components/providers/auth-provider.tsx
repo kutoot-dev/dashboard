@@ -20,6 +20,7 @@ import {
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
 import { useSelectedLocationStore } from "@/lib/stores/selected-location.store";
 import { useQueryClientInstance } from "./query-provider";
+import { defaultHomeForUser } from "@/lib/utils/store-access";
 
 function syncOpsHubSelectedLocation(user: AuthUser): void {
   if (user.role !== "operations_hub") {
@@ -100,7 +101,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           syncOpsHubSelectedLocation(res.data);
           setUser(res.data);
         }
-        router.push(res.data?.requires_basic_details ? "/complete-basic-details" : "/dashboard");
+        const home = res.data?.requires_basic_details
+          ? "/complete-basic-details"
+          : defaultHomeForUser(res.data ?? null);
+        router.push(home);
       } else {
         throw new Error(res.error?.message ?? "Login failed");
       }
@@ -117,7 +121,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           syncOpsHubSelectedLocation(res.data);
           setUser(res.data);
         }
-        router.push(res.data?.requires_basic_details ? "/complete-basic-details" : "/dashboard");
+        const home = res.data?.requires_basic_details
+          ? "/complete-basic-details"
+          : defaultHomeForUser(res.data ?? null);
+        router.push(home);
       } else {
         throw new Error(res.error?.message ?? "Login failed");
       }

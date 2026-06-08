@@ -28,7 +28,7 @@ export interface AuthUser {
   default_location_id?: string | null;
   attached_locations?: AttachedLocationSummary[];
   is_test?: boolean;
-  /** Demo merchant or demo-ops hub only — controls Score Engine nav. */
+  /** Demo merchant or demo-ops hub only — controls Score Engine page access. */
   scoring_engine_enabled?: boolean;
   /** Post-login onboarding: merchant panel basic details (onboarding step). */
   requires_basic_details?: boolean;

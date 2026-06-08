@@ -7,6 +7,7 @@ import { faRightFromBracket } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { LocationPicker } from "@/components/layout/location-picker";
+import { TopbarWallet } from "@/components/layout/topbar-wallet";
 import { QuickActions } from "@/components/ui/quick-actions";
 
 export function Topbar() {
@@ -42,6 +43,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <TopbarWallet />
         <button
           type="button"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
