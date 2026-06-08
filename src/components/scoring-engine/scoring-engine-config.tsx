@@ -58,8 +58,14 @@ export function ScoringEngineConfig({ config, payoutRules }: ScoringEngineConfig
         </h3>
         <dl className="mt-3 grid gap-2 sm:grid-cols-2">
           {[
-            ["Platform fee", `${payoutRules.platform_fee_percentage}% (${payoutRules.platform_fee_mode})`],
-            ["Bonus pool % of fee", `${payoutRules.merchant_bonus_pool_percentage}%`],
+            ["Pool source", payoutRules.pool_formula],
+            [
+              "Payout pool",
+              payoutRules.payout_wallet_name
+                ? `${payoutRules.payout_wallet_name} (${payoutRules.payout_wallet_share_percentage ?? 0}% of kutoot net)`
+                : "Not configured",
+            ],
+            ["Revenue pools", String(payoutRules.revenue_pools?.length ?? 0)],
             ["Min score for payout", String(payoutRules.payout_min_score_threshold)],
             ["Max branch share", `${(payoutRules.payout_max_single_branch_share * 100).toFixed(0)}%`],
             ["Formula version", `v${payoutRules.score_formula_version}`],

@@ -71,7 +71,7 @@ export default function ScoringEnginePage() {
               {
                 label: "Today's bonus pool",
                 value: formatINR(data.today.pool),
-                hint: `${data.today.txn_count} txns · ${formatINR(data.today.platform_fees)} fees`,
+                hint: `${data.today.txn_count} txns · ${formatINR(data.today.accumulated_net)} kutoot net`,
               },
               {
                 label: "Your projected share",

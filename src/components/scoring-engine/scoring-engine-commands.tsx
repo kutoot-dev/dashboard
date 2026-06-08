@@ -74,9 +74,9 @@ const COMMAND_META: Record<ScoringEngineCommand, CommandMeta> = {
   },
   "payouts:distribute-daily": {
     label: "Distribute daily payouts",
-    description: "Build bonus pool from platform fees and write payout_records.",
+    description: "Build bonus pool from payout wallet credits and write payout_records.",
     howItWorks: [
-      "Pool = Σ(platform_fee × merchant_bonus_pool%) for paid/completed txns that day.",
+      "Pool = credits to the payout revenue wallet from discount-engine kutoot net that day.",
       "Eligible branches: composite ≥ min threshold (fallback: all scored).",
       "Share = (composite ÷ Σ composite) × pool, capped at max_single_branch_share × pool.",
       "Creates scoring_period + payout_records unless dry-run is checked.",
@@ -103,7 +103,7 @@ const COMMAND_META: Record<ScoringEngineCommand, CommandMeta> = {
     description: "Simulate paid bills on this demo branch to grow pool and scores.",
     howItWorks: [
       "Only works on is_test merchant locations (this demo branch).",
-      "Creates paid transactions with platform_fee so the bonus pool grows.",
+      "Creates paid bill payments so discount-engine kutoot net credits the payout wallet.",
       "Triggers live metric refresh indirectly on next scores:tick.",
       "Count 1–20 per run; bill amount fixed or random ₹150–2500.",
     ],

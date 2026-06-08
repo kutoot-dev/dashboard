@@ -70,10 +70,10 @@ export function ScoringEngineFlowchart({ rules, className }: ScoringEngineFlowch
           <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-accent">
             Bonus pool (money)
           </p>
-          <FlowNode title="Paid transaction" body="Bill → platform_fee on txn" accent="secondary" />
-          <FlowArrow label={`× ${rules.merchant_bonus_pool_percentage}% → pool`} />
+          <FlowNode title="Paid bill payment" body="Discount-engine kutoot net per txn" accent="secondary" />
+          <FlowArrow label="Split to revenue wallets" />
           <FlowNode
-            title="Daily bonus pool"
+            title="Payout wallet pool"
             body={rules.pool_formula}
             accent="gain"
           />

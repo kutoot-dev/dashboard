@@ -207,15 +207,16 @@ export const ANALYSIS = {
 
 export const PAYOUTS = {
   TITLE_BRANCH: "Bonus Payout",
-  SUBTITLE_BRANCH: "Daily merchant bonus pool shared by rank across all branches",
+  SUBTITLE_BRANCH: "Daily share from the discount-engine payout wallet, split by rank across branches",
   TITLE_HO: "Bonus Payout",
   SUBTITLE_HO: "Aggregated bonus payout summary across branches",
 
   TOTAL_BONUS_RECEIVED: "Total bonus received",
   TODAY_EXPECTED: "Today's expected share",
-  TODAY_EXPECTED_HELPER: "Based on today's bonus pool so far and current live scores",
+  TODAY_EXPECTED_HELPER: "Based on today's discount-engine payout wallet so far and current live scores",
   TODAY_ESTIMATE: "Estimate",
-  TODAY_POOL: "Today's bonus pool",
+  TODAY_POOL: "Payout wallet pool",
+  TODAY_ACCUMULATED_NET: "Discount-engine net today",
   TODAY_AS_OF: "As of",
   LATEST_DAY_SHARE: "Latest day's share",
   LATEST_DAY_HELPER: "Rank and pool at day close",

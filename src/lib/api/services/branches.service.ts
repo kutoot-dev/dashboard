@@ -78,6 +78,9 @@ export interface BranchPayoutHistoryItem {
 export interface BranchPayoutTodayExpected {
   date: string;
   daily_pool: number;
+  accumulated_net?: number;
+  payout_wallet_name?: string | null;
+  payout_wallet_share_percentage?: number | null;
   your_share: number;
   rank: number | null;
   as_of: string;

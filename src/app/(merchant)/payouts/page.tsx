@@ -112,9 +112,23 @@ export default function PayoutsPage() {
                     {formatINR(todayExpected.your_share)}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground lg:justify-end">
+                    {typeof todayExpected.accumulated_net === "number" ? (
+                      <>
+                        <span>
+                          {PAYOUTS.TODAY_ACCUMULATED_NET}{" "}
+                          <span className="font-mono text-foreground">
+                            {formatINR(todayExpected.accumulated_net)}
+                          </span>
+                        </span>
+                        <span className="hidden text-border sm:inline">·</span>
+                      </>
+                    ) : null}
                     <span>
                       {PAYOUTS.TODAY_POOL}{" "}
                       <span className="font-mono text-foreground">{formatINR(todayExpected.daily_pool)}</span>
+                      {todayExpected.payout_wallet_name ? (
+                        <span className="text-muted-foreground"> ({todayExpected.payout_wallet_name})</span>
+                      ) : null}
                     </span>
                     <span className="hidden text-border sm:inline">·</span>
                     <span>

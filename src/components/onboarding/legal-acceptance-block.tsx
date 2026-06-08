@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LegalDocumentModal } from "@/components/onboarding/legal-document-modal";
 import { useRequiredLegalDocuments } from "@/lib/hooks/use-legal-documents";
@@ -20,14 +20,10 @@ export function LegalAcceptanceBlock({
   );
   const [activeDoc, setActiveDoc] = useState<LegalDocumentSummary | null>(null);
 
-  const requiredDocs = useMemo(
-    () => documents.filter((d) => d.is_required),
-    [documents],
-  );
-
-  const acceptedCount = requiredDocs.filter((d) => d.already_accepted).length;
+  // API marks accepted docs with is_required=false; show all returned docs so status updates after accept.
+  const acceptedCount = documents.filter((d) => d.already_accepted).length;
   const allAccepted =
-    requiredDocs.length === 0 || requiredDocs.every((d) => d.already_accepted);
+    documents.length === 0 || documents.every((d) => d.already_accepted);
 
   useEffect(() => {
     onCompletenessChange?.(allAccepted);
@@ -47,8 +43,8 @@ export function LegalAcceptanceBlock({
         <p className="text-sm font-medium text-foreground">Legal agreements</p>
         <p className="text-xs text-muted-foreground">
           Read each document in full and accept before submitting.{" "}
-          {requiredDocs.length > 0
-            ? `${acceptedCount} of ${requiredDocs.length} accepted`
+          {documents.length > 0
+            ? `${acceptedCount} of ${documents.length} accepted`
             : null}
         </p>
       </div>
@@ -66,12 +62,12 @@ export function LegalAcceptanceBlock({
         </div>
       ) : null}
 
-      {!isLoading && !isError && requiredDocs.length === 0 ? (
+      {!isLoading && !isError && documents.length === 0 ? (
         <p className="text-sm text-muted-foreground">No agreements required at this time.</p>
       ) : null}
 
       <ul className="space-y-2">
-        {requiredDocs.map((doc) => (
+        {documents.map((doc) => (
           <li
             key={doc.id}
             className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-card/40 px-3 py-2"

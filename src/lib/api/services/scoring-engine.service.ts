@@ -38,7 +38,14 @@ export interface ScoringEngineOverview {
     pool_formula: string;
     platform_fee_mode: string;
     platform_fee_percentage: number;
-    merchant_bonus_pool_percentage: number;
+    revenue_pools: Array<{
+      name: string;
+      slug: string;
+      allocation_percentage: number;
+      is_payout_account: boolean;
+    }>;
+    payout_wallet_name: string | null;
+    payout_wallet_share_percentage: number | null;
     payout_min_score_threshold: number;
     payout_max_single_branch_share: number;
     score_formula_version: number;
@@ -55,7 +62,7 @@ export interface ScoringEngineOverview {
   today: {
     date: string;
     pool: number;
-    platform_fees: number;
+    accumulated_net: number;
     txn_count: number;
     projected_distributed: number;
     your_share: number;
