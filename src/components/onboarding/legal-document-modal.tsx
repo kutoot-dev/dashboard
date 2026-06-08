@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { LegalDocumentSummary } from "@/lib/types";
+import type { LegalAcceptResult, LegalDocumentSummary } from "@/lib/types";
 import { collectLegalAcceptanceMetadata } from "@/lib/legal/collect-acceptance-metadata";
 import {
   useAcceptLegalDocument,
@@ -17,10 +17,11 @@ type LegalDocumentModalProps = {
   applicationId?: string | null;
   /** Portal re-accept: store this acceptance applies to */
   merchantLocationId?: number | null;
-  context?: "onboarding" | "merchant_portal";
+  context?: "onboarding" | "merchant_portal" | "growth_boost";
   overlayClassName?: string;
+  acceptLabel?: string;
   onClose: () => void;
-  onAccepted: () => void;
+  onAccepted: (result?: LegalAcceptResult) => void;
 };
 
 export function LegalDocumentModal({
@@ -30,6 +31,7 @@ export function LegalDocumentModal({
   merchantLocationId,
   context = "onboarding",
   overlayClassName = "z-[60]",
+  acceptLabel = "I have read and accept",
   onClose,
   onAccepted,
 }: LegalDocumentModalProps) {
@@ -59,8 +61,13 @@ export function LegalDocumentModal({
   const canAccept = !requiresScroll || scrolledToBottom;
 
   const handleAccept = async () => {
-    if (context !== "merchant_portal" && !applicationId) {
+    if (context === "onboarding" && !applicationId) {
       setError("Application is required to record acceptance.");
+      return;
+    }
+
+    if ((context === "merchant_portal" || context === "growth_boost") && merchantLocationId == null) {
+      setError("Store is required to record acceptance.");
       return;
     }
 
@@ -74,7 +81,7 @@ export function LegalDocumentModal({
         content_hash: docSummary.content_hash,
         scroll_completed: requiresScroll ? scrolledToBottom : true,
         context,
-        ...(context === "merchant_portal"
+        ...(context === "merchant_portal" || context === "growth_boost"
           ? { merchant_location_id: merchantLocationId ?? undefined }
           : { application_id: applicationId ?? undefined }),
         ...metadata,
@@ -85,7 +92,7 @@ export function LegalDocumentModal({
         return;
       }
 
-      onAccepted();
+      onAccepted(res.data ?? undefined);
       onClose();
     } catch (err) {
       const message =
@@ -144,7 +151,7 @@ export function LegalDocumentModal({
             loading={isSubmitting}
             onClick={handleAccept}
           >
-            I have read and accept
+            {acceptLabel}
           </Button>
           {requiresScroll && !scrolledToBottom ? (
             <p className="text-center text-xs text-muted-foreground">

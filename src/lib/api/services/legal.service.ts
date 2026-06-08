@@ -33,6 +33,15 @@ export async function getLegalDocument(id: number) {
   return res.data;
 }
 
+export async function getMerchantLegalDocumentBySlug(slug: string) {
+  const res = await apiClient.get<ApiResponse<LegalDocumentDetail>>(
+    `/legal/public/documents/${slug}`,
+    { params: { audience: "merchant" } },
+  );
+
+  return res.data;
+}
+
 export async function acceptLegalDocument(payload: {
   document_id: number;
   version: string;
@@ -44,7 +53,7 @@ export async function acceptLegalDocument(payload: {
   acceptance_latitude?: number;
   acceptance_longitude?: number;
   acceptance_accuracy_meters?: number;
-  context?: "onboarding" | "merchant_portal";
+  context?: "onboarding" | "merchant_portal" | "growth_boost";
 }) {
   const metadata =
     payload.device_info &&
@@ -60,7 +69,7 @@ export async function acceptLegalDocument(payload: {
 
   const body = { ...payload, ...metadata };
 
-  if (payload.context === "merchant_portal") {
+  if (payload.context === "merchant_portal" || payload.context === "growth_boost") {
     try {
       const res = await apiClient.post<ApiResponse<LegalAcceptResult>>(
         "/legal/portal/accept",

@@ -513,14 +513,22 @@ export async function getMerchantNewsFeed(params?: { hours?: number; limit?: num
   return res.data;
 }
 
-export async function updateCommission(commission_percentage: number) {
+export async function updateCommission(
+  commission_percentage: number,
+  incentive_agreement_acceptance_id?: number,
+) {
   const res = await apiClient.patch<
     ApiResponse<{
       commission_percentage: number;
       old_commission_percentage: number;
       category_min_commission: number;
     }>
-  >(`/merchant/commission`, { commission_percentage });
+  >(`/merchant/commission`, {
+    commission_percentage,
+    ...(incentive_agreement_acceptance_id != null
+      ? { incentive_agreement_acceptance_id }
+      : {}),
+  });
   return res.data;
 }
 
