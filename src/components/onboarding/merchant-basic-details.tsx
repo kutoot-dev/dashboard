@@ -624,7 +624,9 @@ export function MerchantBasicDetails({
         formData.commission_rate < categoryMinCommission
       ) {
         e.commission_rate = isPanelMode
-          ? ONBOARDING_STRINGS.COMMISSION_MIN_ERROR
+          ? formData.commission_rate === null
+            ? "Please set your commission rate."
+            : ONBOARDING_STRINGS.COMMISSION_MIN_ERROR
           : `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
       } else if (formData.commission_rate > VALIDATION_RULES.commission_rate.max) {
         e.commission_rate = ONBOARDING_STRINGS.COMMISSION_MAX_ERROR;
@@ -669,7 +671,7 @@ export function MerchantBasicDetails({
         phone: formData.phone,
         merchant_phone_verified: true,
         referral_code: formData.referral_code.trim() || undefined,
-        commission_rate: formData.commission_rate,
+        commission_rate: formData.commission_rate ?? categoryMinCommission,
         commission_model: "flat",
         minimum_commission_percentage:
           formData.minimum_commission_percentage != null
@@ -712,11 +714,14 @@ export function MerchantBasicDetails({
       await refreshUser();
 
       onComplete?.();
-    } catch {
+    } catch (err) {
       pushToast({
         variant: "error",
         title: "Could not save",
-        description: "Please check your connection and try again.",
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : "Please check your connection and try again.",
       });
     } finally {
       setPanelSaving(false);
