@@ -479,25 +479,48 @@ export interface RecentRedemption {
   created_at: string;
 }
 
+export interface MerchantNewsFeedRanker {
+  rank: number;
+  branch_id: string;
+  branch_name: string;
+  composite_score: number;
+  score_points: number;
+  payout_amount: number;
+  is_viewer: boolean;
+}
+
+export interface MerchantNewsFeedDay {
+  date: string;
+  pool_amount: number;
+  rankers: MerchantNewsFeedRanker[];
+  ranker_count: number;
+}
+
 export interface MerchantNewsFeedItem {
   id: string;
   event: string;
   icon: string;
   message: string;
-  subject: string;
-  merchant_location_id: number | null;
-  merchant_location_name: string | null;
-  user_name: string | null;
-  actor_name: string | null;
-  subject_id: number | null;
+  date: string;
+  rank: number;
+  branch_id: string;
+  branch_name: string;
+  composite_score: number;
+  score_points: number;
+  payout_amount: number;
+  pool_amount: number;
+  is_viewer: boolean;
   created_at: string;
 }
 
 export interface MerchantNewsFeed {
   rows: MerchantNewsFeedItem[];
+  days: MerchantNewsFeedDay[];
+  days_count: number;
+  configured_days: number;
+  per_day: number;
   hours: number;
   configured_hours: number;
-  limit: number;
 }
 
 export async function getMerchantMe() {
@@ -510,7 +533,7 @@ export async function getMerchantDashboard() {
   return res.data;
 }
 
-export async function getMerchantNewsFeed(params?: { hours?: number; limit?: number }) {
+export async function getMerchantNewsFeed(params?: { days?: number; limit?: number }) {
   const res = await apiClient.get<ApiResponse<MerchantNewsFeed>>(`/merchant/news-feed`, {
     params,
   });

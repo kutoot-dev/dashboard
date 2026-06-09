@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMerchantNewsFeed } from "@/lib/api/services/merchant.service";
 import { cn } from "@/lib/utils/cn";
@@ -15,41 +15,47 @@ export interface ActivityItem {
   icon: IconDefinition;
   event: string;
   message: string;
-  merchantLocationName: string | null;
-  userName: string | null;
-  timestamp: string;
+  date: string;
+  rank: number;
+  branchName: string;
+  payoutAmount: number;
+  poolAmount: number;
+  isViewer: boolean;
 }
 
 const EVENT_COLOR_MAP: Record<string, string> = {
-  created: "text-gain",
-  updated: "text-accent",
-  deleted: "text-loss",
-  scanned: "text-warning",
-  approved: "text-gain",
-  rejected: "text-loss",
-  merchant_submitted: "text-accent",
-  onboarding_link_sent: "text-accent",
-  store_profile_completed: "text-gain",
-  password_reset: "text-warning",
-  credentials_resent_email: "text-accent",
-  credentials_resent_sms: "text-accent",
+  daily_ranker: "text-warning",
 };
 
-function timeAgo(ts: string): string {
-  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
-  if (diff < 1) return "just now";
-  if (diff < 60) return `${diff}m ago`;
-  if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
-  return `${Math.floor(diff / 1440)}d ago`;
+const RANK_COLOR_MAP: Record<number, string> = {
+  1: "text-warning",
+  2: "text-muted-foreground",
+  3: "text-accent",
+};
+
+function formatDateLabel(date: string): string {
+  const parsed = new Date(`${date}T00:00:00`);
+  return parsed.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export function ActivityTicker({ className }: { className?: string }) {
-  const [hours, setHours] = useState(24);
+  const [days, setDays] = useState(7);
 
   const feedQuery = useQuery({
-    queryKey: ["merchant-news-feed", hours],
+    queryKey: ["merchant-news-feed", days],
     queryFn: async () => {
-      const res = await getMerchantNewsFeed({ hours, limit: 50 });
+      const res = await getMerchantNewsFeed({ days, limit: 10 });
       return res.success ? res.data : null;
     },
     refetchInterval: 60_000,
@@ -58,18 +64,35 @@ export function ActivityTicker({ className }: { className?: string }) {
 
   const data = feedQuery.data;
   const showSkeleton = useQuerySkeleton(feedQuery);
-  const backendItems = data?.rows ?? [];
-  const effectiveHours = data?.hours ?? hours;
+  const effectiveDays = data?.days_count ?? days;
+  const perDay = data?.per_day ?? 10;
 
-  const items: ActivityItem[] = backendItems.map((item) => ({
-    id: item.id,
-    icon: newsFeedIcon(item.event, item.icon),
-    event: item.event,
-    message: item.message,
-    merchantLocationName: item.merchant_location_name ?? null,
-    userName: item.user_name ?? null,
-    timestamp: item.created_at,
-  }));
+  const items: ActivityItem[] = useMemo(
+    () =>
+      (data?.rows ?? []).map((item) => ({
+        id: item.id,
+        icon: newsFeedIcon(item.event, item.icon),
+        event: item.event,
+        message: item.message,
+        date: item.date,
+        rank: item.rank,
+        branchName: item.branch_name,
+        payoutAmount: item.payout_amount,
+        poolAmount: item.pool_amount,
+        isViewer: item.is_viewer,
+      })),
+    [data?.rows],
+  );
+
+  const itemsByDate = useMemo(() => {
+    const grouped = new Map<string, ActivityItem[]>();
+    for (const item of items) {
+      const bucket = grouped.get(item.date) ?? [];
+      bucket.push(item);
+      grouped.set(item.date, bucket);
+    }
+    return Array.from(grouped.entries());
+  }, [items]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
@@ -79,7 +102,7 @@ export function ActivityTicker({ className }: { className?: string }) {
     if (!el) return;
 
     let raf: number;
-    const speed = 0.5; // px per frame
+    const speed = 0.5;
 
     function scroll() {
       if (!el || paused) {
@@ -87,7 +110,6 @@ export function ActivityTicker({ className }: { className?: string }) {
         return;
       }
       el.scrollTop += speed;
-      // Loop back when reaching bottom
       if (el.scrollTop >= el.scrollHeight - el.clientHeight) {
         el.scrollTop = 0;
       }
@@ -96,7 +118,7 @@ export function ActivityTicker({ className }: { className?: string }) {
 
     raf = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(raf);
-  }, [paused]);
+  }, [paused, itemsByDate.length]);
 
   return (
     <div className={cn("relative", className)}>
@@ -107,18 +129,18 @@ export function ActivityTicker({ className }: { className?: string }) {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
           </span>
           <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            News Feed ({effectiveHours}h)
+            Daily Top Rankers ({effectiveDays}d, top {perDay})
           </h3>
         </div>
         <select
-          value={hours}
-          onChange={(event) => setHours(Number(event.target.value))}
+          value={days}
+          onChange={(event) => setDays(Number(event.target.value))}
           className="rounded-md border border-glass-border bg-background/65 px-2 py-1 text-[10px] text-muted-foreground"
           aria-label="News feed lookback window"
         >
-          {[6, 12, 24, 48, 72, 168].map((h) => (
-            <option key={h} value={h}>
-              Last {h}h
+          {[1, 3, 7].map((d) => (
+            <option key={d} value={d}>
+              Last {d} day{d === 1 ? "" : "s"}
             </option>
           ))}
         </select>
@@ -147,35 +169,57 @@ export function ActivityTicker({ className }: { className?: string }) {
 
           {!showSkeleton && items.length === 0 && (
             <p className="rounded-lg border border-glass-border bg-glass-bg/40 px-2.5 py-2 text-[11px] text-muted-foreground">
-              No merchant activity in this window.
+              No daily rankings available for this window.
             </p>
           )}
+
           {!showSkeleton &&
-            items.map((item) => {
-            const color = EVENT_COLOR_MAP[item.event] ?? "text-foreground";
-            return (
-              <div
-                key={item.id}
-                className="flex items-start gap-2 rounded-lg border border-glass-border bg-glass-bg/50 px-2.5 py-1.5 transition-colors hover:bg-glass-bg"
-              >
-                <Icon icon={item.icon} className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", color)} />
-                <div className="min-w-0 flex-1">
-                  <p className={cn("text-[11px] leading-tight", color)}>
-                    {item.message}
-                  </p>
-                  {(item.merchantLocationName || item.userName) && (
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {item.merchantLocationName ? `Location: ${item.merchantLocationName}` : ""}
-                      {item.userName ? `${item.merchantLocationName ? " • " : ""}User: ${item.userName}` : ""}
+            itemsByDate.map(([date, dayItems]) => {
+              const poolAmount = dayItems[0]?.poolAmount ?? 0;
+
+              return (
+                <div key={date} className="space-y-1">
+                  <div className="sticky top-0 z-10 flex items-center justify-between rounded-md border border-glass-border bg-background/90 px-2 py-1 backdrop-blur-sm">
+                    <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                      {formatDateLabel(date)}
                     </p>
-                  )}
-                  <p className="font-mono text-[9px] text-muted-foreground">
-                    {timeAgo(item.timestamp)}
-                  </p>
+                    {poolAmount > 0 && (
+                      <p className="font-mono text-[9px] text-accent">
+                        Pool {formatCurrency(poolAmount)}
+                      </p>
+                    )}
+                  </div>
+
+                  {dayItems.map((item) => {
+                    const color =
+                      RANK_COLOR_MAP[item.rank] ??
+                      EVENT_COLOR_MAP[item.event] ??
+                      "text-foreground";
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "flex items-start gap-2 rounded-lg border border-glass-border bg-glass-bg/50 px-2.5 py-1.5 transition-colors hover:bg-glass-bg",
+                          item.isViewer && "border-accent/40 bg-accent/5",
+                        )}
+                      >
+                        <Icon icon={item.icon} className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", color)} />
+                        <div className="min-w-0 flex-1">
+                          <p className={cn("text-[11px] leading-tight", color)}>
+                            <span className="font-mono">#{item.rank}</span> {item.branchName}
+                            {item.isViewer ? " (You)" : ""}
+                          </p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">
+                            Payout {formatCurrency(item.payoutAmount)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
     </div>

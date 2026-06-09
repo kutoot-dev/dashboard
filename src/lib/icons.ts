@@ -122,6 +122,8 @@ export const NEWS_FEED_EVENT_ICONS: Record<string, IconDefinition> = {
   password_reset: faKey,
   credentials_resent_email: faPaperPlane,
   credentials_resent_sms: faMobileScreen,
+  daily_ranker: faTrophy,
+  trophy: faTrophy,
 };
 
 /** Legacy emoji icons from the API → Font Awesome. */
