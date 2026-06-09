@@ -1398,8 +1398,7 @@ export function MerchantBasicDetails({
         <>
           <LegalAcceptanceBlock
             applicationId={isPanelMode ? (branchId ?? null) : applicationId}
-            merchantLocationId={isPanelMode && branchId ? Number(branchId) : null}
-            context={isPanelMode ? "merchant_portal" : "onboarding"}
+            context="onboarding"
             onCompletenessChange={setLegalComplete}
           />
           {errors.legal ? <p className="text-xs text-error">{errors.legal}</p> : null}
