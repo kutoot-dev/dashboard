@@ -6,11 +6,11 @@ export function getActiveOnboardingSteps(
   visitOutcome: string | null,
 ): WizardStepId[] {
   if (channel === "merchant") {
-    return ["identity", "basic_details", "bank", "kyc", "review"];
+    return ["identity", "basic_details", "discount_program", "bank", "kyc", "review"];
   }
   if (channel === "field_executive") {
     if (visitOutcome === "interested") {
-      return ["identity", "visit_outcome", "basic_details"];
+      return ["identity", "visit_outcome", "basic_details", "discount_program", "review"];
     }
     if (visitOutcome === null) {
       return ["identity", "visit_outcome"];

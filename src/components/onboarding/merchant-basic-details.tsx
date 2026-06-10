@@ -303,14 +303,25 @@ export function MerchantBasicDetails({
   const [gpsStatus, setGpsStatus] = useState<string>("");
 
   useEffect(() => {
-    if (!formData.state || selectedStateId != null) {
+    if (selectedStateId != null) {
       return;
     }
+
+    const stateIdFromForm = formData.state_id ? Number(formData.state_id) : null;
+    if (stateIdFromForm != null && stateIdFromForm > 0) {
+      setSelectedStateId(stateIdFromForm);
+      return;
+    }
+
+    if (!formData.state) {
+      return;
+    }
+
     const match = states.find((s) => s.name === formData.state);
     if (match && match.id > 0) {
       setSelectedStateId(match.id);
     }
-  }, [formData.state, selectedStateId, states]);
+  }, [formData.state, formData.state_id, selectedStateId, states]);
 
   const phoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -1325,7 +1336,12 @@ export function MerchantBasicDetails({
                 const stateId = value ? Number(value) : null;
                 const stateName = states.find((s) => String(s.id) === value)?.name ?? "";
                 setSelectedStateId(stateId && stateId > 0 ? stateId : null);
-                updateFormData({ state: stateName, city: "" });
+                updateFormData({
+                  state: stateName,
+                  state_id: value,
+                  city: "",
+                  city_id: "",
+                });
                 setErrors((prev) => {
                   const next = { ...prev };
                   delete next.state;

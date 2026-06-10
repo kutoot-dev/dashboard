@@ -194,6 +194,49 @@ export async function unarchiveDeal(branchId: string, dealId: number) {
   return res.data;
 }
 
+// ── Merchant discount program (merchant-funded bill discounts) ─────────────
+
+export interface DiscountProgramBand {
+  id?: number;
+  min_amount: number;
+  max_amount: number;
+  discount_min_percentage: number;
+  discount_max_percentage: number;
+  offer_probability: number;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface DiscountProgramSettings {
+  discount_program_enabled: boolean;
+  discount_program_max_percentage: number | null;
+  minimum_bill_amount_for_discount: number | null;
+  policy_max_discount_percentage: number | null;
+  bands: DiscountProgramBand[];
+}
+
+export interface SaveDiscountProgramPayload {
+  discount_program_enabled: boolean;
+  discount_program_max_percentage?: number | null;
+  minimum_bill_amount_for_discount?: number | null;
+  bands: DiscountProgramBand[];
+}
+
+export async function getDiscountProgram(branchId: string) {
+  const res = await apiClient.get<ApiResponse<DiscountProgramSettings>>(
+    `/merchant/${branchId}/discount-program`,
+  );
+  return res.data;
+}
+
+export async function saveDiscountProgram(branchId: string, payload: SaveDiscountProgramPayload) {
+  const res = await apiClient.put<ApiResponse<DiscountProgramSettings>>(
+    `/merchant/${branchId}/discount-program`,
+    payload,
+  );
+  return res.data;
+}
+
 // ── Store Profile ────────────────────────────────────────────────────────────
 
 export async function getStoreProfile(branchId: string) {
@@ -263,6 +306,8 @@ export interface PanelBasicDetailsForm {
   storefront_photo_urls: string[];
   storefront_photo_status?: string;
   locality?: string;
+  state_id?: string;
+  city_id?: string;
   city?: string;
   state?: string;
   pin_code?: string;

@@ -55,6 +55,8 @@ export default function CompleteBasicDetailsPage() {
       storefront_photo_status:
         form.storefront_photo_status === "uploaded" ? "uploaded" : "pending",
       locality: form.locality ?? "",
+      state_id: form.state_id ?? "",
+      city_id: form.city_id ?? "",
       city: form.city ?? "",
       state: form.state ?? "",
       pin_code: form.pin_code ?? "",

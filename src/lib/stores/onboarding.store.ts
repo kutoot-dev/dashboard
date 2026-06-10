@@ -15,6 +15,7 @@ import type {
   FollowUpSchedule,
   HandoverInventoryItem,
 } from "@/lib/types";
+import type { DiscountProgramBand } from "@/lib/api/services/merchant.service";
 import { WIZARD_STEPS } from "@/lib/types";
 
 interface OnboardingFormData {
@@ -41,6 +42,8 @@ interface OnboardingFormData {
   sector_id: string;
   sector_name: string;
   locality: string;
+  state_id: string;
+  city_id: string;
   city: string;
   state: string;
   pin_code: string;
@@ -54,6 +57,13 @@ interface OnboardingFormData {
   gps_lat: number | null;
   gps_long: number | null;
   gps_accuracy: number | null;
+
+  // Discount program (merchant-funded bill discounts)
+  discount_program_enabled: boolean;
+  discount_program_max_percentage: number | null;
+  minimum_bill_amount_for_discount: number | null;
+  policy_max_discount_percentage: number | null;
+  discount_bands: DiscountProgramBand[];
 
   // Step 3
   commission_rate: number | null;
@@ -165,6 +175,8 @@ const initialFormData: OnboardingFormData = {
   sector_id: "",
   sector_name: "",
   locality: "",
+  state_id: "",
+  city_id: "",
   city: "",
   state: "",
   pin_code: "",
@@ -178,6 +190,12 @@ const initialFormData: OnboardingFormData = {
   gps_lat: null,
   gps_long: null,
   gps_accuracy: null,
+
+  discount_program_enabled: false,
+  discount_program_max_percentage: null,
+  minimum_bill_amount_for_discount: null,
+  policy_max_discount_percentage: null,
+  discount_bands: [],
 
   commission_rate: null,
   minimum_commission_percentage: null,

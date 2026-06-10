@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { getOnboardingProfile, getStoreProfile } from "@/lib/api/services/merchant.service";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -47,6 +48,21 @@ export default function StorePage() {
         title="Settings"
         subtitle="Review your store contact details and onboarding submission."
       />
+
+      <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Discount program</h2>
+          <p className="text-sm text-muted-foreground">
+            Configure merchant-funded bill discounts and amount bands for your branch.
+          </p>
+        </div>
+        <Link
+          href="/discount-program"
+          className="inline-flex h-9 items-center justify-center rounded-xl border border-border/80 bg-card/80 px-4 text-sm font-semibold text-foreground transition-all hover:border-accent/35 hover:bg-card-hover"
+        >
+          Manage discount bands
+        </Link>
+      </Card>
 
       <section className="space-y-4">
         <div>

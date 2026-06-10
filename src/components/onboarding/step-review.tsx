@@ -107,6 +107,10 @@ export function StepReview({ onBack }: StepReviewProps) {
           : undefined,
       expected_monthly_volume: formData.expected_monthly_volume || undefined,
       ...(!isFeVisitOnly && {
+        discount_program_enabled: formData.discount_program_enabled,
+        discount_program_max_percentage: formData.discount_program_max_percentage ?? undefined,
+        minimum_bill_amount_for_discount: formData.minimum_bill_amount_for_discount ?? undefined,
+        discount_bands: formData.discount_bands,
         commission_rate: formData.commission_rate,
         commission_model: "flat",
         commission_agreed: formData.commission_agreed,
@@ -413,6 +417,35 @@ export function StepReview({ onBack }: StepReviewProps) {
           }
         />
       </Section>
+
+      {!isFeVisitOnly && (
+        <Section title="Discount Program" onEdit={() => goToStep("discount_program")}>
+          <Row
+            label="Program"
+            value={formData.discount_program_enabled ? "Enabled" : "Disabled"}
+          />
+          {formData.minimum_bill_amount_for_discount != null && (
+            <Row
+              label="Minimum bill"
+              value={`₹${formData.minimum_bill_amount_for_discount}`}
+            />
+          )}
+          {formData.discount_program_max_percentage != null && (
+            <Row
+              label="Max discount cap"
+              value={`${formData.discount_program_max_percentage}%`}
+            />
+          )}
+          <Row
+            label="Bands"
+            value={
+              formData.discount_bands.length > 0
+                ? `${formData.discount_bands.filter((band) => band.is_active).length} active / ${formData.discount_bands.length} total`
+                : "None configured"
+            }
+          />
+        </Section>
+      )}
 
       {/* Commission / KYC / Bank / QR — only for full onboarding, not visit records */}
       {!isFeVisitOnly && (

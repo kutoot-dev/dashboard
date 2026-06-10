@@ -10,6 +10,7 @@ import { StepBasicDetails } from "@/components/onboarding/step-basic-details";
 import { StepCommission } from "@/components/onboarding/step-commission";
 import { StepKyc } from "@/components/onboarding/step-kyc";
 import { StepBank } from "@/components/onboarding/step-bank";
+import { StepDiscountProgram } from "@/components/onboarding/step-discount-program";
 import { StepQrActivation } from "@/components/onboarding/step-qr-activation";
 import { StepReview } from "@/components/onboarding/step-review";
 import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
@@ -289,6 +290,8 @@ export default function OnboardPage() {
         return <StepVisitOutcome onNext={handleNext} onBack={goBack} />;
       case "basic_details":
         return <StepBasicDetails onNext={handleNext} onBack={goBack} />;
+      case "discount_program":
+        return <StepDiscountProgram onNext={handleNext} onBack={goBack} />;
       case "commission":
         return <StepCommission onNext={handleNext} onBack={goBack} />;
       case "kyc":

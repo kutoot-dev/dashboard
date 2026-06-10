@@ -175,6 +175,7 @@ export type WizardStepId =
   | "identity"
   | "visit_outcome"    // Field executive only
   | "basic_details"
+  | "discount_program"
   | "commission"
   | "kyc"
   | "bank"
@@ -185,6 +186,7 @@ export const WIZARD_STEPS: WizardStepId[] = [
   "identity",
   "visit_outcome",
   "basic_details",
+  "discount_program",
   "commission",
   "kyc",
   "bank",
@@ -203,11 +205,12 @@ export const WIZARD_STEP_CONFIG: WizardStepConfig[] = [
   { id: "identity", label: "Identity", description: "Who is filling this form?", number: 1 },
   { id: "visit_outcome", label: "Visit Status", description: "Merchant interest and outcome", number: 2 },
   { id: "basic_details", label: "Basic Details", description: "Shop and owner information", number: 3 },
-  { id: "commission", label: "Commission", description: "Commission rate agreement", number: 4 },
-  { id: "kyc", label: "KYC Documents", description: "Business verification documents", number: 5 },
-  { id: "bank", label: "Bank Details", description: "Bank account for payouts", number: 6 },
-  { id: "qr_activation", label: "Field Handover", description: "QR code and inventory handover", number: 7 },
-  { id: "review", label: "Review & Submit", description: "Review and submit application", number: 8 },
+  { id: "discount_program", label: "Discount Program", description: "Merchant-funded bill discounts", number: 4 },
+  { id: "commission", label: "Commission", description: "Commission rate agreement", number: 5 },
+  { id: "kyc", label: "KYC Documents", description: "Business verification documents", number: 6 },
+  { id: "bank", label: "Bank Details", description: "Bank account for payouts", number: 7 },
+  { id: "qr_activation", label: "Field Handover", description: "QR code and inventory handover", number: 8 },
+  { id: "review", label: "Review & Submit", description: "Review and submit application", number: 9 },
 ];
 
 // ── Commission Tier ────────────────────────────────────────────────
@@ -297,6 +300,20 @@ export interface OnboardingApplication {
   operating_hours_end: string | null;
   expected_monthly_volume: string | null;
   inventory_handover_items?: HandoverInventoryItem[];
+  discount_program_enabled?: boolean;
+  discount_program_max_percentage?: number | null;
+  minimum_bill_amount_for_discount?: number | null;
+  policy_max_discount_percentage?: number | null;
+  discount_bands?: Array<{
+    id?: number;
+    min_amount: number;
+    max_amount: number;
+    discount_min_percentage: number;
+    discount_max_percentage: number;
+    offer_probability: number;
+    sort_order: number;
+    is_active: boolean;
+  }>;
   referral_code?: string | null;
   merchant_referral_code?: string | null;
   referred_by_location_id?: number | null;

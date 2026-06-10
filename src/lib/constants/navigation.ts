@@ -18,6 +18,7 @@ import {
   faHouse,
   faMoneyBillTransfer,
   faTag,
+  faTags,
   faUsers,
   faWallet,
 } from "@/lib/icons";
@@ -73,6 +74,11 @@ const CORE_BRANCH_NAV: NavItem[] = [
     label: "Team",
     href: "/team",
     icon: faUsers,
+  },
+  {
+    label: "Discount program",
+    href: "/discount-program",
+    icon: faTags,
   },
   {
     label: "Settings",
