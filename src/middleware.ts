@@ -58,7 +58,9 @@ export function middleware(request: NextRequest) {
   if (pathname === "/") {
     const user = parseAuthUser(request.cookies.get(AUTH_COOKIE));
     const home =
-      isAuthenticated && user?.role === "merchant" && user.store_role === "manager"
+      isAuthenticated &&
+        user?.role === "merchant" &&
+        (user.store_role === "manager" || user.store_role === "staff")
         ? "/transactions"
         : "/dashboard";
     return NextResponse.redirect(new URL(isAuthenticated ? home : "/login", request.url));
@@ -84,7 +86,10 @@ export function middleware(request: NextRequest) {
     }
 
     const user = parseAuthUser(request.cookies.get(AUTH_COOKIE));
-    if (user?.role === "merchant" && user.store_role === "manager") {
+    if (
+      user?.role === "merchant" &&
+      (user.store_role === "manager" || user.store_role === "staff")
+    ) {
       const allowed = STORE_TEAM_MEMBER_ROUTES.some(
         (route) => pathname === route || pathname.startsWith(`${route}/`),
       );

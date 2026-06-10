@@ -130,7 +130,7 @@ export function getMerchantNav(
   if (role === "operations_hub") {
     return [OPS_HUB_PORTFOLIO_NAV, ...BRANCH_NAV];
   }
-  if (storeRole === "manager") {
+  if (storeRole === "manager" || storeRole === "staff") {
     return STORE_TEAM_MEMBER_NAV;
   }
   return BRANCH_NAV;

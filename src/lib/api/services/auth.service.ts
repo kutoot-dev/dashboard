@@ -19,6 +19,9 @@ interface MerchantSellerPayload {
   sellerId?: string | number;
   shopId?: string | number;
   shopName?: string;
+  /** Personal account name (users table). */
+  userName?: string;
+  /** Business owner name on the merchant location profile. */
   ownerName?: string;
   email?: string;
   is_test?: boolean;
@@ -134,7 +137,7 @@ function normaliseAuthUser(payload?: MerchantSellerPayload): AuthUser | null {
 
   return {
     id,
-    name: payload.shopName ?? payload.ownerName ?? "Merchant",
+    name: payload.userName ?? payload.ownerName ?? "Merchant",
     email: payload.email ?? "",
     role,
     store_role: role === "merchant" ? storeRole : undefined,

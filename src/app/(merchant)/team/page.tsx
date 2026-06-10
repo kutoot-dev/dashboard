@@ -8,14 +8,22 @@ import {
   addManager,
   listManagers,
   removeManager,
-  type StoreManager,
+  type AssignableStoreRole,
+  type StoreTeamMember,
 } from "@/lib/api/services/managers.service";
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner",
+  manager: "Manager",
+  staff: "Staff",
+};
 
 export default function TeamPage() {
   const { user } = useAuth();
-  const [managers, setManagers] = useState<StoreManager[]>([]);
+  const [members, setMembers] = useState<StoreTeamMember[]>([]);
   const [mobile, setMobile] = useState("");
   const [name, setName] = useState("");
+  const [role, setRole] = useState<AssignableStoreRole>("manager");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +38,7 @@ export default function TeamPage() {
     try {
       const res = await listManagers();
       if (res.success && Array.isArray(res.data)) {
-        setManagers(res.data);
+        setMembers(res.data);
       } else {
         setError(res.error?.message ?? "Could not load team.");
       }
@@ -58,16 +66,21 @@ export default function TeamPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await addManager({ mobile, name: name.trim() || undefined });
+      const res = await addManager({
+        mobile,
+        name: name.trim() || undefined,
+        role,
+      });
       if (res.success) {
         setMobile("");
         setName("");
+        setRole("manager");
         await load();
       } else {
-        setError(res.error?.message ?? "Could not add manager.");
+        setError(res.error?.message ?? "Could not add team member.");
       }
     } catch {
-      setError("Could not add manager.");
+      setError("Could not add team member.");
     } finally {
       setSubmitting(false);
     }
@@ -80,10 +93,10 @@ export default function TeamPage() {
       if (res.success) {
         await load();
       } else {
-        setError(res.error?.message ?? "Could not remove manager.");
+        setError(res.error?.message ?? "Could not remove team member.");
       }
     } catch {
-      setError("Could not remove manager.");
+      setError("Could not remove team member.");
     }
   }
 
@@ -100,7 +113,8 @@ export default function TeamPage() {
       <div>
         <h1 className="font-display text-xl font-semibold text-foreground">Store team</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Add store managers by mobile number. They can log in with OTP (no password required).
+          Add team members by mobile number. Each person has their own login account (user profile),
+          separate from the store&apos;s merchant profile. Assign a store role per member.
         </p>
       </div>
 
@@ -108,7 +122,7 @@ export default function TeamPage() {
 
       {isOwner ? (
         <form onSubmit={handleAdd} className="glass-card space-y-3 rounded-xl border border-border/80 p-4">
-          <h2 className="text-sm font-semibold">Add store manager</h2>
+          <h2 className="text-sm font-semibold">Add team member</h2>
           <Input
             label="Mobile"
             value={mobile}
@@ -116,26 +130,37 @@ export default function TeamPage() {
             placeholder="10-digit mobile"
           />
           <Input
-            label="Name (optional)"
+            label="Account name (optional)"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Manager name"
+            placeholder="Personal login name"
           />
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium text-foreground">Store role</span>
+            <select
+              className="w-full rounded-lg border border-border/80 bg-background px-3 py-2 text-sm"
+              value={role}
+              onChange={(e) => setRole(e.target.value as AssignableStoreRole)}
+            >
+              <option value="manager">Manager</option>
+              <option value="staff">Staff</option>
+            </select>
+          </label>
           <Button type="submit" loading={submitting} disabled={mobile.length !== 10}>
-            Add manager
+            Add member
           </Button>
         </form>
       ) : null}
 
       <div className="glass-card rounded-xl border border-border/80 p-4">
-        <h2 className="mb-3 text-sm font-semibold">Managers</h2>
+        <h2 className="mb-3 text-sm font-semibold">Team</h2>
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : managers.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No managers added yet.</p>
+        ) : members.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No team members yet.</p>
         ) : (
           <ul className="space-y-2">
-            {managers.map((m) => (
+            {members.map((m) => (
               <li
                 key={m.id}
                 className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm"
@@ -143,8 +168,11 @@ export default function TeamPage() {
                 <div>
                   <p className="font-medium text-foreground">{m.name}</p>
                   <p className="text-muted-foreground">{m.mobile}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ROLE_LABELS[m.role] ?? m.role}
+                  </p>
                 </div>
-                {isOwner ? (
+                {isOwner && m.role !== "owner" ? (
                   <Button type="button" variant="ghost" size="sm" onClick={() => handleRemove(m.id)}>
                     Remove
                   </Button>

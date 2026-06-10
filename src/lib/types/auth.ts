@@ -19,6 +19,7 @@ export interface AttachedLocationSummary {
 
 export interface AuthUser {
   id: string;
+  /** Personal account display name (users table). */
   name: string;
   email: string;
   role: UserRole;

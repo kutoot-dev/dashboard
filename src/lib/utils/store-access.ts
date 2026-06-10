@@ -1,8 +1,11 @@
 import type { AuthUser, StorePivotRole } from "@/lib/types/auth";
 
-/** Store managers added by the owner — limited to transactions and GST reports. */
+/** Store team members (manager/staff) — limited to transactions and GST reports. */
 export function isStoreTeamMember(user: AuthUser | null | undefined): boolean {
-  return user?.role === "merchant" && user?.store_role === "manager";
+  return (
+    user?.role === "merchant" &&
+    (user?.store_role === "manager" || user?.store_role === "staff")
+  );
 }
 
 export function isStoreOwner(user: AuthUser | null | undefined): boolean {
@@ -17,7 +20,7 @@ export function isRouteAllowedForStoreRole(
   pathname: string,
   storeRole?: StorePivotRole,
 ): boolean {
-  if (storeRole !== "manager") {
+  if (storeRole !== "manager" && storeRole !== "staff") {
     return true;
   }
 
