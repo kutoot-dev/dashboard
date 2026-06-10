@@ -322,6 +322,12 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
             }
           }
 
+          if (key === "sector_id" && incoming != null && incoming !== "") {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (formUpdate as any)[key] = String(incoming);
+            continue;
+          }
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (formUpdate as any)[key] = incoming;
         }

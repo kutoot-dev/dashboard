@@ -7,7 +7,7 @@ import { ApplicationStatusScreen } from "@/components/onboarding/application-sta
 import { LegalAcceptanceBlock } from "@/components/onboarding/legal-acceptance-block";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useToastStore } from "@/lib/stores/toast.store";
-import { useCreateApplication, useUpdateApplication } from "@/lib/hooks";
+import { useCreateApplication, useMerchantCategories, useUpdateApplication } from "@/lib/hooks";
 import {
   APPLICATION_STATUS_LABELS,
   ONBOARDING_STRINGS,
@@ -35,6 +35,7 @@ export function StepReview({ onBack }: StepReviewProps) {
   const pushToast = useToastStore((s) => s.push);
   const createApp = useCreateApplication();
   const updateApp = useUpdateApplication();
+  const { categories: merchantCategories } = useMerchantCategories();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [duplicatePhoneError, setDuplicatePhoneError] = useState<string | null>(null);
@@ -276,8 +277,9 @@ export function StepReview({ onBack }: StepReviewProps) {
 
   const sectorLabel =
     formData.sector_name ||
+    merchantCategories.find((c) => String(c.id) === String(formData.sector_id))?.name ||
     SECTOR_OPTIONS.find((s) => s.value === String(formData.sector_id))?.label ||
-    (formData.sector_id ? String(formData.sector_id) : "");
+    "";
   const volumeLabel =
     VOLUME_RANGES.find((v) => v.value === formData.expected_monthly_volume)?.label ||
     formData.expected_monthly_volume;

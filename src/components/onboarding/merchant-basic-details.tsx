@@ -118,10 +118,24 @@ export function MerchantBasicDetails({
     [cities],
   );
 
-  const sectorSelectOptions = merchantCategories.map((c) => ({
-    value: String(c.id),
-    label: c.name,
-  }));
+  const sectorSelectOptions = useMemo(() => {
+    const options = merchantCategories.map((c) => ({
+      value: String(c.id),
+      label: c.name,
+    }));
+    const currentId =
+      formData.sector_id != null && String(formData.sector_id).trim() !== ""
+        ? String(formData.sector_id)
+        : "";
+    if (
+      currentId &&
+      !options.some((option) => option.value === currentId) &&
+      formData.sector_name
+    ) {
+      return [{ value: currentId, label: formData.sector_name }, ...options];
+    }
+    return options;
+  }, [formData.sector_id, formData.sector_name, merchantCategories]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
