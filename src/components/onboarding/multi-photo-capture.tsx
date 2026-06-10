@@ -3,6 +3,13 @@
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
+import {
+  isAllowedMerchantMediaFile,
+  isImageFile,
+  isImageValue,
+  MERCHANT_MEDIA_ACCEPT,
+  MERCHANT_MEDIA_TYPE_ERROR,
+} from "@/lib/utils/media-upload";
 
 interface MultiPhotoCaptureProps {
   label: string;
@@ -40,6 +47,7 @@ export function MultiPhotoCapture({
 }: MultiPhotoCaptureProps) {
   const [gpsStatus, setGpsStatus] = useState<string>("");
   const [gpsError, setGpsError] = useState<string>("");
+  const [typeError, setTypeError] = useState<string>("");
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +81,14 @@ export function MultiPhotoCapture({
       return;
     }
 
+    const rejectedVideo = files.some((file) => !isAllowedMerchantMediaFile(file));
+    if (rejectedVideo) {
+      setTypeError(MERCHANT_MEDIA_TYPE_ERROR);
+      return;
+    }
+
+    setTypeError("");
+
     const accepted = files
       .filter((file) => file.size >= 1024 && file.size <= 10 * 1024 * 1024)
       .slice(0, remaining);
@@ -82,14 +98,14 @@ export function MultiPhotoCapture({
     }
 
     const watermarked = await Promise.all(
-      accepted.map((file) => readAndWatermarkFile(file)),
+      accepted.map((file) => readAndProcessFile(file)),
     );
 
     const next = [...values, ...watermarked.filter(Boolean) as string[]];
     onChange(next.slice(0, maxPhotos));
   }
 
-  function readAndWatermarkFile(file: File): Promise<string | null> {
+  function readAndProcessFile(file: File): Promise<string | null> {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -97,7 +113,11 @@ export function MultiPhotoCapture({
           resolve(null);
           return;
         }
-        addWatermark(reader.result).then(resolve);
+        if (isImageFile(file)) {
+          addWatermark(reader.result).then(resolve);
+          return;
+        }
+        resolve(reader.result);
       };
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);
@@ -195,7 +215,7 @@ export function MultiPhotoCapture({
       <input
         ref={uploadInputRef}
         type="file"
-        accept="image/*"
+        accept={MERCHANT_MEDIA_ACCEPT}
         multiple
         className="hidden"
         onChange={onUploadInputChange}
@@ -208,7 +228,7 @@ export function MultiPhotoCapture({
         <p className="text-xs text-muted-foreground">{hint}</p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Upload up to {maxPhotos} photos of your shop front. Location and timestamp are stamped on each photo.
+          Upload up to {maxPhotos} files for your shop front (images, audio, or documents; no video). Location and timestamp are stamped on photos.
         </p>
       )}
 
@@ -216,12 +236,18 @@ export function MultiPhotoCapture({
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {values.map((url, index) => (
             <div key={`${index}-${url.slice(0, 32)}`} className="space-y-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt={`Storefront ${index + 1}`}
-                className="aspect-square w-full rounded-lg border border-border object-cover"
-              />
+              {isImageValue(url) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={url}
+                  alt={`Storefront ${index + 1}`}
+                  className="aspect-square w-full rounded-lg border border-border object-cover"
+                />
+              ) : (
+                <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-muted/30 p-3 text-center text-xs text-muted-foreground">
+                  File uploaded
+                </div>
+              )}
               <Button variant="ghost" size="sm" onClick={() => removeImage(index)}>
                 Remove
               </Button>
@@ -247,6 +273,7 @@ export function MultiPhotoCapture({
 
       {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
       {gpsError && <p className="text-xs text-error">{gpsError}</p>}
+      {typeError && <p className="text-xs text-error">{typeError}</p>}
       {error && <p className="text-xs text-error">{error}</p>}
     </div>
   );

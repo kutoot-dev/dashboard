@@ -6,6 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { listStoreMedia, uploadStoreMedia, type StoreMediaItem } from "@/lib/api/services/merchant.service";
 import { useToastStore } from "@/lib/stores/toast.store";
+import {
+  isAllowedMerchantMediaFile,
+  MERCHANT_MEDIA_ACCEPT,
+  MERCHANT_MEDIA_TYPE_ERROR,
+} from "@/lib/utils/media-upload";
 
 interface StoreMediaGalleryProps {
   branchId: string;
@@ -37,7 +42,7 @@ export function StoreMediaGallery({ branchId }: StoreMediaGalleryProps) {
       pushToast({
         variant: "error",
         title: "Upload failed",
-        description: "Could not upload the image. Try a JPG, PNG, or WebP under 5 MB.",
+        description: "Could not upload the file. Use images, audio, or documents (no video) under 5 MB.",
       });
     },
   });
@@ -50,6 +55,15 @@ export function StoreMediaGallery({ branchId }: StoreMediaGalleryProps) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+
+    if (!isAllowedMerchantMediaFile(file)) {
+      pushToast({
+        variant: "error",
+        title: "Upload failed",
+        description: MERCHANT_MEDIA_TYPE_ERROR,
+      });
+      return;
+    }
 
     setUploading(true);
     try {
@@ -65,14 +79,14 @@ export function StoreMediaGallery({ branchId }: StoreMediaGalleryProps) {
         <div>
           <h2 className="text-lg font-semibold text-foreground">Store media gallery</h2>
           <p className="text-sm text-muted-foreground">
-            Upload photos for your public store page. New uploads stay pending until approved by Kutoot.
+            Upload media for your public store page (images, audio, or documents; no video). New uploads stay pending until approved by Kutoot.
           </p>
         </div>
         <div>
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/jpg"
+            accept={MERCHANT_MEDIA_ACCEPT}
             className="hidden"
             onChange={handleFileChange}
           />
@@ -82,7 +96,7 @@ export function StoreMediaGallery({ branchId }: StoreMediaGalleryProps) {
             loading={uploading || uploadMutation.isPending}
             onClick={() => inputRef.current?.click()}
           >
-            Upload photo
+            Upload media
           </Button>
         </div>
       </div>

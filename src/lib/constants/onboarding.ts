@@ -369,7 +369,7 @@ export const VALIDATION_RULES = {
   },
   photo_min_size: 100 * 1024, // 100KB
   photo_max_size: 10 * 1024 * 1024, // 10MB
-  photo_types: ["image/jpeg", "image/png"],
+  photo_types: ["image/jpeg", "image/png", "image/webp", "image/gif", "audio/*", "application/pdf"],
   honeypot_field: "website_url", // hidden field — if filled, reject
   min_form_time_seconds: 30, // less than 30s = bot
 };
@@ -652,7 +652,7 @@ export const ONBOARDING_STRINGS = {
   PHOTO_GPS_MISSING:
     "Please enable location services. GPS coordinates are required for the photo.",
   PHOTO_SIZE_ERROR: "Photo must be between 100KB and 10MB",
-  PHOTO_TYPE_ERROR: "Only JPEG and PNG photos are accepted",
+  PHOTO_TYPE_ERROR: "Video files are not allowed. Upload images, audio, or documents instead.",
 
   API_FAIL_GST:
     "GST verification service is temporarily unavailable. Your application will proceed and GST will be verified manually.",
