@@ -48,20 +48,20 @@ export default function DiscountProgramPage() {
     mutationFn: () => saveDiscountProgram(branchId, serializeDiscountProgramPayload(form!)),
     onSuccess: (res) => {
       if (!res.success) {
-        pushToast({ type: "error", message: "Unable to save discount program." });
+        pushToast({ variant: "error", title: "Unable to save discount program." });
         return;
       }
 
       qc.setQueryData(["discount-program", branchId], res);
       setForm(toDiscountProgramFormState(res.data));
-      pushToast({ type: "success", message: "Discount program saved." });
+      pushToast({ variant: "success", title: "Discount program saved." });
     },
     onError: (error) => {
       const message =
         error instanceof ApiError
           ? error.message
           : "Unable to save discount program.";
-      pushToast({ type: "error", message });
+      pushToast({ variant: "error", title: message });
     },
   });
 

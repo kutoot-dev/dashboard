@@ -18,7 +18,7 @@ export async function togglePostLike(postId: number) {
 }
 
 export async function addPostComment(postId: number, body: string, parentId?: number) {
-  const res = await apiClient.post<ApiResponse<{ id: number; body: string; author: string; parent_id: number | null; created_at: string }>>(`/discover/${postId}/comments`, {
+  const res = await apiClient.post<ApiResponse<{ id: number; body: string; author: string; branch_name?: string | null; parent_id: number | null; created_at: string }>>(`/discover/${postId}/comments`, {
     body,
     parent_id: parentId ?? null,
   });

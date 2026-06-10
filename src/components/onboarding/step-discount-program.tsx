@@ -45,7 +45,8 @@ export function StepDiscountProgram({ onNext, onBack }: StepDiscountProgramProps
   const handleNext = () => {
     if (!validate()) return;
 
-    updateFormData(serializeDiscountProgramPayload(programState));
+    const payload = serializeDiscountProgramPayload(programState);
+    updateFormData({ ...payload, discount_bands: payload.bands });
     onNext();
   };
 
@@ -60,7 +61,10 @@ export function StepDiscountProgram({ onNext, onBack }: StepDiscountProgramProps
 
       <DiscountProgramFields
         value={programState}
-        onChange={(next) => updateFormData(serializeDiscountProgramPayload(next))}
+        onChange={(next) => {
+          const payload = serializeDiscountProgramPayload(next);
+          updateFormData({ ...payload, discount_bands: payload.bands });
+        }}
         policyCap={policyCap}
         compact
       />

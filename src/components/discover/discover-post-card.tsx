@@ -80,6 +80,22 @@ function authorInitials(name: string): string {
   );
 }
 
+function commentAuthorLabel(comment: { author: string; branch_name?: string | null }): string {
+  if (comment.branch_name) {
+    return comment.branch_name;
+  }
+
+  return comment.author;
+}
+
+function commentAuthorSubtitle(comment: { author: string; branch_name?: string | null }): string | null {
+  if (!comment.branch_name || comment.branch_name === comment.author) {
+    return null;
+  }
+
+  return comment.author;
+}
+
 function categoryLabel(category: DiscoverPost["category"]): string {
   return category === "academy" ? "Academy" : "Discover";
 }
@@ -240,10 +256,17 @@ export function DiscoverPostCard({ post }: DiscoverPostCardProps) {
           <ul className="space-y-2">
             {comments.map((comment) => (
               <li key={comment.id} className="flex gap-2">
-                <PostAuthorAvatar author={comment.author} variant="comment" className="mt-0.5 h-8 w-8" />
+                <PostAuthorAvatar
+                  author={commentAuthorLabel(comment)}
+                  variant="comment"
+                  className="mt-0.5 h-8 w-8"
+                />
                 <div className="min-w-0 flex-1 rounded-2xl bg-card-solid px-3 py-2 shadow-sm">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <span className="text-xs font-semibold text-foreground">{comment.author}</span>
+                    <span className="text-xs font-semibold text-foreground">{commentAuthorLabel(comment)}</span>
+                    {commentAuthorSubtitle(comment) && (
+                      <span className="text-[10px] text-muted-foreground">· {commentAuthorSubtitle(comment)}</span>
+                    )}
                     <time className="text-[10px] text-muted-foreground">{formatTimeAgo(comment.created_at)}</time>
                   </div>
                   <p className="mt-0.5 text-sm text-foreground">{comment.body}</p>

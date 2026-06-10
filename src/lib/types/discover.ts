@@ -20,6 +20,7 @@ export interface PostComment {
   id: number;
   body: string;
   author: string;
+  branch_name?: string | null;
   parent_id: number | null;
   created_at: string;
 }

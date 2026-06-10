@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { faPlus, faTrash } from "@/lib/icons";
-import type { DiscountProgramBand } from "@/lib/api/services/merchant.service";
+import type {
+  DiscountProgramBand,
+  SaveDiscountProgramPayload,
+} from "@/lib/api/services/merchant.service";
 
 export interface DiscountProgramFormState {
   discount_program_enabled: boolean;
@@ -26,8 +29,16 @@ export function emptyDiscountBand(sortOrder = 0): DiscountProgramBand {
   };
 }
 
+type DiscountProgramFormInput = Partial<{
+  discount_program_enabled: boolean;
+  discount_program_max_percentage: number | string | null;
+  minimum_bill_amount_for_discount: number | string | null;
+  discount_bands: DiscountProgramBand[];
+  bands: DiscountProgramBand[];
+}>;
+
 export function toDiscountProgramFormState(
-  settings: Partial<DiscountProgramFormState> & { bands?: DiscountProgramBand[] },
+  settings: DiscountProgramFormInput,
 ): DiscountProgramFormState {
   const bands = settings.discount_bands ?? settings.bands ?? [];
 
@@ -229,7 +240,9 @@ export function DiscountProgramFields({
   );
 }
 
-export function serializeDiscountProgramPayload(value: DiscountProgramFormState) {
+export function serializeDiscountProgramPayload(
+  value: DiscountProgramFormState,
+): SaveDiscountProgramPayload {
   return {
     discount_program_enabled: value.discount_program_enabled,
     discount_program_max_percentage:
@@ -240,7 +253,7 @@ export function serializeDiscountProgramPayload(value: DiscountProgramFormState)
       value.minimum_bill_amount_for_discount === ""
         ? null
         : Number(value.minimum_bill_amount_for_discount),
-    discount_bands: value.discount_bands.map((band, index) => ({
+    bands: value.discount_bands.map((band, index) => ({
       ...band,
       min_amount: Number(band.min_amount),
       max_amount: Number(band.max_amount),
