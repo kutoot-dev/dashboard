@@ -217,8 +217,6 @@ export interface DiscountProgramSettings {
 
 export interface SaveDiscountProgramPayload {
   discount_program_enabled: boolean;
-  discount_program_max_percentage?: number | null;
-  minimum_bill_amount_for_discount?: number | null;
   bands: DiscountProgramBand[];
 }
 

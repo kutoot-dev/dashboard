@@ -12,8 +12,6 @@ import type {
 
 export interface DiscountProgramFormState {
   discount_program_enabled: boolean;
-  discount_program_max_percentage: number | string;
-  minimum_bill_amount_for_discount: number | string;
   discount_bands: DiscountProgramBand[];
 }
 
@@ -31,8 +29,6 @@ export function emptyDiscountBand(sortOrder = 0): DiscountProgramBand {
 
 type DiscountProgramFormInput = Partial<{
   discount_program_enabled: boolean;
-  discount_program_max_percentage: number | string | null;
-  minimum_bill_amount_for_discount: number | string | null;
   discount_bands: DiscountProgramBand[];
   bands: DiscountProgramBand[];
 }>;
@@ -44,8 +40,6 @@ export function toDiscountProgramFormState(
 
   return {
     discount_program_enabled: Boolean(settings.discount_program_enabled),
-    discount_program_max_percentage: settings.discount_program_max_percentage ?? "",
-    minimum_bill_amount_for_discount: settings.minimum_bill_amount_for_discount ?? "",
     discount_bands: bands.length > 0 ? bands : [emptyDiscountBand(0)],
   };
 }
@@ -110,33 +104,9 @@ export function DiscountProgramFields({
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            label="Minimum bill for discount (₹)"
-            type="number"
-            min={0}
-            step="0.01"
-            value={value.minimum_bill_amount_for_discount}
-            onChange={(event) =>
-              onChange({ ...value, minimum_bill_amount_for_discount: event.target.value })
-            }
-          />
-          <Input
-            label="Max discount % (optional cap)"
-            type="number"
-            min={0}
-            max={100}
-            step="0.01"
-            value={value.discount_program_max_percentage}
-            onChange={(event) =>
-              onChange({ ...value, discount_program_max_percentage: event.target.value })
-            }
-          />
-        </div>
-
         {policyCap != null && (
           <p className="text-xs text-muted-foreground">
-            Onboarding policy cap: {policyCap}%
+            Onboarding policy cap: {policyCap}% (applied across all bands)
           </p>
         )}
       </Card>
@@ -245,14 +215,6 @@ export function serializeDiscountProgramPayload(
 ): SaveDiscountProgramPayload {
   return {
     discount_program_enabled: value.discount_program_enabled,
-    discount_program_max_percentage:
-      value.discount_program_max_percentage === ""
-        ? null
-        : Number(value.discount_program_max_percentage),
-    minimum_bill_amount_for_discount:
-      value.minimum_bill_amount_for_discount === ""
-        ? null
-        : Number(value.minimum_bill_amount_for_discount),
     bands: value.discount_bands.map((band, index) => ({
       ...band,
       min_amount: Number(band.min_amount),

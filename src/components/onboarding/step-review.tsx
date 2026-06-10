@@ -108,8 +108,6 @@ export function StepReview({ onBack }: StepReviewProps) {
       expected_monthly_volume: formData.expected_monthly_volume || undefined,
       ...(!isFeVisitOnly && {
         discount_program_enabled: formData.discount_program_enabled,
-        discount_program_max_percentage: formData.discount_program_max_percentage ?? undefined,
-        minimum_bill_amount_for_discount: formData.minimum_bill_amount_for_discount ?? undefined,
         discount_bands: formData.discount_bands,
         commission_rate: formData.commission_rate,
         commission_model: "flat",
@@ -424,16 +422,10 @@ export function StepReview({ onBack }: StepReviewProps) {
             label="Program"
             value={formData.discount_program_enabled ? "Enabled" : "Disabled"}
           />
-          {formData.minimum_bill_amount_for_discount != null && (
+          {formData.policy_max_discount_percentage != null && (
             <Row
-              label="Minimum bill"
-              value={`₹${formData.minimum_bill_amount_for_discount}`}
-            />
-          )}
-          {formData.discount_program_max_percentage != null && (
-            <Row
-              label="Max discount cap"
-              value={`${formData.discount_program_max_percentage}%`}
+              label="Policy cap"
+              value={`${formData.policy_max_discount_percentage}%`}
             />
           )}
           <Row
