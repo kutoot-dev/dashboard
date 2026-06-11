@@ -481,6 +481,8 @@ export interface MerchantMe {
   is_test: boolean;
   merchant_referral_code?: string | null;
   referral_share_url?: string | null;
+  referral_ios_app_url?: string | null;
+  referral_android_app_url?: string | null;
 }
 
 export interface MerchantScoreInsight {
@@ -499,6 +501,8 @@ export interface MerchantDashboard {
   month: { transactions: number; gmv: number; discount: number; commission: number };
   merchant_referral_code?: string | null;
   referral_share_url?: string | null;
+  referral_ios_app_url?: string | null;
+  referral_android_app_url?: string | null;
   live: {
     composite_score: number;
     rank: number;

@@ -22,6 +22,10 @@ import { SUB_SCORE_DESCRIPTIONS, SUB_SCORE_LABELS } from "@/lib/constants/scorin
 import { formatINR } from "@/lib/utils/format";
 import { useToastStore } from "@/lib/stores/toast.store";
 import type { DashboardSectionId } from "@/lib/hooks/use-dashboard-layout";
+import {
+  buildMerchantReferralShareMessage,
+  toAbsoluteShareUrl,
+} from "@/lib/utils/merchant-referral";
 
 const EMPTY_SCORE_INSIGHTS: MerchantScoreInsight[] = [];
 
@@ -101,37 +105,73 @@ export default function DashboardPage() {
     { label: "Walk-ins", value: walkins.toLocaleString("en-IN"), helper: "Customer visits / bills" },
   ];
   const merchantReferralCode = dashboard?.merchant_referral_code ?? null;
-  const referralShareUrl = dashboard?.referral_share_url ?? null;
+  const referralShareUrl = toAbsoluteShareUrl(dashboard?.referral_share_url);
+  const referralIosAppUrl = dashboard?.referral_ios_app_url ?? null;
+  const referralAndroidAppUrl = dashboard?.referral_android_app_url ?? null;
 
-  async function handleCopyReferralLink() {
-    if (!referralShareUrl) {
+  async function copyReferralText(
+    value: string,
+    successTitle: string,
+    successDescription: string,
+    errorDescription: string,
+  ) {
+    try {
+      await navigator.clipboard.writeText(value);
+      pushToast({
+        variant: "success",
+        title: successTitle,
+        description: successDescription,
+      });
+    } catch {
+      pushToast({
+        variant: "error",
+        title: "Could not copy",
+        description: errorDescription,
+      });
+    }
+  }
+
+  async function handleCopyReferralCode() {
+    if (!merchantReferralCode) {
       pushToast({
         variant: "warning",
-        title: "Referral link unavailable",
+        title: "Referral code unavailable",
         description: "Please wait for dashboard data to load and try again.",
       });
       return;
     }
 
-    try {
-      const absoluteShareUrl =
-        referralShareUrl.startsWith("http://") || referralShareUrl.startsWith("https://")
-          ? referralShareUrl
-          : `${window.location.origin}${referralShareUrl.startsWith("/") ? "" : "/"}${referralShareUrl}`;
+    await copyReferralText(
+      merchantReferralCode,
+      "Referral code copied",
+      "Share it with merchants when they install Kutoot Business.",
+      "Copy manually from the referral card.",
+    );
+  }
 
-      await navigator.clipboard.writeText(absoluteShareUrl);
+  async function handleCopyReferralShareMessage() {
+    const message = buildMerchantReferralShareMessage({
+      referralCode: merchantReferralCode,
+      referralShareUrl,
+      referralIosAppUrl,
+      referralAndroidAppUrl,
+    });
+
+    if (!message) {
       pushToast({
-        variant: "success",
-        title: "Referral link copied",
-        description: "Share it with merchants to auto-fill your referral code.",
+        variant: "warning",
+        title: "Share message unavailable",
+        description: "Please wait for dashboard data to load and try again.",
       });
-    } catch {
-      pushToast({
-        variant: "error",
-        title: "Could not copy link",
-        description: "Copy manually from the link shown in the referral card.",
-      });
+      return;
     }
+
+    await copyReferralText(
+      message,
+      "Share message copied",
+      "Send it with your code and Kutoot Business app links.",
+      "Copy manually from the referral card.",
+    );
   }
 
   function handleFixClick(key: string, label: string) {
@@ -209,8 +249,11 @@ export default function DashboardPage() {
           <DashboardReferralCard
             referralCode={merchantReferralCode}
             referralShareUrl={referralShareUrl}
+            referralIosAppUrl={referralIosAppUrl}
+            referralAndroidAppUrl={referralAndroidAppUrl}
             onOpenReferral={() => router.push("/merchant-referral")}
-            onCopyLink={() => void handleCopyReferralLink()}
+            onCopyCode={() => void handleCopyReferralCode()}
+            onCopyShareMessage={() => void handleCopyReferralShareMessage()}
           />
         );
       case "boost-commission":
