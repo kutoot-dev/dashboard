@@ -41,6 +41,8 @@ export function StepReview({ onBack }: StepReviewProps) {
   const [duplicatePhoneError, setDuplicatePhoneError] = useState<string | null>(null);
   const [legalComplete, setLegalComplete] = useState(false);
 
+  const isMerchantSelfServe = formData.channel === "merchant";
+
   const isFeVisitOnly =
     formData.channel === "field_executive" &&
     formData.visit_outcome !== "interested" &&
@@ -84,7 +86,7 @@ export function StepReview({ onBack }: StepReviewProps) {
       inventory_handover_items: formData.inventory_handover_items,
       phone: formData.phone || null,
       owner_name: formData.owner_name || null,
-      legal_name: formData.legal_name || undefined,
+      legal_name: formData.legal_name || formData.shop_name || undefined,
       email: formData.owner_email || null,
       email_verified: formData.owner_email ? !!formData.owner_email_verified : false,
       shop_name: formData.shop_name,
@@ -107,7 +109,8 @@ export function StepReview({ onBack }: StepReviewProps) {
           ? `https://maps.google.com/?q=${formData.gps_lat},${formData.gps_long}`
           : undefined,
       expected_monthly_volume: formData.expected_monthly_volume || undefined,
-      ...(!isFeVisitOnly && {
+      ...(!isFeVisitOnly &&
+        !isMerchantSelfServe && {
         discount_program_enabled: formData.discount_program_enabled,
         discount_bands: formData.discount_bands,
         commission_rate: formData.commission_rate,
@@ -140,11 +143,19 @@ export function StepReview({ onBack }: StepReviewProps) {
             ? `${formData.operating_hours_start} - ${formData.operating_hours_end}`
             : undefined,
       }),
+      ...(isMerchantSelfServe && {
+        commission_rate: formData.commission_rate ?? formData.minimum_commission_percentage ?? undefined,
+        commission_model: "flat" as const,
+        minimum_commission_percentage: formData.minimum_commission_percentage ?? undefined,
+        gst_business_name: formData.legal_name || formData.shop_name || undefined,
+      }),
       stage: isFeVisitOnly
         ? ((formData.visit_outcome ?? "revisit") as string)
-        : formData.channel === "merchant"
-          ? "kyc_submitted"
-          : "basic_details_submitted",
+        : isMerchantSelfServe
+          ? "basic_details_submitted"
+          : formData.channel === "merchant"
+            ? "kyc_submitted"
+            : "basic_details_submitted",
       status: (isFeVisitOnly ? "visit_record" : "pending_review") as ApplicationStatus,
       current_step: "review" as WizardStepId,
       website_url: formData.website_url, // honeypot
@@ -288,14 +299,23 @@ export function StepReview({ onBack }: StepReviewProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-foreground">
-          {isFeVisitOnly ? "Review Visit Record" : "Review & Submit"}
+          {isFeVisitOnly ? "Review Visit Record" : isMerchantSelfServe ? "Preview & Submit" : "Review & Submit"}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           {isFeVisitOnly
             ? "Confirm the visit details before logging this record."
-            : "Review all details before submitting. Click section titles to edit."}
+            : isMerchantSelfServe
+              ? "Check everything looks right, accept the agreements, and submit."
+              : "Review all details before submitting. Click section titles to edit."}
         </p>
       </div>
+
+      {isMerchantSelfServe && !isFeVisitOnly && (
+        <div className="rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-sm text-muted-foreground">
+          Bank details, KYC, and discount program can be configured from your merchant portal after
+          login.
+        </div>
+      )}
 
       {/* Submitted-by banner */}
       <div className="flex items-center gap-2">
@@ -367,40 +387,65 @@ export function StepReview({ onBack }: StepReviewProps) {
       {/* Basic Details Section */}
       <Section title="Basic Details" onEdit={() => goToStep("basic_details")}>
         {formData.phone && <Row label="Phone" value={`+91 ${formData.phone}`} />}
-        {formData.owner_name && <Row label="Owner Name" value={formData.owner_name} />}
-        {formData.legal_name && <Row label="Legal Name" value={formData.legal_name} />}
+        {formData.owner_name && (
+          <Row label={isMerchantSelfServe ? "Your Name" : "Owner Name"} value={formData.owner_name} />
+        )}
+        {!isMerchantSelfServe && formData.legal_name && (
+          <Row label="Legal Name" value={formData.legal_name} />
+        )}
         {formData.owner_email && <Row label="Email" value={formData.owner_email} />}
-        <Row label="Shop Name" value={formData.shop_name} />
-        {formData.door_no && <Row label="Door No" value={formData.door_no} />}
-        {formData.shop_no && <Row label="Shop No" value={formData.shop_no} />}
-        {formData.branch_name && <Row label="Branch / Outlet" value={formData.branch_name} />}
-        {formData.year_of_establishment && <Row label="Year of Establishment" value={formData.year_of_establishment} />}
-        {formData.business_ownership_type && <Row label="Business Ownership Type" value={formData.business_ownership_type} />}
+        <Row label="Store Name" value={formData.shop_name} />
+        {!isMerchantSelfServe && formData.door_no && <Row label="Door No" value={formData.door_no} />}
+        {!isMerchantSelfServe && formData.shop_no && <Row label="Shop No" value={formData.shop_no} />}
+        {!isMerchantSelfServe && formData.branch_name && (
+          <Row label="Branch / Outlet" value={formData.branch_name} />
+        )}
+        {!isMerchantSelfServe && formData.year_of_establishment && (
+          <Row label="Year of Establishment" value={formData.year_of_establishment} />
+        )}
+        {!isMerchantSelfServe && formData.business_ownership_type && (
+          <Row label="Business Ownership Type" value={formData.business_ownership_type} />
+        )}
         <Row label="Category" value={sectorLabel} />
-        <Row label="Locality" value={formData.locality} />
+        {!isMerchantSelfServe && <Row label="Locality" value={formData.locality} />}
         <Row label="City" value={formData.city} />
         <Row label="State" value={formData.state} />
-        <Row label="PIN Code" value={formData.pin_code} />
-        <Row label="Location" value={`${formData.locality}, ${formData.city}, ${formData.state} - ${formData.pin_code}`} />
+        {formData.pin_code && <Row label="PIN Code" value={formData.pin_code} />}
+        {!isMerchantSelfServe && (
+          <Row
+            label="Location"
+            value={`${formData.locality}, ${formData.city}, ${formData.state} - ${formData.pin_code}`}
+          />
+        )}
+        {isMerchantSelfServe && (
+          <Row
+            label="Address"
+            value={[formData.city, formData.state, formData.pin_code].filter(Boolean).join(", ")}
+          />
+        )}
+        {!isMerchantSelfServe && (
+          <>
+            <Row
+              label="Latitude / Longitude"
+              value={
+                formData.gps_lat != null && formData.gps_long != null
+                  ? `${formData.gps_lat}, ${formData.gps_long}`
+                  : "Not captured"
+              }
+              valueClass={formData.gps_lat != null && formData.gps_long != null ? "" : "text-error"}
+            />
+            <Row
+              label="Google Maps Link"
+              value={
+                formData.gps_lat != null && formData.gps_long != null
+                  ? `https://maps.google.com/?q=${formData.gps_lat},${formData.gps_long}`
+                  : "Not available"
+              }
+            />
+          </>
+        )}
         <Row
-          label="Latitude / Longitude"
-          value={
-            formData.gps_lat != null && formData.gps_long != null
-              ? `${formData.gps_lat}, ${formData.gps_long}`
-              : "Not captured"
-          }
-          valueClass={formData.gps_lat != null && formData.gps_long != null ? "" : "text-error"}
-        />
-        <Row
-          label="Google Maps Link"
-          value={
-            formData.gps_lat != null && formData.gps_long != null
-              ? `https://maps.google.com/?q=${formData.gps_lat},${formData.gps_long}`
-              : "Not available"
-          }
-        />
-        <Row
-          label="Storefront Photos"
+          label={isMerchantSelfServe ? "Shop Photos" : "Storefront Photos"}
           value={
             formData.storefront_photo_urls.length > 0 || formData.storefront_photo_url
               ? `${Math.max(formData.storefront_photo_urls.length, formData.storefront_photo_url ? 1 : 0)} uploaded`
@@ -416,9 +461,12 @@ export function StepReview({ onBack }: StepReviewProps) {
                 : "text-error"
           }
         />
+        {isMerchantSelfServe && formData.referral_code && (
+          <Row label="Referral Code" value={formData.referral_code} />
+        )}
       </Section>
 
-      {!isFeVisitOnly && (
+      {!isFeVisitOnly && !isMerchantSelfServe && (
         <Section title="Discount Program" onEdit={() => goToStep("discount_program")}>
           <Row
             label="Program"
@@ -441,8 +489,8 @@ export function StepReview({ onBack }: StepReviewProps) {
         </Section>
       )}
 
-      {/* Commission / KYC / Bank / QR — only for full onboarding, not visit records */}
-      {!isFeVisitOnly && (
+      {/* Commission / KYC / Bank / QR — only for full onboarding, not visit records or merchant self-serve */}
+      {!isFeVisitOnly && !isMerchantSelfServe && (
         <>
           {/* Commission Section */}
           <Section title="Commission" onEdit={() => goToStep("commission")}>

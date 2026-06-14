@@ -70,14 +70,25 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     },
   },
   display_name: {
-    label: "Display Name",
+    label: "Store Name",
     placeholder: "Sharma General Store",
     tooltip: {
-      title: "Customer-Facing Store Name",
+      title: "Your Store Name",
       description:
-        "The name customers see on receipts and in the Kutoot app. Usually your shop signboard name.",
+        "The name on your shop signboard — shown to customers on receipts and in the Kutoot app.",
       example: "Sharma General Store",
-      whyNeeded: "Shown to customers during transactions.",
+      whyNeeded: "This is how customers will find and recognize your store.",
+    },
+  },
+  store_name: {
+    label: "Store Name",
+    placeholder: "Sharma General Store",
+    tooltip: {
+      title: "Your Store Name",
+      description:
+        "The name on your shop signboard — shown to customers on receipts and in the Kutoot app.",
+      example: "Sharma General Store",
+      whyNeeded: "This is how customers will find and recognize your store.",
     },
   },
   shop_name: {

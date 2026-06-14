@@ -81,6 +81,7 @@ export function MerchantBasicDetails({
     setPhoneCheckResult,
     completeStep,
   } = useOnboardingStore();
+  const isQuickOnboard = !isPanelMode && formData.channel === "merchant";
   const isFieldExecutive = formData.channel === "field_executive";
   const isFeVisitOnly =
     isFieldExecutive &&
@@ -586,11 +587,15 @@ export function MerchantBasicDetails({
   const validate = (): boolean => {
     const e: Record<string, string> = {};
 
-    if (!formData.legal_name || formData.legal_name.trim().length < 2) {
-      e.legal_name = "Legal name must be at least 2 characters.";
+    if (!isQuickOnboard) {
+      if (!formData.legal_name || formData.legal_name.trim().length < 2) {
+        e.legal_name = "Legal name must be at least 2 characters.";
+      }
     }
     if (!formData.shop_name || formData.shop_name.trim().length < 2) {
-      e.shop_name = "Display name must be at least 2 characters.";
+      e.shop_name = isQuickOnboard
+        ? "Store name must be at least 2 characters."
+        : "Display name must be at least 2 characters.";
     }
     if (!formData.sector_id) {
       e.sector = "Select a business category.";
@@ -645,18 +650,23 @@ export function MerchantBasicDetails({
 
     if (!isFeVisitOnly) {
       if (
-        formData.commission_rate === null ||
-        formData.commission_rate < categoryMinCommission
+        !isQuickOnboard &&
+        (formData.commission_rate === null ||
+          formData.commission_rate < categoryMinCommission)
       ) {
         e.commission_rate = isPanelMode
           ? formData.commission_rate === null
             ? "Please set your commission rate."
             : ONBOARDING_STRINGS.COMMISSION_MIN_ERROR
           : `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
-      } else if (formData.commission_rate > VALIDATION_RULES.commission_rate.max) {
+      } else if (
+        !isQuickOnboard &&
+        formData.commission_rate != null &&
+        formData.commission_rate > VALIDATION_RULES.commission_rate.max
+      ) {
         e.commission_rate = ONBOARDING_STRINGS.COMMISSION_MAX_ERROR;
       }
-      if (!legalComplete) {
+      if (!isQuickOnboard && !legalComplete) {
         e.legal = "Please read and accept all required legal agreements.";
       }
     }
@@ -768,6 +778,9 @@ export function MerchantBasicDetails({
     }
 
     if (formData.channel === "merchant" && onNext) {
+      if (isQuickOnboard && !formData.legal_name?.trim()) {
+        updateFormData({ legal_name: formData.shop_name.trim() });
+      }
       completeStep("basic_details");
       onNext();
       return;
@@ -912,41 +925,57 @@ export function MerchantBasicDetails({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-foreground">Basic Details</h2>
+        <h2 className="text-xl font-bold text-foreground">
+          {isQuickOnboard ? "Quick Setup" : "Basic Details"}
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {isPanelMode
             ? "Complete your shop profile to start using the merchant panel. Your mobile number was verified at login."
-            : "Tell us about your business. Phone number is mandatory; email is optional but must be verified if provided."}
+            : isQuickOnboard
+              ? "Just the essentials — bank, KYC, and discounts can be set up in your portal after login."
+              : "Tell us about your business. Phone number is mandatory; email is optional but must be verified if provided."}
         </p>
       </div>
 
-      <FieldWithInfo
-        fieldInfo={ONBOARDING_FIELDS.legal_name}
-        required
-        error={errors.legal_name}
-      >
-        <Input
-          placeholder={ONBOARDING_FIELDS.legal_name.placeholder}
-          value={formData.legal_name}
-          onChange={(e) => updateFormData({ legal_name: e.target.value })}
-          maxLength={255}
-        />
-      </FieldWithInfo>
+      {!isQuickOnboard && (
+        <FieldWithInfo
+          fieldInfo={ONBOARDING_FIELDS.legal_name}
+          required
+          error={errors.legal_name}
+        >
+          <Input
+            placeholder={ONBOARDING_FIELDS.legal_name.placeholder}
+            value={formData.legal_name}
+            onChange={(e) => updateFormData({ legal_name: e.target.value })}
+            maxLength={255}
+          />
+        </FieldWithInfo>
+      )}
 
       <FieldWithInfo
-        fieldInfo={ONBOARDING_FIELDS.display_name}
+        fieldInfo={isQuickOnboard ? ONBOARDING_FIELDS.store_name : ONBOARDING_FIELDS.display_name}
         required
+        showTooltip={!isQuickOnboard}
         error={errors.shop_name}
       >
         <Input
-          placeholder={ONBOARDING_FIELDS.display_name.placeholder}
+          placeholder={
+            isQuickOnboard
+              ? ONBOARDING_FIELDS.store_name.placeholder
+              : ONBOARDING_FIELDS.display_name.placeholder
+          }
           value={formData.shop_name}
-          onChange={(e) => updateFormData({ shop_name: e.target.value })}
+          onChange={(e) => {
+            const name = e.target.value;
+            updateFormData(
+              isQuickOnboard ? { shop_name: name, legal_name: name } : { shop_name: name },
+            );
+          }}
           maxLength={150}
         />
       </FieldWithInfo>
 
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.sector} required error={errors.sector}>
+      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.sector} required showTooltip={!isQuickOnboard} error={errors.sector}>
         {categoriesError && (
           <p className="mb-2 text-sm text-destructive">
             Could not load business categories. Check your connection and refresh the page.
@@ -996,7 +1025,7 @@ export function MerchantBasicDetails({
         />
       </FieldWithInfo>
 
-      {!isFeVisitOnly && (
+      {!isFeVisitOnly && !isQuickOnboard && (
         <FieldWithInfo
           fieldInfo={ONBOARDING_FIELDS.commission_rate}
           required
@@ -1093,30 +1122,36 @@ export function MerchantBasicDetails({
       )}
 
       <FieldWithInfo
-        fieldInfo={ONBOARDING_FIELDS.owner_name}
+        fieldInfo={{
+          ...ONBOARDING_FIELDS.owner_name,
+          label: isQuickOnboard ? "Your Name" : ONBOARDING_FIELDS.owner_name.label,
+        }}
         required
+        showTooltip={!isQuickOnboard}
         error={errors.owner_name}
       >
         <Input
-          placeholder={ONBOARDING_FIELDS.owner_name.placeholder}
+          placeholder={isQuickOnboard ? "Rajesh Kumar Sharma" : ONBOARDING_FIELDS.owner_name.placeholder}
           value={formData.owner_name}
           onChange={(e) => updateFormData({ owner_name: e.target.value })}
           maxLength={100}
         />
       </FieldWithInfo>
 
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.referral_code} error={errors.referral_code}>
-        <Input
-          placeholder={ONBOARDING_FIELDS.referral_code.placeholder}
-          value={formData.referral_code}
-          onChange={(e) =>
-            updateFormData({
-              referral_code: e.target.value.trim().toUpperCase(),
-            })
-          }
-          maxLength={16}
-        />
-      </FieldWithInfo>
+      {!isQuickOnboard && (
+        <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.referral_code} error={errors.referral_code}>
+          <Input
+            placeholder={ONBOARDING_FIELDS.referral_code.placeholder}
+            value={formData.referral_code}
+            onChange={(e) =>
+              updateFormData({
+                referral_code: e.target.value.trim().toUpperCase(),
+              })
+            }
+            maxLength={16}
+          />
+        </FieldWithInfo>
+      )}
 
       {formData.merchant_referral_code ? (
         <div className="rounded-lg border border-border bg-card/50 p-3 space-y-1">
@@ -1297,13 +1332,20 @@ export function MerchantBasicDetails({
         )}
       </div>
 
-      <div className="space-y-2 rounded-lg border border-border p-3">
+      <div className="space-y-3 rounded-lg border border-border p-3">
         <p className="text-sm font-medium text-foreground">
           Shop Location <span className="text-error">*</span>
         </p>
         <p className="text-xs text-muted-foreground">
-          Pick your shop location on the map or fetch coordinates from your current location.
+          {isQuickOnboard
+            ? "Tap below to pin your shop — we will fill in the address automatically."
+            : "Pick your shop location on the map or fetch coordinates from your current location."}
         </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="primary" onClick={pickCurrentLocation}>
+            Use Current Location
+          </Button>
+        </div>
         <MapLocationPicker
           value={
             formData.gps_lat != null && formData.gps_long != null
@@ -1314,34 +1356,29 @@ export function MerchantBasicDetails({
             handleLocationCaptured(coords);
           }}
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Input value={formData.gps_lat ?? ""} readOnly placeholder="Latitude" />
-          <Input value={formData.gps_long ?? ""} readOnly placeholder="Longitude" />
-        </div>
-        <Button type="button" variant="secondary" onClick={pickCurrentLocation}>
-          Use Current Location
-        </Button>
+        {!isQuickOnboard && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input value={formData.gps_lat ?? ""} readOnly placeholder="Latitude" />
+            <Input value={formData.gps_long ?? ""} readOnly placeholder="Longitude" />
+          </div>
+        )}
         {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
         {errors.gps && <p className="text-xs text-error">{errors.gps}</p>}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.locality} error={errors.locality}>
-            <Input
-              placeholder={ONBOARDING_FIELDS.locality.placeholder}
-              value={formData.locality}
-              onChange={(e) => updateFormData({ locality: e.target.value })}
-            />
-          </FieldWithInfo>
-          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.pin_code} error={errors.pin_code}>
-            <Input
-              placeholder={ONBOARDING_FIELDS.pin_code?.placeholder ?? "560001"}
-              value={formData.pin_code}
-              onChange={(e) =>
-                updateFormData({ pin_code: e.target.value.replace(/\D/g, "").slice(0, 6) })
-              }
-              maxLength={6}
-            />
-          </FieldWithInfo>
-          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.state} error={errors.state}>
+        <div className={`grid grid-cols-1 gap-3 ${isQuickOnboard ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+          {!isQuickOnboard && (
+            <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.locality} error={errors.locality}>
+              <Input
+                placeholder={ONBOARDING_FIELDS.locality.placeholder}
+                value={formData.locality}
+                onChange={(e) => updateFormData({ locality: e.target.value })}
+              />
+            </FieldWithInfo>
+          )}
+          <FieldWithInfo
+            fieldInfo={ONBOARDING_FIELDS.state}
+            error={errors.state}
+            showTooltip={!isQuickOnboard}
+          >
             <Select
               placeholder={statesLoading ? "Loading states…" : "Select state"}
               options={stateSelectOptions}
@@ -1366,7 +1403,11 @@ export function MerchantBasicDetails({
               disabled={statesLoading}
             />
           </FieldWithInfo>
-          <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.city} error={errors.city}>
+          <FieldWithInfo
+            fieldInfo={ONBOARDING_FIELDS.city}
+            error={errors.city}
+            showTooltip={!isQuickOnboard}
+          >
             <Select
               placeholder={
                 !selectedStateId || selectedStateId <= 0
@@ -1388,11 +1429,25 @@ export function MerchantBasicDetails({
               disabled={!selectedStateId || selectedStateId <= 0 || citiesLoading}
             />
           </FieldWithInfo>
+          <FieldWithInfo
+            fieldInfo={ONBOARDING_FIELDS.pin_code}
+            error={errors.pin_code}
+            showTooltip={!isQuickOnboard}
+          >
+            <Input
+              placeholder={ONBOARDING_FIELDS.pin_code?.placeholder ?? "560001"}
+              value={formData.pin_code}
+              onChange={(e) =>
+                updateFormData({ pin_code: e.target.value.replace(/\D/g, "").slice(0, 6) })
+              }
+              maxLength={6}
+            />
+          </FieldWithInfo>
         </div>
       </div>
 
       <MultiPhotoCapture
-        label="Storefront Photos"
+        label={isQuickOnboard ? "Shop Photos" : "Storefront Photos"}
         values={formData.storefront_photo_urls}
         onChange={updateStorefrontPhotos}
         onLocationCaptured={(coords) => {
@@ -1403,14 +1458,35 @@ export function MerchantBasicDetails({
         required
         error={errors.storefront_photo}
         hint={
-          isPanelMode
-            ? "Take or upload photos of your shop front (up to 5). The same images are saved to your store media gallery when you submit."
-            : "Take or upload photos of your shop front. You can add up to 5 images. Photos are stored securely after submission."
+          isQuickOnboard
+            ? "Snap or upload up to 5 photos of your shop front."
+            : isPanelMode
+              ? "Take or upload photos of your shop front (up to 5). The same images are saved to your store media gallery when you submit."
+              : "Take or upload photos of your shop front. You can add up to 5 images. Photos are stored securely after submission."
         }
         useDeviceCamera
       />
 
-      {mapsUrl && formData.gps_lat != null && formData.gps_long != null && (
+      {isQuickOnboard && (
+        <FieldWithInfo
+          fieldInfo={ONBOARDING_FIELDS.referral_code}
+          error={errors.referral_code}
+          showTooltip={false}
+        >
+          <Input
+            placeholder={ONBOARDING_FIELDS.referral_code.placeholder}
+            value={formData.referral_code}
+            onChange={(e) =>
+              updateFormData({
+                referral_code: e.target.value.trim().toUpperCase(),
+              })
+            }
+            maxLength={16}
+          />
+        </FieldWithInfo>
+      )}
+
+      {!isQuickOnboard && mapsUrl && formData.gps_lat != null && formData.gps_long != null && (
         <div className="rounded-lg border border-border bg-card/50 p-3 space-y-2">
           <p className="text-sm font-medium text-foreground">Google Maps Link</p>
           <a
@@ -1424,7 +1500,7 @@ export function MerchantBasicDetails({
         </div>
       )}
 
-      {(!isFeVisitOnly || isPanelMode) && (
+      {(!isFeVisitOnly || isPanelMode) && !isQuickOnboard && (
         <>
           <LegalAcceptanceBlock
             applicationId={isPanelMode ? (branchId ?? null) : applicationId}
@@ -1448,15 +1524,17 @@ export function MerchantBasicDetails({
           onClick={handleSubmit}
           loading={isPanelMode ? panelSaving : createApp.isPending || updateApp.isPending}
         >
-          {isPanelMode
-            ? panelSaving
-              ? "Saving…"
-              : "Save & continue"
-            : isFeVisitOnly
-              ? "Save & Continue"
-              : formData.channel === "merchant" && onNext
+          {isQuickOnboard
+            ? "Preview & Continue"
+            : isPanelMode
+              ? panelSaving
+                ? "Saving…"
+                : "Save & continue"
+              : isFeVisitOnly
                 ? "Save & Continue"
-                : "Submit Application"}
+                : formData.channel === "merchant" && onNext
+                  ? "Save & Continue"
+                  : "Submit Application"}
         </Button>
       </div>
     </div>

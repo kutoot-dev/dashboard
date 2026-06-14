@@ -31,13 +31,8 @@ export function resolveOnboardingStageForStep(
 
 function matchMerchantSelfServeStage(step: WizardStepId): MerchantStage {
   switch (step) {
-    case "basic_details":
-      return "basic_details_submitted";
-    case "bank":
-      return "bank_details_submitted";
-    case "kyc":
     case "review":
-      return "kyc_submitted";
+      return "basic_details_submitted";
     default:
       return "in_progress";
   }

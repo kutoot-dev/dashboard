@@ -8,6 +8,7 @@ interface FieldWithInfoProps {
   fieldInfo: FieldInfo;
   error?: string;
   required?: boolean;
+  showTooltip?: boolean;
   children: React.ReactNode;
   className?: string;
 }
@@ -20,6 +21,7 @@ export function FieldWithInfo({
   fieldInfo,
   error,
   required,
+  showTooltip = true,
   children,
   className,
 }: FieldWithInfoProps) {
@@ -28,9 +30,11 @@ export function FieldWithInfo({
       <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
         {fieldInfo.label}
         {required && <span className="text-error">*</span>}
-        <InfoTooltip
-          text={`${fieldInfo.tooltip.title}: ${fieldInfo.tooltip.description} Example: ${fieldInfo.tooltip.example}. ${fieldInfo.tooltip.whyNeeded}`}
-        />
+        {showTooltip ? (
+          <InfoTooltip
+            text={`${fieldInfo.tooltip.title}: ${fieldInfo.tooltip.description} Example: ${fieldInfo.tooltip.example}. ${fieldInfo.tooltip.whyNeeded}`}
+          />
+        ) : null}
       </label>
       {children}
       {error && (
