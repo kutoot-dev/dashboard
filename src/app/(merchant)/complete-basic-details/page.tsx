@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { MerchantBasicDetails } from "@/components/onboarding/merchant-basic-details";
+import { StepBasicDetails } from "@/components/onboarding/step-basic-details";
 import { useAuth } from "@/components/providers/auth-provider";
 import { getPanelBasicDetails } from "@/lib/api/services/merchant.service";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
@@ -84,7 +84,7 @@ export default function CompleteBasicDetailsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <MerchantBasicDetails
+      <StepBasicDetails
         mode="panel"
         branchId={branchId}
         onBack={() => router.push("/login")}

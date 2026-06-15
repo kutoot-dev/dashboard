@@ -15,7 +15,7 @@ import type {
   FollowUpSchedule,
   HandoverInventoryItem,
 } from "@/lib/types";
-import type { DiscountProgramBand } from "@/lib/api/services/merchant.service";
+import type { DiscountProgramBandForm } from "@/components/discount-program/discount-program-fields";
 import { WIZARD_STEPS } from "@/lib/types";
 
 interface OnboardingFormData {
@@ -39,6 +39,8 @@ interface OnboardingFormData {
   shop_no: string;
   year_of_establishment: string;
   business_ownership_type: string;
+  razorpay_business_category: string;
+  razorpay_business_subcategory: string;
   sector_id: string;
   sector_name: string;
   locality: string;
@@ -63,7 +65,7 @@ interface OnboardingFormData {
   discount_program_max_percentage: number | null;
   minimum_bill_amount_for_discount: number | null;
   policy_max_discount_percentage: number | null;
-  discount_bands: DiscountProgramBand[];
+  discount_bands: DiscountProgramBandForm[];
 
   // Step 3
   commission_rate: number | null;
@@ -85,6 +87,7 @@ interface OnboardingFormData {
   pan_holder_name: string | null;
   pan_doc_photo_url: string | null;
   aadhaar_number: string;
+  aadhaar_status: string;
   aadhaar_doc_photo_url: string | null;
 
   // Step 5
@@ -173,6 +176,8 @@ const initialFormData: OnboardingFormData = {
   shop_no: "",
   year_of_establishment: "",
   business_ownership_type: "",
+  razorpay_business_category: "",
+  razorpay_business_subcategory: "",
   sector_id: "",
   sector_name: "",
   locality: "",
@@ -207,15 +212,16 @@ const initialFormData: OnboardingFormData = {
   gst_number: "",
   gst_enrollment_number: "",
   gst_registration_status: "",
-  gst_status: "not_started",
+  gst_status: "pending",
   gst_business_name: null,
   gst_business_address: null,
   gst_doc_photo_url: null,
   pan_number: "",
-  pan_status: "not_started",
+  pan_status: "pending",
   pan_holder_name: null,
   pan_doc_photo_url: null,
   aadhaar_number: "",
+  aadhaar_status: "pending",
   aadhaar_doc_photo_url: null,
 
   bank_account_name: "",
@@ -226,7 +232,7 @@ const initialFormData: OnboardingFormData = {
   bank_name: null,
   bank_branch_name: null,
   preferred_settlement_method: "",
-  bank_status: "not_started",
+  bank_status: "pending",
   penny_drop_status: "not_started",
 
   qr_serial: "",

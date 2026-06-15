@@ -87,6 +87,14 @@ export default function OnboardPage() {
     return "Unable to save this step. Please try again.";
   }, []);
 
+  const extractApiErrorCode = useCallback((error: unknown): string | null => {
+    if (error instanceof ApiError && error.code && error.code !== "VALIDATION_ERROR") {
+      return error.code;
+    }
+
+    return null;
+  }, []);
+
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const mode = searchParams.get("mode");
@@ -174,10 +182,7 @@ export default function OnboardPage() {
 
   useEffect(() => {
     if (!activeStepIds.includes(currentStep)) {
-      const fallback =
-        activeStepIds.includes("review")
-          ? "review"
-          : activeStepIds[activeStepIds.length - 1] ?? activeStepIds[0] ?? "identity";
+      const fallback = activeStepIds[0] ?? "identity";
       setStep(fallback);
     }
   }, [activeStepIds, currentStep, setStep]);
@@ -256,10 +261,21 @@ export default function OnboardPage() {
               advance();
             },
             onError: (error) => {
+              const errorCode = extractApiErrorCode(error);
+              if (errorCode === "PHONE_NOT_VERIFIED") {
+                useOnboardingStore.getState().updateFormData({ merchant_phone_verified: false });
+                setStep("mobile_verify");
+              }
               pushToast({
                 variant: "error",
-                title: "Could not save step",
-                description: extractApiErrorMessage(error),
+                title:
+                  errorCode === "PHONE_NOT_VERIFIED"
+                    ? "Mobile verification required"
+                    : "Could not save step",
+                description:
+                  errorCode === "PHONE_NOT_VERIFIED"
+                    ? "Please verify your mobile number again before continuing."
+                    : extractApiErrorMessage(error),
               });
             },
           },
@@ -278,16 +294,27 @@ export default function OnboardPage() {
             advance();
           },
           onError: (error) => {
+            const errorCode = extractApiErrorCode(error);
+            if (errorCode === "PHONE_NOT_VERIFIED") {
+              useOnboardingStore.getState().updateFormData({ merchant_phone_verified: false });
+              setStep("mobile_verify");
+            }
             pushToast({
               variant: "error",
-              title: "Could not save step",
-              description: extractApiErrorMessage(error),
+              title:
+                errorCode === "PHONE_NOT_VERIFIED"
+                  ? "Mobile verification required"
+                  : "Could not save step",
+              description:
+                errorCode === "PHONE_NOT_VERIFIED"
+                  ? "Please verify your mobile number again before continuing."
+                  : extractApiErrorMessage(error),
             });
           },
         });
       }
     },
-    [applicationId, completeStep, createApp, extractApiErrorMessage, formData, goNext, pushToast, setStep, updateApp],
+    [applicationId, completeStep, createApp, extractApiErrorCode, extractApiErrorMessage, formData, goNext, pushToast, setStep, updateApp],
   );
 
   const handleNext = useCallback(

@@ -8,6 +8,21 @@ export interface WalletTransactionItem {
   created_at: string | null;
 }
 
+export interface ReferralEarnings {
+  count: number;
+  pending_count?: number;
+  qualified_count?: number;
+  amount_per_referral: number;
+  earned: number;
+}
+
+export interface ReferralEarningsSummary {
+  customer_referrals: ReferralEarnings;
+  store_referrals: ReferralEarnings;
+  total: number;
+  min_withdrawal_amount: number;
+}
+
 export interface WalletSummary {
   balance: number;
   locked_balance: number;
@@ -18,20 +33,17 @@ export interface WalletSummary {
   has_pending_withdrawal: boolean;
   payout_kyc_saved?: boolean;
   can_submit_withdrawal?: boolean;
-}
-
-export interface ReferralProgress {
-  current: number;
-  target: number;
-  met: boolean;
+  referral_earnings?: ReferralEarningsSummary;
 }
 
 export interface WithdrawEligibility {
   kyc_complete: boolean;
   kyc_missing: string[];
-  customer_referrals: ReferralProgress;
-  store_referrals: ReferralProgress;
-  referral_target_met: boolean;
+  customer_referrals: ReferralEarnings;
+  store_referrals: ReferralEarnings;
+  total_referral_earnings: number;
+  min_withdrawal_amount: number;
+  referral_earnings_met: boolean;
   eligible: boolean;
   blocking_reasons: string[];
 }
@@ -55,6 +67,7 @@ export interface WithdrawPayoutInput {
   bank_branch_name?: string;
   account_number: string;
   ifsc_code: string;
+  upi_id?: string;
   pan_number: string;
   aadhaar_number: string;
   gst_number?: string;

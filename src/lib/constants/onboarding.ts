@@ -6,6 +6,7 @@
  */
 
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import type { KycReviewStatus } from "@/lib/types/onboarding";
 import {
   faBan,
   faCircleCheck,
@@ -101,6 +102,42 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
       example: "Sharma General Store, Modern Electronics Hub",
       whyNeeded:
         "Displayed to customers during transactions and used for identification in the Kutoot system.",
+    },
+  },
+  business_ownership_type: {
+    label: "Business type",
+    placeholder: "Select business type",
+    tooltip: {
+      title: "Legal structure of the business",
+      description:
+        "Choose how the store is registered. Sole traders should select Proprietorship. Choose Not yet registered only if the business has no formal registration.",
+      example: "Proprietorship / Sole trader",
+      whyNeeded:
+        "Required for payment partner KYC and Razorpay Route account setup.",
+    },
+  },
+  razorpay_business_category: {
+    label: "Razorpay business category",
+    placeholder: "Select Razorpay category",
+    tooltip: {
+      title: "Payment partner business category",
+      description:
+        "Choose the official Razorpay Route category that best matches your primary business activity.",
+      example: "Food, E-commerce, Healthcare",
+      whyNeeded:
+        "Required when Kutoot creates your Razorpay Route linked account for settlements.",
+    },
+  },
+  razorpay_business_subcategory: {
+    label: "Razorpay business subcategory",
+    placeholder: "Select Razorpay subcategory",
+    tooltip: {
+      title: "Payment partner business subcategory",
+      description:
+        "Pick the subcategory that matches your store type within the selected Razorpay category.",
+      example: "Restaurant, Grocery, Clinic",
+      whyNeeded:
+        "Razorpay validates category and subcategory together during linked-account KYC.",
     },
   },
   sector: {
@@ -222,15 +259,15 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     },
   },
   aadhaar_number: {
-    label: "Aadhaar Number (Optional)",
+    label: "Aadhaar Number",
     placeholder: "XXXX XXXX 1234",
     tooltip: {
       title: "12-digit Aadhaar Number",
       description:
-        "Optional. If provided, only the last 4 digits are stored. Your full number is never saved in our system.",
+        "Required when GST is skipped. If provided, only the last 4 digits are stored. Your full number is never saved in our system.",
       example: "Displayed as XXXX-XXXX-1234",
       whyNeeded:
-        "Additional identity verification. Completely optional and only the masked version is stored.",
+        "Alternative identity verification when GST is not available.",
     },
   },
   bank_account_name: {
@@ -401,6 +438,110 @@ export const VALIDATION_RULES = {
   min_form_time_seconds: 30, // less than 30s = bot
 };
 
+export const BUSINESS_OWNERSHIP_TYPE_OPTIONS = [
+  { value: "proprietorship", label: "Proprietorship / Sole trader" },
+  { value: "partnership", label: "Partnership" },
+  { value: "private_limited", label: "Private limited company" },
+  { value: "llp", label: "LLP" },
+  { value: "unregistered", label: "Not yet registered" },
+] as const;
+
+export function businessOwnershipTypeLabel(value: string | null | undefined): string {
+  if (!value) {
+    return "Not provided";
+  }
+
+  return (
+    BUSINESS_OWNERSHIP_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? value
+  );
+}
+
+type RazorpayCategoryOption = {
+  value: string;
+  label: string;
+  subcategories: Array<{ value: string; label: string }>;
+};
+
+export function razorpayBusinessCategoryLabel(
+  categories: RazorpayCategoryOption[],
+  value: string | null | undefined,
+): string {
+  if (!value) {
+    return "Not provided";
+  }
+
+  return categories.find((category) => category.value === value)?.label ?? value;
+}
+
+export function razorpayBusinessSubcategoryLabel(
+  categories: RazorpayCategoryOption[],
+  categoryValue: string | null | undefined,
+  subcategoryValue: string | null | undefined,
+): string {
+  if (!categoryValue || !subcategoryValue) {
+    return "Not provided";
+  }
+
+  const category = categories.find((item) => item.value === categoryValue);
+  return (
+    category?.subcategories.find((item) => item.value === subcategoryValue)?.label ??
+    subcategoryValue
+  );
+}
+
+const RAZORPAY_SECTOR_SUGGESTIONS: Array<{
+  match: string;
+  category: string;
+  subcategory: string;
+}> = [
+  { match: "restaurant", category: "food", subcategory: "restaurant" },
+  { match: "café", category: "food", subcategory: "restaurant" },
+  { match: "cafe", category: "food", subcategory: "restaurant" },
+  { match: "sweet", category: "food", subcategory: "bakeries" },
+  { match: "quick service", category: "food", subcategory: "food_court" },
+  { match: "fine dining", category: "food", subcategory: "restaurant" },
+  { match: "grocery", category: "ecommerce", subcategory: "grocery" },
+  { match: "electronics", category: "ecommerce", subcategory: "electronics_and_furniture" },
+  { match: "fashion", category: "ecommerce", subcategory: "fashion_and_lifestyle" },
+  { match: "pharmacy", category: "healthcare", subcategory: "pharmacy" },
+  { match: "clinic", category: "healthcare", subcategory: "clinic" },
+  { match: "salon", category: "services", subcategory: "barber_and_beauty_shops" },
+  { match: "hotel", category: "tours_and_travel", subcategory: "accommodation" },
+  { match: "travel", category: "tours_and_travel", subcategory: "travel_agency" },
+  { match: "education", category: "education", subcategory: "schools" },
+  { match: "coaching", category: "education", subcategory: "coaching" },
+];
+
+export function suggestRazorpayBusinessCategoryFromSector(
+  categories: RazorpayCategoryOption[],
+  sectorName: string | null | undefined,
+): { category: string; subcategory: string } | null {
+  const normalized = (sectorName ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  for (const suggestion of RAZORPAY_SECTOR_SUGGESTIONS) {
+    if (!normalized.includes(suggestion.match)) {
+      continue;
+    }
+
+    const category = categories.find((item) => item.value === suggestion.category);
+    const subcategory = category?.subcategories.find(
+      (item) => item.value === suggestion.subcategory,
+    );
+
+    if (category && subcategory) {
+      return {
+        category: category.value,
+        subcategory: subcategory.value,
+      };
+    }
+  }
+
+  return null;
+}
+
 // ── Sector Options ─────────────────────────────────────────────────
 
 export const SECTOR_OPTIONS = [
@@ -565,6 +706,10 @@ export const DEFAULT_COMMISSION_TIERS = [
 
 export const STAGE_LABELS: Record<string, string> = {
   lead: "Lead",
+  basic_details_submitted: "Basic Details Submitted",
+  bank_details_submitted: "Bank Details Submitted",
+  kyc_submitted: "KYC Submitted",
+  follow_up: "Follow Up",
   revisit: "Revisit Scheduled",
   owner_absent: "Owner Absent",
   shop_closed: "Shop Closed",
@@ -584,6 +729,10 @@ export const STAGE_LABELS: Record<string, string> = {
 
 export const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
   lead: { bg: "bg-gray-500/10", text: "text-gray-400" },
+  basic_details_submitted: { bg: "bg-info/10", text: "text-info" },
+  bank_details_submitted: { bg: "bg-info/10", text: "text-info" },
+  kyc_submitted: { bg: "bg-info/10", text: "text-info" },
+  follow_up: { bg: "bg-warning/10", text: "text-warning" },
   revisit: { bg: "bg-warning/10", text: "text-warning" },
   owner_absent: { bg: "bg-warning/10", text: "text-warning" },
   shop_closed: { bg: "bg-warning/10", text: "text-warning" },
@@ -600,6 +749,29 @@ export const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
   suspended: { bg: "bg-warning/10", text: "text-warning" },
   churned: { bg: "bg-error/10", text: "text-error" },
 };
+
+export const KYC_REVIEW_STATUS_LABELS: Record<KycReviewStatus, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+export function normalizeKycReviewStatus(status: string | null | undefined): KycReviewStatus {
+  switch ((status ?? "pending").toLowerCase()) {
+    case "approved":
+    case "verified":
+      return "approved";
+    case "rejected":
+    case "failed":
+      return "rejected";
+    default:
+      return "pending";
+  }
+}
+
+export function formatKycReviewStatus(status: string | null | undefined): string {
+  return KYC_REVIEW_STATUS_LABELS[normalizeKycReviewStatus(status)];
+}
 
 /**
  * @deprecated Use {@link STAGE_LABELS}.

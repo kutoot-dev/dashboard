@@ -10,6 +10,7 @@ import {
   DiscountProgramFields,
   serializeDiscountProgramPayload,
   toDiscountProgramFormState,
+  validateDiscountProgramForm,
   type DiscountProgramFormState,
 } from "@/components/discount-program/discount-program-fields";
 import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
@@ -43,6 +44,10 @@ export default function DiscountProgramPage() {
       setForm(toDiscountProgramFormState(settings));
     }
   }, [settings]);
+
+  function validateForm(state: DiscountProgramFormState): string | null {
+    return validateDiscountProgramForm(state);
+  }
 
   const saveMutation = useMutation({
     mutationFn: () => saveDiscountProgram(branchId, serializeDiscountProgramPayload(form!)),
@@ -98,7 +103,17 @@ export default function DiscountProgramPage() {
             <Button
               type="button"
               loading={saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
+              onClick={() => {
+                if (!form) return;
+
+                const validationError = validateForm(form);
+                if (validationError) {
+                  pushToast({ variant: "error", title: validationError });
+                  return;
+                }
+
+                saveMutation.mutate();
+              }}
               disabled={!branchId}
             >
               Save discount program

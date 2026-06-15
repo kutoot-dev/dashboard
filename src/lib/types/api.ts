@@ -72,6 +72,7 @@ export interface LeaderboardMyEntry extends LeaderboardEntry {
   is_viewer?: boolean;
   rank_pool_total?: number;
   visible_in_list?: boolean;
+  eligible_for_leaderboard?: boolean;
   list_total?: number;
 }
 

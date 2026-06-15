@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,21 +11,111 @@ import type {
   SaveDiscountProgramPayload,
 } from "@/lib/api/services/merchant.service";
 
+export type EditableNumber = number | "";
+
+export type DiscountProgramBandForm = Omit<
+  DiscountProgramBand,
+  | "min_amount"
+  | "max_amount"
+  | "discount_min_percentage"
+  | "discount_max_percentage"
+  | "offer_probability"
+> & {
+  min_amount: EditableNumber;
+  max_amount: EditableNumber;
+  discount_min_percentage: EditableNumber;
+  discount_max_percentage: EditableNumber;
+  offer_probability: EditableNumber;
+};
+
 export interface DiscountProgramFormState {
   discount_program_enabled: boolean;
-  discount_bands: DiscountProgramBand[];
+  discount_bands: DiscountProgramBandForm[];
 }
 
-export function emptyDiscountBand(sortOrder = 0): DiscountProgramBand {
+const BAND_NUMERIC_FIELDS = [
+  { key: "min_amount", label: "Min bill" },
+  { key: "max_amount", label: "Max bill" },
+  { key: "offer_probability", label: "Offer probability" },
+  { key: "discount_min_percentage", label: "Min discount" },
+  { key: "discount_max_percentage", label: "Max discount" },
+] as const;
+
+function isBandComplete(band: DiscountProgramBandForm): boolean {
+  return BAND_NUMERIC_FIELDS.every(({ key }) => band[key] !== "");
+}
+
+export function emptyDiscountBand(sortOrder = 0): DiscountProgramBandForm {
   return {
-    min_amount: 0,
-    max_amount: 0,
-    discount_min_percentage: 5,
-    discount_max_percentage: 10,
+    min_amount: "",
+    max_amount: "",
+    discount_min_percentage: "",
+    discount_max_percentage: "",
     offer_probability: 100,
     sort_order: sortOrder,
     is_active: true,
   };
+}
+
+function toEditableBand(band: DiscountProgramBand): DiscountProgramBandForm {
+  return {
+    ...band,
+    min_amount: band.min_amount,
+    max_amount: band.max_amount,
+    discount_min_percentage: band.discount_min_percentage,
+    discount_max_percentage: band.discount_max_percentage,
+    offer_probability: band.offer_probability,
+  };
+}
+
+interface EditableNumberInputProps {
+  label: string;
+  value: EditableNumber;
+  onChange: (value: EditableNumber) => void;
+  min?: number;
+  max?: number;
+  step?: string;
+}
+
+function EditableNumberInput({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step,
+}: EditableNumberInputProps) {
+  const [inputValue, setInputValue] = useState(value === "" ? "" : String(value));
+
+  useEffect(() => {
+    setInputValue(value === "" ? "" : String(value));
+  }, [value]);
+
+  function handleChange(raw: string) {
+    setInputValue(raw);
+
+    if (raw === "" || raw === ".") {
+      onChange("");
+      return;
+    }
+
+    const num = Number(raw);
+    if (!Number.isNaN(num)) {
+      onChange(num);
+    }
+  }
+
+  return (
+    <Input
+      label={label}
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      value={inputValue}
+      onChange={(event) => handleChange(event.target.value)}
+    />
+  );
 }
 
 type DiscountProgramFormInput = Partial<{
@@ -40,8 +131,33 @@ export function toDiscountProgramFormState(
 
   return {
     discount_program_enabled: Boolean(settings.discount_program_enabled),
-    discount_bands: bands.length > 0 ? bands : [emptyDiscountBand(0)],
+    discount_bands: bands.map((band) => toEditableBand(band)),
   };
+}
+
+export function validateDiscountProgramForm(state: DiscountProgramFormState): string | null {
+  if (!state.discount_program_enabled) {
+    return null;
+  }
+
+  const hasActiveBand = state.discount_bands.some((band) => band.is_active);
+  if (!hasActiveBand) {
+    return "Add at least one active discount band, or disable the program.";
+  }
+
+  for (let index = 0; index < state.discount_bands.length; index += 1) {
+    const band = state.discount_bands[index];
+    if (!band.is_active) {
+      continue;
+    }
+
+    const missingField = BAND_NUMERIC_FIELDS.find(({ key }) => band[key] === "");
+    if (missingField) {
+      return `${missingField.label} is required for band ${index + 1}.`;
+    }
+  }
+
+  return null;
 }
 
 interface DiscountProgramFieldsProps {
@@ -57,7 +173,7 @@ export function DiscountProgramFields({
   policyCap,
   compact = false,
 }: DiscountProgramFieldsProps) {
-  function updateBand(index: number, patch: Partial<DiscountProgramBand>) {
+  function updateBand(index: number, patch: Partial<DiscountProgramBandForm>) {
     onChange({
       ...value,
       discount_bands: value.discount_bands.map((band, bandIndex) =>
@@ -74,10 +190,9 @@ export function DiscountProgramFields({
   }
 
   function removeBand(index: number) {
-    const bands = value.discount_bands.filter((_, bandIndex) => bandIndex !== index);
     onChange({
       ...value,
-      discount_bands: bands.length > 0 ? bands : [emptyDiscountBand(0)],
+      discount_bands: value.discount_bands.filter((_, bandIndex) => bandIndex !== index),
     });
   }
 
@@ -124,6 +239,12 @@ export function DiscountProgramFields({
         </Button>
       </div>
 
+      {value.discount_bands.length === 0 ? (
+        <Card className={`text-sm text-muted-foreground ${compact ? "p-3" : "p-4"}`}>
+          No discount bands configured. Add a band when you want bill-amount-based discounts, or leave
+          empty and disable the program.
+        </Card>
+      ) : (
       <div className="space-y-4">
         {value.discount_bands.map((band, index) => (
           <Card key={band.id ?? `new-${index}`} className={`space-y-4 ${compact ? "p-3" : "p-4"}`}>
@@ -146,7 +267,7 @@ export function DiscountProgramFields({
                   variant="ghost"
                   size="sm"
                   onClick={() => removeBand(index)}
-                  disabled={value.discount_bands.length === 1}
+                  aria-label={`Remove band ${index + 1}`}
                 >
                   <Icon icon={faTrash} className="h-3.5 w-3.5" />
                 </Button>
@@ -154,58 +275,52 @@ export function DiscountProgramFields({
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Input
+              <EditableNumberInput
                 label="Min bill (₹)"
-                type="number"
                 min={0}
                 step="0.01"
                 value={band.min_amount}
-                onChange={(event) => updateBand(index, { min_amount: Number(event.target.value) })}
+                onChange={(min_amount) => updateBand(index, { min_amount })}
               />
-              <Input
+              <EditableNumberInput
                 label="Max bill (₹)"
-                type="number"
                 min={0}
                 step="0.01"
                 value={band.max_amount}
-                onChange={(event) => updateBand(index, { max_amount: Number(event.target.value) })}
+                onChange={(max_amount) => updateBand(index, { max_amount })}
               />
-              <Input
+              <EditableNumberInput
                 label="Offer probability %"
-                type="number"
                 min={0}
                 max={100}
                 value={band.offer_probability}
-                onChange={(event) =>
-                  updateBand(index, { offer_probability: Number(event.target.value) })
-                }
+                onChange={(offer_probability) => updateBand(index, { offer_probability })}
               />
-              <Input
+              <EditableNumberInput
                 label="Min discount %"
-                type="number"
                 min={0}
                 max={100}
                 step="0.01"
                 value={band.discount_min_percentage}
-                onChange={(event) =>
-                  updateBand(index, { discount_min_percentage: Number(event.target.value) })
+                onChange={(discount_min_percentage) =>
+                  updateBand(index, { discount_min_percentage })
                 }
               />
-              <Input
+              <EditableNumberInput
                 label="Max discount %"
-                type="number"
                 min={0}
                 max={100}
                 step="0.01"
                 value={band.discount_max_percentage}
-                onChange={(event) =>
-                  updateBand(index, { discount_max_percentage: Number(event.target.value) })
+                onChange={(discount_max_percentage) =>
+                  updateBand(index, { discount_max_percentage })
                 }
               />
             </div>
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 }
@@ -215,7 +330,7 @@ export function serializeDiscountProgramPayload(
 ): SaveDiscountProgramPayload {
   return {
     discount_program_enabled: value.discount_program_enabled,
-    bands: value.discount_bands.map((band, index) => ({
+    bands: value.discount_bands.filter(isBandComplete).map((band, index) => ({
       ...band,
       min_amount: Number(band.min_amount),
       max_amount: Number(band.max_amount),

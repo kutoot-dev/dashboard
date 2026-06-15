@@ -6,11 +6,18 @@ import { Button } from "@/components/ui/button";
 import { ApplicationStatusScreen } from "@/components/onboarding/application-status-screen";
 import { LegalAcceptanceBlock } from "@/components/onboarding/legal-acceptance-block";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
-import { useToastStore } from "@/lib/stores/toast.store";
-import { useCreateApplication, useMerchantCategories, useUpdateApplication } from "@/lib/hooks";
 import {
-  APPLICATION_STATUS_LABELS,
+  serializeDiscountProgramPayload,
+  toDiscountProgramFormState,
+} from "@/components/discount-program/discount-program-fields";
+import { useToastStore } from "@/lib/stores/toast.store";
+import { useCreateApplication, useMerchantCategories, useRazorpayBusinessCategories, useUpdateApplication } from "@/lib/hooks";
+import {
+  businessOwnershipTypeLabel,
+  formatKycReviewStatus,
   ONBOARDING_STRINGS,
+  razorpayBusinessCategoryLabel,
+  razorpayBusinessSubcategoryLabel,
   SECTOR_OPTIONS,
   VOLUME_RANGES,
   VISIT_OUTCOME_OPTIONS,
@@ -36,6 +43,7 @@ export function StepReview({ onBack }: StepReviewProps) {
   const createApp = useCreateApplication();
   const updateApp = useUpdateApplication();
   const { categories: merchantCategories } = useMerchantCategories();
+  const { categories: razorpayBusinessCategories } = useRazorpayBusinessCategories();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [duplicatePhoneError, setDuplicatePhoneError] = useState<string | null>(null);
@@ -94,6 +102,8 @@ export function StepReview({ onBack }: StepReviewProps) {
       shop_no: formData.shop_no || null,
       year_of_establishment: formData.year_of_establishment || null,
       business_ownership_type: formData.business_ownership_type || null,
+      razorpay_business_category: formData.razorpay_business_category || null,
+      razorpay_business_subcategory: formData.razorpay_business_subcategory || null,
       sector_id: formData.sector_id,
       sector_name: formData.sector_name,
       locality: formData.locality,
@@ -112,7 +122,9 @@ export function StepReview({ onBack }: StepReviewProps) {
       ...(!isFeVisitOnly &&
         !isMerchantSelfServe && {
         discount_program_enabled: formData.discount_program_enabled,
-        discount_bands: formData.discount_bands,
+        discount_bands: serializeDiscountProgramPayload(
+          toDiscountProgramFormState(formData),
+        ).bands,
         commission_rate: formData.commission_rate,
         commission_model: "flat",
         commission_agreed: formData.commission_agreed,
@@ -131,6 +143,7 @@ export function StepReview({ onBack }: StepReviewProps) {
         bank_account_name: formData.bank_account_name,
         bank_account_number: formData.bank_account_number,
         bank_ifsc: formData.bank_ifsc,
+        bank_branch_name: formData.bank_branch_name || undefined,
         upi_id: formData.upi_id || undefined,
         bank_name: formData.bank_name,
         preferred_settlement_method: formData.preferred_settlement_method || undefined,
@@ -414,11 +427,27 @@ export function StepReview({ onBack }: StepReviewProps) {
         {!isMerchantSelfServe && formData.year_of_establishment && (
           <Row label="Year of Establishment" value={formData.year_of_establishment} />
         )}
-        {!isMerchantSelfServe && formData.business_ownership_type && (
-          <Row label="Business Ownership Type" value={formData.business_ownership_type} />
-        )}
+        <Row
+          label="Business type"
+          value={businessOwnershipTypeLabel(formData.business_ownership_type)}
+        />
+        <Row
+          label="Razorpay category"
+          value={razorpayBusinessCategoryLabel(
+            razorpayBusinessCategories,
+            formData.razorpay_business_category,
+          )}
+        />
+        <Row
+          label="Razorpay subcategory"
+          value={razorpayBusinessSubcategoryLabel(
+            razorpayBusinessCategories,
+            formData.razorpay_business_category,
+            formData.razorpay_business_subcategory,
+          )}
+        />
         <Row label="Category" value={sectorLabel} />
-        {!isMerchantSelfServe && <Row label="Locality" value={formData.locality} />}
+        {formData.locality && <Row label="Locality" value={formData.locality} />}
         <Row label="City" value={formData.city} />
         <Row label="State" value={formData.state} />
         {formData.pin_code && <Row label="PIN Code" value={formData.pin_code} />}
@@ -431,7 +460,9 @@ export function StepReview({ onBack }: StepReviewProps) {
         {isMerchantSelfServe && (
           <Row
             label="Address"
-            value={[formData.city, formData.state, formData.pin_code].filter(Boolean).join(", ")}
+            value={[formData.locality, formData.city, formData.state, formData.pin_code]
+              .filter(Boolean)
+              .join(", ")}
           />
         )}
         {!isMerchantSelfServe && (
@@ -517,25 +548,24 @@ export function StepReview({ onBack }: StepReviewProps) {
 
           {/* KYC Section */}
           <Section title="KYC" onEdit={() => goToStep("kyc")}>
-            <Row label="GST" value={formData.gst_number || "Not provided"} />
-            {/* <Row
-              label="GST Business Address"
-              value={formData.gst_business_address || "Not provided"}
+            <Row
+              label="GST"
+              value={formData.gst_number || formData.gst_enrollment_number || "Not provided"}
             />
             <Row
               label="GST Status"
-              value={APPLICATION_STATUS_LABELS[formData.gst_status] || formData.gst_status}
-            /> */}
+              value={formatKycReviewStatus(formData.gst_status)}
+            />
             <Row
               label="GST Document"
               value={formData.gst_doc_photo_url ? "Photo uploaded" : "Not captured"}
               valueClass={formData.gst_doc_photo_url ? "text-success" : "text-muted-foreground"}
             />
             <Row label="PAN" value={formData.pan_number || "Not provided"} />
-            {/* <Row
+            <Row
               label="PAN Status"
-              value={APPLICATION_STATUS_LABELS[formData.pan_status] || formData.pan_status}
-            /> */}
+              value={formatKycReviewStatus(formData.pan_status)}
+            />
             <Row
               label="PAN Document"
               value={formData.pan_doc_photo_url ? "Photo uploaded" : "Not captured"}
@@ -550,6 +580,10 @@ export function StepReview({ onBack }: StepReviewProps) {
               }
             />
             <Row
+              label="Aadhaar Status"
+              value={formatKycReviewStatus(formData.aadhaar_status)}
+            />
+            <Row
               label="Aadhaar Document"
               value={formData.aadhaar_doc_photo_url ? "Photo uploaded" : "Not captured"}
               valueClass={formData.aadhaar_doc_photo_url ? "text-success" : "text-muted-foreground"}
@@ -558,22 +592,16 @@ export function StepReview({ onBack }: StepReviewProps) {
 
           {/* Bank Section */}
           <Section title="Bank Details" onEdit={() => goToStep("bank")}>
-            <Row label="Account Name" value={formData.bank_account_name} />
-            <Row label="Account Number" value={formData.bank_account_number} />
-            <Row label="IFSC" value={formData.bank_ifsc} />
-            {formData.upi_id && <Row label="UPI ID" value={formData.upi_id} />}
-            {formData.bank_name && <Row label="Bank" value={formData.bank_name} />}
-            {formData.bank_branch_name && (
-              <Row label="Branch" value={formData.bank_branch_name} />
-            )}
+            <Row label="Account Holder Name" value={formData.bank_account_name || "Not provided"} />
+            <Row label="Account Number" value={formData.bank_account_number || "Not provided"} />
+            <Row label="IFSC" value={formData.bank_ifsc || "Not provided"} />
+            <Row label="Bank Name" value={formData.bank_name || "Not provided"} />
+            <Row label="Branch Name" value={formData.bank_branch_name || "Not provided"} />
+            <Row label="UPI ID" value={formData.upi_id || "Not provided"} />
             <Row
               label="Bank Status"
-              value={APPLICATION_STATUS_LABELS[formData.bank_status] || formData.bank_status}
+              value={formatKycReviewStatus(formData.bank_status)}
             />
-            {/* <Row
-              label="Penny Drop"
-              value={APPLICATION_STATUS_LABELS[formData.penny_drop_status] || formData.penny_drop_status}
-            /> */}
           </Section>
 
           {formData.channel === "field_executive" && (

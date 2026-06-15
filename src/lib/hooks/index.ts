@@ -31,5 +31,5 @@ export {
   useVerifyPan,
   useVerifyBank,
 } from "./use-onboarding";
-export { useStates, useCities, useMerchantCategories } from "./use-geo";
+export { useStates, useCities, useMerchantCategories, useRazorpayBusinessCategories } from "./use-geo";
 export { useQuerySkeleton } from "./use-query-skeleton";

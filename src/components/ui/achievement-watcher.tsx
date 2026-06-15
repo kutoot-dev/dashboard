@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAuth } from "@/components/providers/auth-provider";
+import { useQuery } from "@tanstack/react-query";
 import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
-import { useBranchScore } from "@/lib/hooks/use-branch-data";
+import { getMerchantDashboard } from "@/lib/api/services/merchant.service";
 import { fireCelebration, fireGoldRain, fireSparkle } from "@/lib/utils/effects";
 import { usePreferencesStore } from "@/lib/stores/preferences.store";
 
@@ -22,19 +22,24 @@ import { usePreferencesStore } from "@/lib/stores/preferences.store";
  * replay the same celebration.
  */
 export function AchievementWatcher() {
-  const { user } = useAuth();
   const branchId = useEffectiveBranchId();
-  const { data: score } = useBranchScore(branchId);
+  const { data: dashboard } = useQuery({
+    queryKey: ["merchant-dashboard", branchId],
+    queryFn: getMerchantDashboard,
+    refetchInterval: 30_000,
+    enabled: Boolean(branchId),
+    select: (res) => (res.success ? res.data : null),
+  });
   const { soundEnabled } = usePreferencesStore();
 
   const prevRankRef = useRef<number | null>(null);
   const prevScoreBandRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!score) return;
+    if (!dashboard?.live) return;
 
-    const currentRank = score.final_rank ?? null;
-    const currentScore = score.composite_index_score ?? 0;
+    const currentRank = dashboard.live.rank ?? null;
+    const currentScore = dashboard.live.composite_score ?? 0;
     const currentBand = Math.floor(currentScore / 10);
 
     if (prevRankRef.current !== null && currentRank !== null) {
@@ -57,7 +62,7 @@ export function AchievementWatcher() {
       announce(`✨ Score crossed ${currentBand * 10}`, soundEnabled);
     }
     prevScoreBandRef.current = currentBand;
-  }, [score, soundEnabled]);
+  }, [dashboard, soundEnabled]);
 
   return null;
 }

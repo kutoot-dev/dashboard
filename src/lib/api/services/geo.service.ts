@@ -56,6 +56,28 @@ export async function getMerchantCategories(params?: { search?: string }) {
   return res.data;
 }
 
+export interface RazorpayBusinessSubcategoryOption {
+  value: string;
+  label: string;
+}
+
+export interface RazorpayBusinessCategoryOption {
+  value: string;
+  label: string;
+  subcategories: RazorpayBusinessSubcategoryOption[];
+}
+
+export interface RazorpayBusinessCategoriesResponse {
+  categories: RazorpayBusinessCategoryOption[];
+}
+
+export async function getRazorpayBusinessCategories() {
+  const res = await apiClient.get<ApiResponse<RazorpayBusinessCategoriesResponse>>(
+    "/geo/razorpay-business-categories",
+  );
+  return res.data;
+}
+
 export interface ReverseGeocodeResult {
   latitude: number;
   longitude: number;

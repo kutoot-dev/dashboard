@@ -5,7 +5,6 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DocumentUpload } from "@/components/wallet/document-upload";
 import { VALIDATION_RULES } from "@/lib/constants/onboarding";
 import {
   getPayoutDetails,
@@ -27,7 +26,7 @@ interface WalletWithdrawWizardProps {
   onSuccess: () => void;
 }
 
-type WizardStep = "bank" | "identity" | "documents" | "review" | "done";
+type WizardStep = "bank" | "identity" | "review" | "done";
 type GstPath = "none" | "gst" | "enrollment";
 
 const emptyForm: WithdrawPayoutInput = {
@@ -36,6 +35,7 @@ const emptyForm: WithdrawPayoutInput = {
   bank_branch_name: "",
   account_number: "",
   ifsc_code: "",
+  upi_id: "",
   pan_number: "",
   aadhaar_number: "",
   gst_number: "",
@@ -47,8 +47,7 @@ const emptyForm: WithdrawPayoutInput = {
 
 const STEP_TITLES: Record<WizardStep, string> = {
   bank: "Bank details",
-  identity: "Identity details",
-  documents: "Upload documents",
+  identity: "KYC details",
   review: "Confirm withdrawal",
   done: "Request submitted",
 };
@@ -173,6 +172,7 @@ export function WalletWithdrawWizard({
         bank_branch_name: payout.bank_branch_name ?? "",
         account_number: payout.account_number ?? "",
         ifsc_code: payout.ifsc_code ?? "",
+        upi_id: payout.upi_id ?? "",
         pan_number: payout.pan_number ?? "",
         aadhaar_number: payout.aadhaar_number ?? "",
         gst_number: payout.gst_number ?? "",
@@ -225,12 +225,13 @@ export function WalletWithdrawWizard({
       gst_number: path === "gst" ? f.gst_number : "",
       gst_enrollment_number: path === "enrollment" ? f.gst_enrollment_number : "",
       gst_doc_photo_url: path === "none" ? null : f.gst_doc_photo_url,
+      aadhaar_number: path === "none" ? f.aadhaar_number : "",
     }));
     setErrors((e) => {
       const next = { ...e };
       delete next.gst_number;
       delete next.gst_enrollment_number;
-      delete next.gst_doc_photo;
+      delete next.aadhaar_number;
       return next;
     });
   };
@@ -247,9 +248,15 @@ export function WalletWithdrawWizard({
     if (!VALIDATION_RULES.bank_ifsc.pattern.test(ifsc)) {
       e.ifsc_code = "Enter a valid IFSC code.";
     }
+    const upiId = (form.upi_id ?? "").trim().toLowerCase();
+    if (upiId && !VALIDATION_RULES.upi_id.pattern.test(upiId)) {
+      e.upi_id = "Enter a valid UPI ID (e.g. name@bank).";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
+
+  const aadhaarRequired = gstPath === "none";
 
   const validateIdentity = (): boolean => {
     const e: Record<string, string> = {};
@@ -257,14 +264,26 @@ export function WalletWithdrawWizard({
     if (!VALIDATION_RULES.pan_number.pattern.test(pan)) {
       e.pan_number = "Enter a valid PAN.";
     }
-    if (!VALIDATION_RULES.aadhaar_number.pattern.test(form.aadhaar_number)) {
+
+    if (aadhaarRequired) {
+      if (!VALIDATION_RULES.aadhaar_number.pattern.test(form.aadhaar_number)) {
+        e.aadhaar_number = "Aadhaar is required when GST number and enrollment number are not provided.";
+      }
+    } else if (
+      form.aadhaar_number &&
+      !VALIDATION_RULES.aadhaar_number.pattern.test(form.aadhaar_number)
+    ) {
       e.aadhaar_number = "Enter a valid 12-digit Aadhaar number.";
     }
 
     const gst = (form.gst_number ?? "").trim().toUpperCase();
     const enrollment = (form.gst_enrollment_number ?? "").trim().toUpperCase();
 
-    if (gst && enrollment) {
+    if (gstPath === "gst" && !gst) {
+      e.gst_number = "Enter your GST number or choose Skip GST.";
+    } else if (gstPath === "enrollment" && !enrollment) {
+      e.gst_enrollment_number = "Enter your enrollment number or choose Skip GST.";
+    } else if (gst && enrollment) {
       e.gst_number = "Provide either a GST number or enrollment number, not both.";
     } else if (gst && !VALIDATION_RULES.gst_number.pattern.test(gst)) {
       e.gst_number = "Enter a valid 15-character GSTIN.";
@@ -277,30 +296,15 @@ export function WalletWithdrawWizard({
     return Object.keys(e).length === 0;
   };
 
-  const validateDocuments = (): boolean => {
-    const e: Record<string, string> = {};
-
-    if (!form.pan_doc_photo_url) {
-      e.pan_doc_photo = "PAN card photo is required.";
-    }
-    if (!form.aadhaar_doc_photo_url) {
-      e.aadhaar_doc_photo = "Aadhaar card photo is required.";
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
   const payload = (): WithdrawPayoutInput => ({
     ...form,
     ifsc_code: form.ifsc_code.toUpperCase(),
+    upi_id: form.upi_id?.trim() ? form.upi_id.trim().toLowerCase() : undefined,
     pan_number: form.pan_number.toUpperCase(),
     gst_number: form.gst_number?.trim() ? form.gst_number.toUpperCase() : undefined,
     gst_enrollment_number: form.gst_enrollment_number?.trim()
       ? form.gst_enrollment_number.toUpperCase()
       : undefined,
-    gst_doc_photo_url: form.gst_doc_photo_url || undefined,
-    pan_doc_photo_url: form.pan_doc_photo_url || undefined,
-    aadhaar_doc_photo_url: form.aadhaar_doc_photo_url || undefined,
   });
 
   const persistPayoutDetails = async (): Promise<boolean> => {
@@ -324,7 +328,7 @@ export function WalletWithdrawWizard({
   };
 
   const handleSaveAndContinue = async () => {
-    if (!validateDocuments()) return;
+    if (!validateIdentity()) return;
     const saved = await persistPayoutDetails();
     if (saved) {
       setStep("review");
@@ -332,11 +336,11 @@ export function WalletWithdrawWizard({
   };
 
   const handleSaveAndClose = async () => {
-    if (!validateDocuments()) return;
+    if (!validateIdentity()) return;
     const saved = await persistPayoutDetails();
     if (saved) {
       setSaveSuccess(
-        "Your bank and KYC details are saved. Return here to submit a withdrawal when referral targets are met.",
+        "Your bank and KYC details are saved. Return here to submit a withdrawal once referral earnings reach the minimum amount.",
       );
       onSuccess();
       setTimeout(() => {
@@ -366,8 +370,7 @@ export function WalletWithdrawWizard({
 
   const eligibility = checkResult?.eligibility;
 
-  const stepNumber =
-    step === "bank" ? 1 : step === "identity" ? 2 : step === "documents" ? 3 : 4;
+  const stepNumber = step === "bank" ? 1 : step === "identity" ? 2 : 3;
 
   const stepFooter = (buttons: React.ReactNode) => (
     <div className="sticky bottom-0 -mx-1 mt-4 border-t border-border/60 bg-card/95 pt-4 backdrop-blur-sm">
@@ -388,7 +391,7 @@ export function WalletWithdrawWizard({
       ) : null}
 
       {!initialLoading && step !== "done" && step !== "review" ? (
-        <p className="mb-4 text-xs text-muted-foreground">Step {stepNumber} of 4</p>
+        <p className="mb-4 text-xs text-muted-foreground">Step {stepNumber} of 3</p>
       ) : null}
 
       {!initialLoading && step === "bank" ? (
@@ -438,6 +441,17 @@ export function WalletWithdrawWizard({
           {errors.ifsc_code ? (
             <p className="text-xs text-loss -mt-2">{errors.ifsc_code}</p>
           ) : null}
+          <Input
+            label="UPI ID (optional)"
+            placeholder="yourname@upi"
+            value={form.upi_id ?? ""}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, upi_id: e.target.value.trim().toLowerCase() }))
+            }
+          />
+          {errors.upi_id ? (
+            <p className="text-xs text-loss -mt-2">{errors.upi_id}</p>
+          ) : null}
           {stepFooter(
             <div className="flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={handleClose}>
@@ -459,8 +473,7 @@ export function WalletWithdrawWizard({
       {!initialLoading && step === "identity" ? (
         <div className="space-y-4 pb-2">
           <p className="text-sm text-muted-foreground">
-            PAN and Aadhaar are required. GST number and enrollment details are
-            optional.
+            PAN is required. You can skip GST, but if you do, Aadhaar is required.
           </p>
           <Input
             label="PAN"
@@ -472,24 +485,9 @@ export function WalletWithdrawWizard({
           {errors.pan_number ? (
             <p className="text-xs text-loss -mt-2">{errors.pan_number}</p>
           ) : null}
-          <Input
-            label="Aadhaar"
-            value={form.aadhaar_number}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                aadhaar_number: e.target.value.replace(/\D/g, "").slice(0, 12),
-              }))
-            }
-          />
-          {errors.aadhaar_number ? (
-            <p className="text-xs text-loss -mt-2">{errors.aadhaar_number}</p>
-          ) : null}
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">
-              GST details <span className="font-normal text-muted-foreground">(optional)</span>
-            </p>
+            <p className="text-sm font-medium text-foreground">GST details</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
@@ -566,80 +564,35 @@ export function WalletWithdrawWizard({
             <p className="text-xs text-loss -mt-2">{errors.gst_enrollment_number}</p>
           ) : null}
 
-          {stepFooter(
-            <div className="flex justify-between gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep("bank")}>
-                Back
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  if (validateIdentity()) setStep("documents");
-                }}
-              >
-                Continue
-              </Button>
-            </div>,
-          )}
-        </div>
-      ) : null}
-
-      {!initialLoading && step === "documents" ? (
-        <div className="space-y-4 pb-2">
-          <p className="text-sm text-muted-foreground">
-            Upload clear photos or PDFs of all required documents. They are saved to your
-            store profile. You can close and submit the withdrawal later once
-            referral targets are met.
-          </p>
-          <DocumentUpload
-            label="PAN card document"
-            value={form.pan_doc_photo_url ?? null}
-            onChange={(url) => setForm((f) => ({ ...f, pan_doc_photo_url: url }))}
-            required
-            error={errors.pan_doc_photo}
-            hint="Required. Photo or PDF of PAN card (front), all text legible."
-          />
-          <DocumentUpload
-            label="Aadhaar card document"
-            value={form.aadhaar_doc_photo_url ?? null}
-            onChange={(url) =>
-              setForm((f) => ({ ...f, aadhaar_doc_photo_url: url }))
-            }
-            required
-            error={errors.aadhaar_doc_photo}
-            hint="Required. Photo or PDF of Aadhaar card (front)."
-          />
-          {gstPath !== "none" ? (
+          {aadhaarRequired ? (
             <>
-              {gstPath === "enrollment" ? <GstEnrollmentHelpPanel /> : null}
-              <DocumentUpload
-                label={
-                  gstPath === "gst"
-                    ? "GST certificate (optional)"
-                    : "GST enrollment certificate (optional)"
-                }
-                value={form.gst_doc_photo_url ?? null}
-                onChange={(url) => setForm((f) => ({ ...f, gst_doc_photo_url: url }))}
-                error={errors.gst_doc_photo}
-                hint={
-                  gstPath === "gst"
-                    ? "Optional. Photo or PDF of GST registration certificate."
-                    : "Optional. Photo or PDF of GST enrollment letter from the portal."
+              <Input
+                label="Aadhaar"
+                value={form.aadhaar_number}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    aadhaar_number: e.target.value.replace(/\D/g, "").slice(0, 12),
+                  }))
                 }
               />
+              {errors.aadhaar_number ? (
+                <p className="text-xs text-loss -mt-2">{errors.aadhaar_number}</p>
+              ) : null}
+              <p className="text-xs text-muted-foreground -mt-2">
+                Required because GST was skipped.
+              </p>
             </>
           ) : null}
+
           {submitError ? <p className="text-sm text-loss">{submitError}</p> : null}
           {saveSuccess ? (
             <p className="text-sm text-success">{saveSuccess}</p>
           ) : null}
+
           {stepFooter(
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setStep("identity")}
-              >
+              <Button type="button" variant="secondary" onClick={() => setStep("bank")}>
                 Back
               </Button>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -673,7 +626,7 @@ export function WalletWithdrawWizard({
           {!checkResult?.can_submit ? (
             <p className="text-sm text-muted-foreground">
               You can close this window and return later to submit your withdrawal
-              when targets are reached.
+              once referral earnings reach the minimum amount.
             </p>
           ) : null}
           <div className="rounded-lg border border-border/70 bg-muted/30 p-4 space-y-3">
@@ -698,31 +651,58 @@ export function WalletWithdrawWizard({
                 </p>
               </div>
             ) : null}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-foreground">Customer referrals</span>
-              <Badge
-                variant={
-                  eligibility.customer_referrals.met ? "gain" : "neutral"
-                }
-              >
-                {eligibility.customer_referrals.current} /{" "}
-                {eligibility.customer_referrals.target}
-                {eligibility.customer_referrals.met ? " — Target reached" : ""}
+            <div className="space-y-2 border-t border-border/50 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-foreground">Customer referrals</span>
+                <span className="text-sm text-muted-foreground">
+                  {eligibility.customer_referrals.count} ×{" "}
+                  {formatINR(eligibility.customer_referrals.amount_per_referral)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Earned from customers</span>
+                <Badge variant={eligibility.customer_referrals.earned > 0 ? "gain" : "neutral"}>
+                  {formatINR(eligibility.customer_referrals.earned)}
+                </Badge>
+              </div>
+            </div>
+            <div className="space-y-2 border-t border-border/50 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-foreground">Merchant referrals</span>
+                <span className="text-sm text-muted-foreground">
+                  {eligibility.store_referrals.count} total
+                  {(eligibility.store_referrals.pending_count ?? 0) > 0
+                    ? ` · ${eligibility.store_referrals.pending_count} awaiting approval`
+                    : ""}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {eligibility.store_referrals.qualified_count ?? eligibility.store_referrals.count}{" "}
+                  qualified × {formatINR(eligibility.store_referrals.amount_per_referral)}
+                </span>
+                <Badge variant={eligibility.store_referrals.earned > 0 ? "gain" : "neutral"}>
+                  {formatINR(eligibility.store_referrals.earned)}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center justify-between border-t border-border/50 pt-3">
+              <span className="text-sm font-medium text-foreground">Total referral earnings</span>
+              <Badge variant={eligibility.referral_earnings_met ? "gain" : "neutral"}>
+                {formatINR(eligibility.total_referral_earnings)}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-foreground">Store referrals</span>
-              <Badge variant={eligibility.store_referrals.met ? "gain" : "neutral"}>
-                {eligibility.store_referrals.current} /{" "}
-                {eligibility.store_referrals.target}
-                {eligibility.store_referrals.met ? " — Target reached" : ""}
-              </Badge>
+              <span className="text-xs text-muted-foreground">Minimum to withdraw</span>
+              <span className="text-xs text-muted-foreground">
+                {formatINR(eligibility.min_withdrawal_amount)}
+              </span>
             </div>
           </div>
           {!checkResult?.can_submit ? (
             <p className="text-sm text-warning">
-              You cannot submit a withdrawal request until referral targets are
-              reached and all requirements are met.
+              You cannot submit a withdrawal request until referral earnings reach
+              the minimum amount and all requirements are met.
             </p>
           ) : null}
           {!eligibility.eligible && eligibility.blocking_reasons.length > 0 ? (
@@ -743,7 +723,7 @@ export function WalletWithdrawWizard({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setStep("documents")}
+                onClick={() => setStep("identity")}
               >
                 Edit details
               </Button>

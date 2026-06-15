@@ -19,6 +19,7 @@ import {
   useCities,
   useCreateApplication,
   useMerchantCategories,
+  useRazorpayBusinessCategories,
   useSendEmailOtp,
   useSendOtp,
   useStates,
@@ -28,7 +29,7 @@ import {
 } from "@/lib/hooks";
 import { savePanelBasicDetails } from "@/lib/api/services/merchant.service";
 import { resolveAddressFromCoords } from "@/lib/utils/resolve-address-from-coords";
-import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES } from "@/lib/constants/onboarding";
+import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES, BUSINESS_OWNERSHIP_TYPE_OPTIONS, suggestRazorpayBusinessCategoryFromSector } from "@/lib/constants/onboarding";
 import type { ApplicationStatus, OnboardingApplication, WizardStepId } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -85,6 +86,8 @@ export function MerchantBasicDetails({
     completeStep,
   } = useOnboardingStore();
   const isQuickOnboard = !isPanelMode && formData.channel === "merchant";
+  /** Shared simplified store profile — merchant self-serve onboard and post-login panel. */
+  const isSimplifiedMerchantForm = isQuickOnboard || isPanelMode;
   const isFieldExecutive = formData.channel === "field_executive";
   const isFeVisitOnly =
     isFieldExecutive &&
@@ -109,6 +112,11 @@ export function MerchantBasicDetails({
     isLoading: categoriesLoading,
     isError: categoriesError,
   } = useMerchantCategories();
+  const {
+    categories: razorpayBusinessCategories,
+    isLoading: razorpayCategoriesLoading,
+    isError: razorpayCategoriesError,
+  } = useRazorpayBusinessCategories();
   const { states, isLoading: statesLoading } = useStates();
   const [selectedStateId, setSelectedStateId] = useState<number | null>(null);
   const { cities, isLoading: citiesLoading } = useCities(selectedStateId);
@@ -141,6 +149,26 @@ export function MerchantBasicDetails({
     return options;
   }, [formData.sector_id, formData.sector_name, merchantCategories]);
 
+  const razorpayCategorySelectOptions = useMemo(
+    () =>
+      razorpayBusinessCategories.map((category) => ({
+        value: category.value,
+        label: category.label,
+      })),
+    [razorpayBusinessCategories],
+  );
+
+  const razorpaySubcategorySelectOptions = useMemo(() => {
+    const selected = razorpayBusinessCategories.find(
+      (category) => category.value === formData.razorpay_business_category,
+    );
+
+    return (selected?.subcategories ?? []).map((subcategory) => ({
+      value: subcategory.value,
+      label: subcategory.label,
+    }));
+  }, [formData.razorpay_business_category, razorpayBusinessCategories]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
@@ -164,9 +192,6 @@ export function MerchantBasicDetails({
     [merchantCategories, formData.sector_id],
   );
   const categoryMinCommission = useMemo(() => {
-    if (isPanelMode) {
-      return VALIDATION_RULES.commission_rate.min;
-    }
     const rawFromApplication = formData.minimum_commission_percentage;
     const raw =
       rawFromApplication != null
@@ -176,7 +201,7 @@ export function MerchantBasicDetails({
       return VALIDATION_RULES.commission_rate.min;
     }
     return Math.max(VALIDATION_RULES.commission_rate.min, Number(raw));
-  }, [formData.minimum_commission_percentage, selectedCategory, isPanelMode]);
+  }, [formData.minimum_commission_percentage, selectedCategory]);
 
   useEffect(() => {
     if (formData.commission_model !== "flat") {
@@ -258,24 +283,18 @@ export function MerchantBasicDetails({
     if (isFeVisitOnly) {
       return;
     }
-    const floor = isPanelMode ? VALIDATION_RULES.commission_rate.min : categoryMinCommission;
+    const floor = categoryMinCommission;
     const current = formData.commission_rate;
     if (current === null) {
       updateFormData({ commission_rate: floor });
       setCommissionInput(floor.toString());
       return;
     }
-    if (!isPanelMode && current < categoryMinCommission) {
+    if (current < categoryMinCommission) {
       updateFormData({ commission_rate: categoryMinCommission });
       setCommissionInput(categoryMinCommission.toString());
     }
-  }, [
-    categoryMinCommission,
-    formData.commission_rate,
-    isFeVisitOnly,
-    isPanelMode,
-    updateFormData,
-  ]);
+  }, [categoryMinCommission, formData.commission_rate, isFeVisitOnly, updateFormData]);
 
   useEffect(() => {
     setCommissionInput(formData.commission_rate?.toString() || "");
@@ -591,7 +610,7 @@ export function MerchantBasicDetails({
   const validate = (): boolean => {
     const e: Record<string, string> = {};
 
-    if (!isQuickOnboard) {
+    if (!isSimplifiedMerchantForm) {
       if (!formData.legal_name || formData.legal_name.trim().length < 2) {
         e.legal_name = "Legal name must be at least 2 characters.";
       }
@@ -601,6 +620,15 @@ export function MerchantBasicDetails({
     }
     if (!formData.sector_id) {
       e.sector = "Select a business category.";
+    }
+    if (!isFeVisitOnly && !formData.business_ownership_type) {
+      e.business_ownership_type = "Select a business type.";
+    }
+    if (!isFeVisitOnly && !formData.razorpay_business_category) {
+      e.razorpay_business_category = "Select a Razorpay business category.";
+    }
+    if (!isFeVisitOnly && !formData.razorpay_business_subcategory) {
+      e.razorpay_business_subcategory = "Select a Razorpay business subcategory.";
     }
     if (
       !formData.owner_name ||
@@ -648,17 +676,13 @@ export function MerchantBasicDetails({
 
     if (!isFeVisitOnly) {
       if (
-        !isQuickOnboard &&
+        !isSimplifiedMerchantForm &&
         (formData.commission_rate === null ||
           formData.commission_rate < categoryMinCommission)
       ) {
-        e.commission_rate = isPanelMode
-          ? formData.commission_rate === null
-            ? "Please set your commission rate."
-            : ONBOARDING_STRINGS.COMMISSION_MIN_ERROR
-          : `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
+        e.commission_rate = `Commission rate must be at least ${categoryMinCommission.toFixed(2)}% for this category.`;
       } else if (
-        !isQuickOnboard &&
+        !isSimplifiedMerchantForm &&
         formData.commission_rate != null &&
         formData.commission_rate > VALIDATION_RULES.commission_rate.max
       ) {
@@ -694,9 +718,10 @@ export function MerchantBasicDetails({
 
     setPanelSaving(true);
     try {
+      const shopName = formData.shop_name.trim();
       const res = await savePanelBasicDetails(branchId, {
-        legal_name: formData.legal_name.trim(),
-        shop_name: formData.shop_name.trim(),
+        legal_name: formData.legal_name.trim() || shopName,
+        shop_name: shopName,
         sector_id: formData.sector_id ?? "",
         sector_name: formData.sector_name,
         owner_name: formData.owner_name,
@@ -796,6 +821,10 @@ export function MerchantBasicDetails({
       legal_name: formData.legal_name.trim(),
       gst_business_name: formData.legal_name.trim(),
       shop_name: formData.shop_name.trim(),
+      business_ownership_type: formData.business_ownership_type || undefined,
+      razorpay_business_category: formData.razorpay_business_category || undefined,
+      razorpay_business_subcategory: formData.razorpay_business_subcategory || undefined,
+      year_of_establishment: formData.year_of_establishment || undefined,
       sector_id: formData.sector_id,
       sector_name: formData.sector_name,
       locality: formData.locality || undefined,
@@ -923,18 +952,18 @@ export function MerchantBasicDetails({
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-foreground">
-          {isQuickOnboard ? "Quick Setup" : "Basic Details"}
+          {isSimplifiedMerchantForm ? "Quick Setup" : "Basic Details"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isPanelMode
-            ? "Complete your store profile to start using the merchant panel. Your mobile number was verified at login."
-            : isQuickOnboard
-              ? "Just the essentials — bank, KYC, and discounts can be set up in your portal after login."
-              : "Tell us about your business. Phone number is mandatory; email is optional but must be verified if provided."}
+          {isSimplifiedMerchantForm
+            ? isPanelMode
+              ? "Just the essentials — your mobile was verified at login. Bank, KYC, and discounts can be set up in your portal after."
+              : "Just the essentials — bank, KYC, and discounts can be set up in your portal after login."
+            : "Tell us about your business. Phone number is mandatory; email is optional but must be verified if provided."}
         </p>
       </div>
 
-      {!isQuickOnboard && (
+      {!isSimplifiedMerchantForm && (
         <FieldWithInfo
           fieldInfo={ONBOARDING_FIELDS.legal_name}
           required
@@ -952,7 +981,7 @@ export function MerchantBasicDetails({
       <FieldWithInfo
         fieldInfo={ONBOARDING_FIELDS.store_name}
         required
-        showTooltip={!isQuickOnboard}
+        showTooltip={!isSimplifiedMerchantForm}
         error={errors.shop_name}
       >
         <Input
@@ -961,14 +990,107 @@ export function MerchantBasicDetails({
           onChange={(e) => {
             const name = e.target.value;
             updateFormData(
-              isQuickOnboard ? { shop_name: name, legal_name: name } : { shop_name: name },
+              isSimplifiedMerchantForm ? { shop_name: name, legal_name: name } : { shop_name: name },
             );
           }}
           maxLength={150}
         />
       </FieldWithInfo>
 
-      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.sector} required showTooltip={!isQuickOnboard} error={errors.sector}>
+      {!isFeVisitOnly && (
+        <FieldWithInfo
+          fieldInfo={ONBOARDING_FIELDS.business_ownership_type}
+          required
+          showTooltip={!isSimplifiedMerchantForm}
+          error={errors.business_ownership_type}
+        >
+          <Select
+            options={BUSINESS_OWNERSHIP_TYPE_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+            value={formData.business_ownership_type}
+            onChange={(value) => {
+              updateFormData({ business_ownership_type: value });
+              if (value) {
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.business_ownership_type;
+                  return next;
+                });
+              }
+            }}
+            placeholder="Select business type"
+          />
+        </FieldWithInfo>
+      )}
+
+      {!isFeVisitOnly && (
+        <>
+          <FieldWithInfo
+            fieldInfo={ONBOARDING_FIELDS.razorpay_business_category}
+            required
+            showTooltip={!isSimplifiedMerchantForm}
+            error={errors.razorpay_business_category}
+          >
+            {razorpayCategoriesError && (
+              <p className="mb-2 text-sm text-destructive">
+                Could not load Razorpay business categories. Check your connection and refresh the page.
+              </p>
+            )}
+            <Select
+              options={razorpayCategorySelectOptions}
+              value={formData.razorpay_business_category}
+              onChange={(value) => {
+                updateFormData({
+                  razorpay_business_category: value,
+                  razorpay_business_subcategory: "",
+                });
+                if (value) {
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.razorpay_business_category;
+                    delete next.razorpay_business_subcategory;
+                    return next;
+                  });
+                }
+              }}
+              placeholder={razorpayCategoriesLoading ? "Loading categories..." : "Select Razorpay category"}
+              disabled={razorpayCategoriesLoading || razorpayCategorySelectOptions.length === 0}
+            />
+          </FieldWithInfo>
+
+          <FieldWithInfo
+            fieldInfo={ONBOARDING_FIELDS.razorpay_business_subcategory}
+            required
+            showTooltip={!isSimplifiedMerchantForm}
+            error={errors.razorpay_business_subcategory}
+          >
+            <Select
+              options={razorpaySubcategorySelectOptions}
+              value={formData.razorpay_business_subcategory}
+              onChange={(value) => {
+                updateFormData({ razorpay_business_subcategory: value });
+                if (value) {
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.razorpay_business_subcategory;
+                    return next;
+                  });
+                }
+              }}
+              placeholder={
+                !formData.razorpay_business_category
+                  ? "Select a category first"
+                  : "Select Razorpay subcategory"
+              }
+              disabled={!formData.razorpay_business_category || razorpaySubcategorySelectOptions.length === 0}
+            />
+          </FieldWithInfo>
+        </>
+      )}
+
+      <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.sector} required showTooltip={!isSimplifiedMerchantForm} error={errors.sector}>
         {categoriesError && (
           <p className="mb-2 text-sm text-destructive">
             Could not load business categories. Check your connection and refresh the page.
@@ -986,17 +1108,24 @@ export function MerchantBasicDetails({
             const patch: Parameters<typeof updateFormData>[0] = {
               sector_id: v,
               sector_name: opt?.name || "",
-              minimum_commission_percentage: isPanelMode
-                ? null
-                : (opt?.minimum_commission_percentage ?? null),
+              minimum_commission_percentage: opt?.minimum_commission_percentage ?? null,
             };
             if (
-              !isPanelMode &&
               categoryMin != null &&
               !Number.isNaN(categoryMin) &&
               (formData.commission_rate == null || formData.commission_rate < categoryMin)
             ) {
               patch.commission_rate = categoryMin;
+            }
+            if (!formData.razorpay_business_category) {
+              const suggested = suggestRazorpayBusinessCategoryFromSector(
+                razorpayBusinessCategories,
+                opt?.name,
+              );
+              if (suggested) {
+                patch.razorpay_business_category = suggested.category;
+                patch.razorpay_business_subcategory = suggested.subcategory;
+              }
             }
             updateFormData(patch);
             setCommissionInput(
@@ -1018,7 +1147,7 @@ export function MerchantBasicDetails({
         />
       </FieldWithInfo>
 
-      {!isFeVisitOnly && !isQuickOnboard && (
+      {!isFeVisitOnly && !isSimplifiedMerchantForm && (
         <FieldWithInfo
           fieldInfo={ONBOARDING_FIELDS.commission_rate}
           required
@@ -1117,21 +1246,21 @@ export function MerchantBasicDetails({
       <FieldWithInfo
         fieldInfo={{
           ...ONBOARDING_FIELDS.owner_name,
-          label: isQuickOnboard ? "Your Name" : ONBOARDING_FIELDS.owner_name.label,
+          label: isSimplifiedMerchantForm ? "Your Name" : ONBOARDING_FIELDS.owner_name.label,
         }}
         required
-        showTooltip={!isQuickOnboard}
+        showTooltip={!isSimplifiedMerchantForm}
         error={errors.owner_name}
       >
         <Input
-          placeholder={isQuickOnboard ? "Rajesh Kumar Sharma" : ONBOARDING_FIELDS.owner_name.placeholder}
+          placeholder={isSimplifiedMerchantForm ? "Rajesh Kumar Sharma" : ONBOARDING_FIELDS.owner_name.placeholder}
           value={formData.owner_name}
           onChange={(e) => updateFormData({ owner_name: e.target.value })}
           maxLength={100}
         />
       </FieldWithInfo>
 
-      {!isQuickOnboard && (
+      {!isSimplifiedMerchantForm && (
         <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.referral_code} error={errors.referral_code}>
           <Input
             placeholder={ONBOARDING_FIELDS.referral_code.placeholder}
@@ -1170,12 +1299,13 @@ export function MerchantBasicDetails({
             }
             verified={
               isPanelMode ||
-              isQuickOnboard ||
-              (requiresPhoneOtpVerification && formData.merchant_phone_verified)
+              (requiresPhoneOtpVerification && formData.merchant_phone_verified) ||
+              (isQuickOnboard && formData.merchant_phone_verified)
             }
           />
 
-          {(isQuickOnboard || (formData.merchant_phone_verified && requiresPhoneOtpVerification)) && (
+          {formData.merchant_phone_verified &&
+            (isSimplifiedMerchantForm || requiresPhoneOtpVerification) && (
             <p className="text-xs text-success flex items-center gap-1">
               <FontAwesomeIcon icon={faCircleCheck} className="w-3 h-3" />
               Mobile verified
@@ -1330,7 +1460,7 @@ export function MerchantBasicDetails({
           Store Location <span className="text-error">*</span>
         </p>
         <p className="text-xs text-muted-foreground">
-          {isQuickOnboard
+          {isSimplifiedMerchantForm
             ? "Tap below to pin your store — we will fill in the address automatically."
             : "Pick your store location on the map or fetch coordinates from your current location."}
         </p>
@@ -1349,7 +1479,7 @@ export function MerchantBasicDetails({
             handleLocationCaptured(coords);
           }}
         />
-        {!isQuickOnboard && (
+        {!isSimplifiedMerchantForm && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input value={formData.gps_lat ?? ""} readOnly placeholder="Latitude" />
             <Input value={formData.gps_long ?? ""} readOnly placeholder="Longitude" />
@@ -1357,20 +1487,22 @@ export function MerchantBasicDetails({
         )}
         {gpsStatus && <p className="text-xs text-muted-foreground">{gpsStatus}</p>}
         {errors.gps && <p className="text-xs text-error">{errors.gps}</p>}
-        <div className={`grid grid-cols-1 gap-3 ${isQuickOnboard ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-          {!isQuickOnboard && (
-            <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.locality} error={errors.locality}>
-              <Input
-                placeholder={ONBOARDING_FIELDS.locality.placeholder}
-                value={formData.locality}
-                onChange={(e) => updateFormData({ locality: e.target.value })}
-              />
-            </FieldWithInfo>
-          )}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <FieldWithInfo
+            fieldInfo={ONBOARDING_FIELDS.locality}
+            error={errors.locality}
+            showTooltip={!isSimplifiedMerchantForm}
+          >
+            <Input
+              placeholder={ONBOARDING_FIELDS.locality.placeholder}
+              value={formData.locality}
+              onChange={(e) => updateFormData({ locality: e.target.value })}
+            />
+          </FieldWithInfo>
           <FieldWithInfo
             fieldInfo={ONBOARDING_FIELDS.state}
             error={errors.state}
-            showTooltip={!isQuickOnboard}
+            showTooltip={!isSimplifiedMerchantForm}
           >
             <Select
               placeholder={statesLoading ? "Loading states…" : "Select state"}
@@ -1399,7 +1531,7 @@ export function MerchantBasicDetails({
           <FieldWithInfo
             fieldInfo={ONBOARDING_FIELDS.city}
             error={errors.city}
-            showTooltip={!isQuickOnboard}
+            showTooltip={!isSimplifiedMerchantForm}
           >
             <Select
               placeholder={
@@ -1425,7 +1557,7 @@ export function MerchantBasicDetails({
           <FieldWithInfo
             fieldInfo={ONBOARDING_FIELDS.pin_code}
             error={errors.pin_code}
-            showTooltip={!isQuickOnboard}
+            showTooltip={!isSimplifiedMerchantForm}
           >
             <Input
               placeholder={ONBOARDING_FIELDS.pin_code?.placeholder ?? "560001"}
@@ -1451,16 +1583,14 @@ export function MerchantBasicDetails({
         required
         error={errors.storefront_photo}
         hint={
-          isQuickOnboard
+          isSimplifiedMerchantForm
             ? "Snap or upload up to 5 photos of your store front."
-            : isPanelMode
-              ? "Take or upload photos of your store front (up to 5). The same images are saved to your store media gallery when you submit."
-              : "Take or upload photos of your store front. You can add up to 5 images. Photos are stored securely after submission."
+            : "Take or upload photos of your store front. You can add up to 5 images. Photos are stored securely after submission."
         }
         useDeviceCamera
       />
 
-      {isQuickOnboard && (
+      {isSimplifiedMerchantForm && (
         <FieldWithInfo
           fieldInfo={ONBOARDING_FIELDS.referral_code}
           error={errors.referral_code}
@@ -1479,7 +1609,7 @@ export function MerchantBasicDetails({
         </FieldWithInfo>
       )}
 
-      {!isQuickOnboard && mapsUrl && formData.gps_lat != null && formData.gps_long != null && (
+      {!isSimplifiedMerchantForm && mapsUrl && formData.gps_lat != null && formData.gps_long != null && (
         <div className="rounded-lg border border-border bg-card/50 p-3 space-y-2">
           <p className="text-sm font-medium text-foreground">Google Maps Link</p>
           <a
@@ -1493,7 +1623,7 @@ export function MerchantBasicDetails({
         </div>
       )}
 
-      {(!isFeVisitOnly || isPanelMode) && !isQuickOnboard && (
+      {!isFeVisitOnly && !isQuickOnboard && (
         <>
           <LegalAcceptanceBlock
             applicationId={isPanelMode ? (branchId ?? null) : applicationId}

@@ -174,9 +174,16 @@ export function MyRankingCard({
             {entry.sector_name ? ` · ${entry.sector_name}` : ""}
           </p>
 
-          {entry.visible_in_list === false && (
+          {entry.visible_in_list === false && entry.eligible_for_leaderboard !== false && (
             <p className="text-xs text-warning">
               Hidden by search — clear search to see your branch in the list below.
+            </p>
+          )}
+
+          {entry.eligible_for_leaderboard === false && (
+            <p className="text-xs text-warning">
+              Your branch is not on the public rankings list yet — complete onboarding to join the
+              leaderboard. Live score below updates every minute.
             </p>
           )}
         </div>

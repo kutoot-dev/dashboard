@@ -4,9 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getCitiesByStateId,
   getMerchantCategories,
+  getRazorpayBusinessCategories,
   getStates,
   type GeoState,
   type MerchantCategoryOption,
+  type RazorpayBusinessCategoryOption,
 } from "@/lib/api/services/geo.service";
 
 const FALLBACK_STATES: GeoState[] = [
@@ -112,5 +114,25 @@ export function useMerchantCategories() {
   return {
     ...query,
     categories: query.data ?? ([] as MerchantCategoryOption[]),
+  };
+}
+
+/**
+ * Razorpay Route business categories and dependent subcategories.
+ */
+export function useRazorpayBusinessCategories() {
+  const query = useQuery({
+    queryKey: ["geo", "razorpay-business-categories"],
+    queryFn: async () => {
+      const res = await getRazorpayBusinessCategories();
+      return res.data?.categories ?? [];
+    },
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: 1,
+  });
+
+  return {
+    ...query,
+    categories: query.data ?? ([] as RazorpayBusinessCategoryOption[]),
   };
 }

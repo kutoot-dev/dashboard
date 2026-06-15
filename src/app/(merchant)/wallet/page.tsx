@@ -92,6 +92,54 @@ export default function WalletPage() {
         </Card>
       )}
 
+      {wallet && wallet.referral_earnings ? (
+        <Card className="p-6">
+          <h2 className="text-sm font-semibold text-foreground">Referral earnings</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Earn per successful referral. Withdraw once total earnings reach{" "}
+            {formatINR(wallet.referral_earnings.min_withdrawal_amount)}.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/60 bg-background/30 p-4">
+              <p className="text-xs text-muted-foreground">Customer referral</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {formatINR(wallet.referral_earnings.customer_referrals.amount_per_referral)}
+                <span className="text-sm font-normal text-muted-foreground"> / referral</span>
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {wallet.referral_earnings.customer_referrals.count} referrals
+                {(wallet.referral_earnings.customer_referrals.pending_count ?? 0) > 0
+                  ? ` (${wallet.referral_earnings.customer_referrals.pending_count} pending)`
+                  : ""}
+                {" · "}
+                {formatINR(wallet.referral_earnings.customer_referrals.earned)} earned
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/30 p-4">
+              <p className="text-xs text-muted-foreground">Merchant referral</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {formatINR(wallet.referral_earnings.store_referrals.amount_per_referral)}
+                <span className="text-sm font-normal text-muted-foreground"> / referral</span>
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {wallet.referral_earnings.store_referrals.count} referrals
+                {(wallet.referral_earnings.store_referrals.pending_count ?? 0) > 0
+                  ? ` (${wallet.referral_earnings.store_referrals.pending_count} awaiting approval)`
+                  : ""}
+                {" · "}
+                {formatINR(wallet.referral_earnings.store_referrals.earned)} earned
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-foreground">
+            Total earned:{" "}
+            <span className="font-semibold">
+              {formatINR(wallet.referral_earnings.total)}
+            </span>
+          </p>
+        </Card>
+      ) : null}
+
       {wallet && wallet.recent_transactions.length > 0 ? (
         <Card className="p-6">
           <h2 className="text-sm font-semibold text-foreground">Recent activity</h2>

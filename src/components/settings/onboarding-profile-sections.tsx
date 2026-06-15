@@ -1,10 +1,20 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { OnboardingProfileField, OnboardingProfileSection } from "@/lib/api/services/merchant.service";
+import { formatKycReviewStatus } from "@/lib/constants/onboarding";
 
 interface OnboardingProfileSectionsProps {
   sections: OnboardingProfileSection[];
+}
+
+function statusVariant(value: string): "gain" | "loss" | "warning" | "default" {
+  const normalized = value.toLowerCase();
+  if (normalized === "approved") return "gain";
+  if (normalized === "rejected") return "loss";
+  if (normalized === "pending") return "warning";
+  return "default";
 }
 
 export function OnboardingProfileSections({ sections }: OnboardingProfileSectionsProps) {
@@ -45,15 +55,24 @@ function ProfileFieldRow({ field }: { field: OnboardingProfileField }) {
       <dd
         className={`text-sm text-foreground ${isMultiline ? "whitespace-pre-line" : "break-words"}`}
       >
-        {field.type === "url" && field.value !== "Not provided" ? (
+        {field.type === "status" ? (
+          <Badge variant={statusVariant(field.value)}>{formatKycReviewStatus(field.value)}</Badge>
+        ) : field.type === "url" && field.value !== "Not provided" ? (
           <a
             href={field.value}
             target="_blank"
             rel="noopener noreferrer"
             className="text-accent underline underline-offset-2"
           >
-            View uploaded file
+            {field.value.includes("google.com/maps") || field.value.includes("maps.google")
+              ? "Open in Google Maps"
+              : "View uploaded file"}
           </a>
+        ) : field.status ? (
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span>{field.value}</span>
+            <Badge variant={statusVariant(field.status)}>{formatKycReviewStatus(field.status)}</Badge>
+          </span>
         ) : (
           field.value
         )}

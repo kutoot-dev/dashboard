@@ -46,7 +46,13 @@ export interface CreateDealPayload {
 export interface OnboardingProfileField {
   label: string;
   value: string;
-  type: "text" | "url";
+  type: "text" | "url" | "status";
+  status?: string;
+}
+
+export interface StorefrontPhoto {
+  url: string;
+  thumb: string;
 }
 
 export interface OnboardingProfileSection {
@@ -57,7 +63,19 @@ export interface OnboardingProfileSection {
 }
 
 export interface OnboardingProfile {
+  application_status?: OnboardingApplicationStatus;
   sections: OnboardingProfileSection[];
+  storefront_photos: StorefrontPhoto[];
+}
+
+export interface OnboardingApplicationStatus {
+  stage: string;
+  stage_label: string;
+  stage_phase: string;
+  next_follow_up_at?: string | null;
+  submitted_at?: string | null;
+  updated_at?: string | null;
+  notes?: string | null;
 }
 
 export interface MerchantQrCode {

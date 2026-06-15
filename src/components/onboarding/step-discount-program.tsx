@@ -6,6 +6,7 @@ import {
   DiscountProgramFields,
   serializeDiscountProgramPayload,
   toDiscountProgramFormState,
+  validateDiscountProgramForm,
 } from "@/components/discount-program/discount-program-fields";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 
@@ -29,24 +30,24 @@ export function StepDiscountProgram({ onNext, onBack }: StepDiscountProgramProps
       : null;
 
   const validate = (): boolean => {
-    const nextErrors: Record<string, string> = {};
-
-    if (programState.discount_program_enabled) {
-      const hasActiveBand = programState.discount_bands.some((band) => band.is_active);
-      if (!hasActiveBand) {
-        nextErrors.discount_bands = "Add at least one active discount band.";
-      }
+    const validationError = validateDiscountProgramForm(programState);
+    if (validationError) {
+      setErrors({ discount_bands: validationError });
+      return false;
     }
 
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    setErrors({});
+    return true;
   };
 
   const handleNext = () => {
     if (!validate()) return;
 
     const payload = serializeDiscountProgramPayload(programState);
-    updateFormData({ ...payload, discount_bands: payload.bands });
+    updateFormData({
+      discount_program_enabled: payload.discount_program_enabled,
+      discount_bands: payload.bands,
+    });
     onNext();
   };
 
@@ -62,8 +63,10 @@ export function StepDiscountProgram({ onNext, onBack }: StepDiscountProgramProps
       <DiscountProgramFields
         value={programState}
         onChange={(next) => {
-          const payload = serializeDiscountProgramPayload(next);
-          updateFormData({ ...payload, discount_bands: payload.bands });
+          updateFormData({
+            discount_program_enabled: next.discount_program_enabled,
+            discount_bands: next.discount_bands,
+          });
         }}
         policyCap={policyCap}
         compact

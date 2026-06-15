@@ -155,12 +155,9 @@ export type VisitOutcome =
 
 export type CommissionModel = "flat" | "tiered";
 
-export type KycVerificationStatus =
-  | "not_started"
-  | "pending"
-  | "verified"
-  | "failed"
-  | "pending_manual_review";
+export type KycReviewStatus = "pending" | "approved" | "rejected";
+
+export type KycVerificationStatus = KycReviewStatus;
 
 export type IncentiveType =
   | "onboarding_complete"
@@ -249,6 +246,13 @@ export interface OnboardingApplication {
   phone: string;
   owner_name: string;
   shop_name: string;
+  year_of_establishment?: string | null;
+  business_ownership_type?: string | null;
+  business_ownership_type_label?: string | null;
+  razorpay_business_category?: string | null;
+  razorpay_business_category_label?: string | null;
+  razorpay_business_subcategory?: string | null;
+  razorpay_business_subcategory_label?: string | null;
   sector_id: string;
   sector_name: string;
   locality: string;
@@ -283,6 +287,7 @@ export interface OnboardingApplication {
   pan_holder_name: string | null;
   pan_doc_photo_url: string | null;
   aadhaar_number_masked: string | null;
+  aadhaar_status?: KycVerificationStatus;
   aadhaar_doc_photo_url: string | null;
 
   // Step 5: Bank

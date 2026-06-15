@@ -47,7 +47,7 @@ export function WalletBalanceCard({
       {wallet.payout_kyc_saved && !wallet.can_submit_withdrawal ? (
         <p className="mt-2 text-xs text-muted-foreground">
           Your bank and KYC details are saved. You can submit a withdrawal once
-          referral targets are met.
+          referral earnings reach the minimum amount.
         </p>
       ) : null}
       {wallet.has_pending_withdrawal ? (

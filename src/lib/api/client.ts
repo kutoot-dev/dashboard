@@ -75,10 +75,19 @@ apiClient.interceptors.request.use((config) => {
         .find((row) => row.startsWith(`${AUTH_USER_COOKIE}=`));
       if (authCookie) {
         const raw = decodeURIComponent(authCookie.split("=").slice(1).join("="));
-        const user = JSON.parse(raw) as { role?: string };
-        if (user.role === "operations_hub") {
-          const selected = window.localStorage.getItem("kutoot_selected_location_id");
+        const user = JSON.parse(raw) as {
+          role?: string;
+          default_location_id?: string;
+          branch_id?: string | null;
+          attached_locations?: { id: number | string }[];
+        };
+
+        const needsLocationScope =
+          config.url?.startsWith("/merchant") || config.url?.startsWith("/leaderboard");
+
+        if (needsLocationScope) {
           let locationId: string | null = null;
+          const selected = window.localStorage.getItem("kutoot_selected_location_id");
           if (selected) {
             try {
               const parsed = JSON.parse(selected) as { state?: { selectedLocationId?: string | null } };
@@ -87,13 +96,17 @@ apiClient.interceptors.request.use((config) => {
               locationId = null;
             }
           }
+
           if (!locationId) {
-            const parsedUser = user as { default_location_id?: string; branch_id?: string | null };
-            locationId = parsedUser.default_location_id ?? parsedUser.branch_id ?? null;
+            locationId = user.default_location_id ?? user.branch_id ?? null;
           }
-          const needsLocationScope =
-            config.url?.startsWith("/merchant") || config.url?.startsWith("/leaderboard");
-          if (locationId && needsLocationScope) {
+
+          const attachedIds = (user.attached_locations ?? []).map((loc) => String(loc.id));
+          if (locationId && attachedIds.length > 0 && !attachedIds.includes(locationId)) {
+            locationId = attachedIds[0] ?? locationId;
+          }
+
+          if (locationId) {
             config.headers = config.headers || {};
             config.headers["X-Location-Id"] = locationId;
             config.params = { ...(config.params as object), location_id: locationId };
@@ -131,7 +144,9 @@ apiClient.interceptors.response.use(
       void import("./services/auth.service").then(({ clearAuthSession }) => clearAuthSession());
     }
     const raw = error.response?.data?.error || {
-      code: status === 422 ? "VALIDATION_ERROR" : "NETWORK_ERROR",
+      code:
+        error.response?.data?.code ||
+        (status === 422 ? "VALIDATION_ERROR" : "NETWORK_ERROR"),
       message:
         error.response?.data?.message ||
         error.message ||
