@@ -92,6 +92,7 @@ interface OnboardingFormData {
   bank_account_number: string;
   bank_account_confirm: string;
   bank_ifsc: string;
+  upi_id: string;
   bank_name: string | null;
   bank_branch_name: string | null;
   preferred_settlement_method: string;
@@ -165,8 +166,8 @@ const initialFormData: OnboardingFormData = {
   owner_name: "",
   owner_email: "",
   owner_email_verified: false,
-  legal_name: "",
-  shop_name: "",
+  legal_name: "My Store",
+  shop_name: "My Store",
   google_maps_link: "",
   door_no: "",
   shop_no: "",
@@ -221,6 +222,7 @@ const initialFormData: OnboardingFormData = {
   bank_account_number: "",
   bank_account_confirm: "",
   bank_ifsc: "",
+  upi_id: "",
   bank_name: null,
   bank_branch_name: null,
   preferred_settlement_method: "",

@@ -151,7 +151,7 @@ function QrPreviewCard({
       {/* Merchant info below QR */}
       <div className="text-center space-y-0.5">
         <p className="font-bold text-sm text-foreground truncate max-w-50">
-          {shopName || "Your Shop Name"}
+          {shopName || "Your Store Name"}
         </p>
         <p className="text-xs text-muted-foreground truncate max-w-50">
           {ownerName || "Owner Name"}

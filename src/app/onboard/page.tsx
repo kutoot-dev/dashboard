@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/providers/theme-provider";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { StepIdentity } from "@/components/onboarding/step-identity";
+import { StepMobileVerify } from "@/components/onboarding/step-mobile-verify";
 import { StepVisitOutcome } from "@/components/onboarding/step-visit-outcome";
 import { StepBasicDetails } from "@/components/onboarding/step-basic-details";
 import { StepCommission } from "@/components/onboarding/step-commission";
@@ -58,6 +59,7 @@ export default function OnboardPage() {
   } = useOnboardingStore();
   const updateApp = useUpdateApplication();
   const createApp = useCreateApplication();
+  const isWizardSaving = createApp.isPending || updateApp.isPending;
 
   const extractApiErrorMessage = useCallback((error: unknown): string => {
     if (error instanceof ApiError) {
@@ -106,6 +108,17 @@ export default function OnboardPage() {
       );
     }
   }, [applicationId, router]);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const mode = searchParams.get("mode");
+    if (mode === "new" && formData.channel !== "merchant") {
+      updateFormData({ channel: "merchant" });
+    }
+    if (mode === "new" && currentStep === "identity") {
+      setStep("mobile_verify");
+    }
+  }, [currentStep, formData.channel, setStep, updateFormData]);
 
   useEffect(() => {
     if (referralHydratedRef.current) return;
@@ -164,7 +177,7 @@ export default function OnboardPage() {
       const fallback =
         activeStepIds.includes("review")
           ? "review"
-          : activeStepIds[activeStepIds.length - 1] ?? "identity";
+          : activeStepIds[activeStepIds.length - 1] ?? activeStepIds[0] ?? "identity";
       setStep(fallback);
     }
   }, [activeStepIds, currentStep, setStep]);
@@ -202,7 +215,7 @@ export default function OnboardPage() {
       if (fromStep !== "identity" && !formData.channel) {
         pushToast({
           variant: "warning",
-          title: "Complete identity first",
+          title: "Complete setup first",
           description: "Select who is filling this form before saving other steps.",
         });
         setStep("identity");
@@ -213,7 +226,7 @@ export default function OnboardPage() {
       // a draft too early, otherwise backend validation rejects it and blocks navigation.
       if (
         !applicationId &&
-        fromStep === "identity" &&
+        (fromStep === "identity" || fromStep === "mobile_verify") &&
         (formData.channel === "field_executive" || formData.channel === "merchant")
       ) {
         advance();
@@ -286,10 +299,18 @@ export default function OnboardPage() {
     switch (currentStep) {
       case "identity":
         return <StepIdentity onNext={handleNext} />;
+      case "mobile_verify":
+        return <StepMobileVerify onNext={handleNext} />;
       case "visit_outcome":
         return <StepVisitOutcome onNext={handleNext} onBack={goBack} />;
       case "basic_details":
-        return <StepBasicDetails onNext={handleNext} onBack={goBack} />;
+        return (
+          <StepBasicDetails
+            onNext={handleNext}
+            onBack={goBack}
+            isSaving={isWizardSaving}
+          />
+        );
       case "discount_program":
         return <StepDiscountProgram onNext={handleNext} onBack={goBack} />;
       case "commission":

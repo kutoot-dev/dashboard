@@ -75,7 +75,7 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     tooltip: {
       title: "Your Store Name",
       description:
-        "The name on your shop signboard — shown to customers on receipts and in the Kutoot app.",
+        "The name on your store signboard — shown to customers on receipts and in the Kutoot app.",
       example: "Sharma General Store",
       whyNeeded: "This is how customers will find and recognize your store.",
     },
@@ -86,18 +86,18 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     tooltip: {
       title: "Your Store Name",
       description:
-        "The name on your shop signboard — shown to customers on receipts and in the Kutoot app.",
+        "The name on your store signboard — shown to customers on receipts and in the Kutoot app.",
       example: "Sharma General Store",
       whyNeeded: "This is how customers will find and recognize your store.",
     },
   },
   shop_name: {
-    label: "Shop / Business Name",
+    label: "Store Name",
     placeholder: "Sharma General Store",
     tooltip: {
-      title: "Your Shop or Business Name",
+      title: "Your Store Name",
       description:
-        "The name of your shop as displayed on your signboard. This will appear on customer receipts.",
+        "The name of your store as displayed on your signboard. This will appear on customer receipts.",
       example: "Sharma General Store, Modern Electronics Hub",
       whyNeeded:
         "Displayed to customers during transactions and used for identification in the Kutoot system.",
@@ -160,13 +160,13 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     },
   },
   storefront_photo: {
-    label: "Shop Storefront Photo",
+    label: "Store Front Photo",
     placeholder: "",
     tooltip: {
-      title: "Mandatory Photo of Shop Front",
+      title: "Mandatory Photo of Store Front",
       description:
-        "Take a clear photo of your shop's exterior showing the signboard. The photo must be taken live — uploads from gallery are not allowed. GPS location and timestamp are embedded automatically.",
-      example: "A well-lit photo showing your shop's name board and entrance.",
+        "Take a clear photo of your store's exterior showing the signboard. The photo must be taken live — uploads from gallery are not allowed. GPS location and timestamp are embedded automatically.",
+      example: "A well-lit photo showing your store's name board and entrance.",
       whyNeeded:
         "Verifies the physical existence of your business. Prevents fraudulent registrations. Required for all applications regardless of outcome.",
     },
@@ -280,6 +280,18 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
         "Identifies your exact bank branch for NEFT/IMPS payouts. Bank name is auto-fetched from IFSC.",
     },
   },
+  upi_id: {
+    label: "UPI ID",
+    placeholder: "yourname@upi",
+    tooltip: {
+      title: "UPI Virtual Payment Address",
+      description:
+        "Your UPI ID (VPA) linked to your bank account. Found in Google Pay, PhonePe, Paytm, or your bank app under UPI settings.",
+      example: "merchant@okaxis, 9876543210@ybl",
+      whyNeeded:
+        "Used for UPI-based settlements and as a backup payout identifier alongside your bank account.",
+    },
+  },
   qr_serial: {
     label: "QR Code Serial Number",
     placeholder: "KT-QR-00001234",
@@ -372,6 +384,10 @@ export const VALIDATION_RULES = {
   bank_ifsc: {
     length: 11,
     pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/,
+  },
+  upi_id: {
+    maxLength: 255,
+    pattern: /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z][a-zA-Z0-9]{2,63}$/,
   },
   employee_code: {
     minLength: 4,

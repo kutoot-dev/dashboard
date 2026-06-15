@@ -16,19 +16,25 @@ import {
   logout as logoutService,
   getMe,
   sendLoginOtp as sendLoginOtpService,
+  updateAuthUserCookie,
 } from "@/lib/api/services/auth.service";
 import { AUTH_TOKEN_STORAGE_KEY } from "@/lib/api/client";
 import { useSelectedLocationStore } from "@/lib/stores/selected-location.store";
 import { useQueryClientInstance } from "./query-provider";
 import { defaultHomeForUser } from "@/lib/utils/store-access";
 
-function syncOpsHubSelectedLocation(user: AuthUser): void {
-  if (user.role !== "operations_hub") {
+function syncSelectedLocation(user: AuthUser): void {
+  const locations = user.attached_locations ?? [];
+  if (locations.length <= 1) {
     return;
   }
 
   const defaultId = user.default_location_id ?? user.branch_id;
-  if (defaultId) {
+  const stored = useSelectedLocationStore.getState().selectedLocationId;
+  const stillValid =
+    stored && locations.some((loc) => String(loc.id) === stored);
+
+  if (!stillValid && defaultId) {
     useSelectedLocationStore.getState().setSelectedLocationId(defaultId);
   }
 }
@@ -42,6 +48,7 @@ interface AuthContextValue {
   sendLoginOtp: (mobile: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  switchStore: (locationId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -76,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getMe()
       .then((res) => {
         if (res.success && res.data) {
-          syncOpsHubSelectedLocation(res.data);
+          syncSelectedLocation(res.data);
           setUser(res.data);
         } else {
           clearAuthSession();
@@ -98,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.success) {
         queryClient.clear();
         if (res.data) {
-          syncOpsHubSelectedLocation(res.data);
+          syncSelectedLocation(res.data);
           setUser(res.data);
         }
         const home = res.data?.requires_basic_details
@@ -118,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.success) {
         queryClient.clear();
         if (res.data) {
-          syncOpsHubSelectedLocation(res.data);
+          syncSelectedLocation(res.data);
           setUser(res.data);
         }
         const home = res.data?.requires_basic_details
@@ -149,9 +156,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     const res = await getMe();
     if (res.success && res.data) {
-      syncOpsHubSelectedLocation(res.data);
+      syncSelectedLocation(res.data);
       setUser(res.data);
     }
+  }, []);
+
+  const switchStore = useCallback((locationId: string) => {
+    setUser((prev) => {
+      if (!prev?.attached_locations?.length) {
+        return prev;
+      }
+
+      const match = prev.attached_locations.find((loc) => String(loc.id) === locationId);
+      if (!match) {
+        return prev;
+      }
+
+      const next: AuthUser = {
+        ...prev,
+        branch_id: String(match.id),
+        default_location_id: String(match.id),
+      };
+
+      updateAuthUserCookie(next);
+
+      return next;
+    });
   }, []);
 
   return (
@@ -165,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sendLoginOtp,
         logout,
         refreshUser,
+        switchStore,
       }}
     >
       {children}

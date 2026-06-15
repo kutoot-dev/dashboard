@@ -79,6 +79,11 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
       e.bank_ifsc = "Enter a valid 11-character IFSC code.";
     }
 
+    const upiId = (formData.upi_id ?? "").trim();
+    if (upiId && !VALIDATION_RULES.upi_id.pattern.test(upiId)) {
+      e.upi_id = "Enter a valid UPI ID (e.g. name@bank).";
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -204,6 +209,28 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
             Bank: {formData.bank_name}
           </p>
         )}
+      </FieldWithInfo>
+
+      {/* UPI ID */}
+      <FieldWithInfo
+        fieldInfo={ONBOARDING_FIELDS.upi_id}
+        error={errors.upi_id}
+      >
+        <Input
+          placeholder={ONBOARDING_FIELDS.upi_id.placeholder}
+          value={formData.upi_id}
+          onChange={(e) => {
+            const value = e.target.value.trim().toLowerCase();
+            updateFormData({ upi_id: value });
+            if (!value || VALIDATION_RULES.upi_id.pattern.test(value)) {
+              clearFieldError("upi_id");
+            } else {
+              setFieldError("upi_id", "Enter a valid UPI ID (e.g. name@bank).");
+            }
+          }}
+          maxLength={255}
+          autoComplete="off"
+        />
       </FieldWithInfo>
 
       <div className="space-y-1.5">

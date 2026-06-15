@@ -173,6 +173,7 @@ export type IncentiveStatus = "pending" | "approved" | "paid" | "hold";
 
 export type WizardStepId =
   | "identity"
+  | "mobile_verify"    // Merchant self-serve only
   | "visit_outcome"    // Field executive only
   | "basic_details"
   | "discount_program"
@@ -184,6 +185,7 @@ export type WizardStepId =
 
 export const WIZARD_STEPS: WizardStepId[] = [
   "identity",
+  "mobile_verify",
   "visit_outcome",
   "basic_details",
   "discount_program",
@@ -203,14 +205,15 @@ export interface WizardStepConfig {
 
 export const WIZARD_STEP_CONFIG: WizardStepConfig[] = [
   { id: "identity", label: "Identity", description: "Who is filling this form?", number: 1 },
-  { id: "visit_outcome", label: "Visit Status", description: "Merchant interest and outcome", number: 2 },
-  { id: "basic_details", label: "Basic Details", description: "Shop and owner information", number: 3 },
-  { id: "discount_program", label: "Discount Program", description: "Merchant-funded bill discounts", number: 4 },
-  { id: "commission", label: "Commission", description: "Commission rate agreement", number: 5 },
-  { id: "kyc", label: "KYC Documents", description: "Business verification documents", number: 6 },
-  { id: "bank", label: "Bank Details", description: "Bank account for payouts", number: 7 },
-  { id: "qr_activation", label: "Field Handover", description: "QR code and inventory handover", number: 8 },
-  { id: "review", label: "Review & Submit", description: "Review and submit application", number: 9 },
+  { id: "mobile_verify", label: "Mobile", description: "Verify your mobile number", number: 2 },
+  { id: "visit_outcome", label: "Visit Status", description: "Merchant interest and outcome", number: 3 },
+  { id: "basic_details", label: "Basic Details", description: "Store and owner information", number: 4 },
+  { id: "discount_program", label: "Discount Program", description: "Merchant-funded bill discounts", number: 5 },
+  { id: "commission", label: "Commission", description: "Commission rate agreement", number: 6 },
+  { id: "kyc", label: "KYC Documents", description: "Business verification documents", number: 7 },
+  { id: "bank", label: "Bank Details", description: "Bank account for payouts", number: 8 },
+  { id: "qr_activation", label: "Field Handover", description: "QR code and inventory handover", number: 9 },
+  { id: "review", label: "Review & Submit", description: "Review and submit application", number: 10 },
 ];
 
 // ── Commission Tier ────────────────────────────────────────────────
@@ -286,6 +289,7 @@ export interface OnboardingApplication {
   bank_account_name: string | null;
   bank_account_number: string | null;
   bank_ifsc: string | null;
+  upi_id: string | null;
   bank_name: string | null;
   bank_branch_name: string | null;
   preferred_settlement_method?: string | null;

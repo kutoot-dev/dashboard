@@ -4,8 +4,8 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { useSelectedLocationStore } from "@/lib/stores/selected-location.store";
 
 /**
- * For merchants: returns branch_id from auth.
- * For operations hub: returns persisted selected location, falling back to default.
+ * Returns the active merchant location id for API calls.
+ * Supports operations hub and merchants with multiple stores on one login.
  */
 export function useEffectiveBranchId(): string {
   const { user } = useAuth();
@@ -15,15 +15,17 @@ export function useEffectiveBranchId(): string {
     return "";
   }
 
-  if (user.role === "operations_hub") {
+  const locations = user.attached_locations ?? [];
+
+  if (locations.length > 0) {
     if (selectedLocationId) {
-      const allowed = user.attached_locations?.some((loc) => String(loc.id) === selectedLocationId);
+      const allowed = locations.some((loc) => String(loc.id) === selectedLocationId);
       if (allowed) {
         return selectedLocationId;
       }
     }
 
-    return user.default_location_id ?? user.branch_id ?? "";
+    return user.default_location_id ?? user.branch_id ?? String(locations[0]?.id ?? "");
   }
 
   return user.branch_id ?? "";

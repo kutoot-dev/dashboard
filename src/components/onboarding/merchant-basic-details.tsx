@@ -39,6 +39,8 @@ interface MerchantBasicDetailsProps {
   onBack: () => void;
   /** FE visit-only flows continue to review instead of submitting here. */
   onNext?: () => void;
+  /** Parent wizard save in progress (quick onboard step transition). */
+  isSaving?: boolean;
   /** Panel post-OTP flow: reuse this form without phone/email OTP re-verification. */
   mode?: "onboarding" | "panel";
   branchId?: string;
@@ -65,6 +67,7 @@ function buildGoogleMapsUrl(lat: number, long: number): string {
 export function MerchantBasicDetails({
   onBack,
   onNext,
+  isSaving = false,
   mode = "onboarding",
   branchId,
   onComplete,
@@ -192,7 +195,7 @@ export function MerchantBasicDetails({
       return;
     }
 
-    if (applicationId || isFeVisitOnly || draftCreateStarted.current) {
+    if (applicationId || isFeVisitOnly || draftCreateStarted.current || isQuickOnboard) {
       return;
     }
 
@@ -228,7 +231,7 @@ export function MerchantBasicDetails({
           }
         },
         onError: () => {
-          draftCreateStarted.current = false;
+          // Keep the guard set so a failed draft create does not retry in a loop.
         },
       },
     );
@@ -246,6 +249,7 @@ export function MerchantBasicDetails({
     isFeVisitOnly,
     isFieldExecutive,
     isPanelMode,
+    isQuickOnboard,
     setApplicationId,
     updateFormData,
   ]);
@@ -371,8 +375,8 @@ export function MerchantBasicDetails({
       setPhoneOtpSent(false);
       setPhoneOtpMessage("");
 
-      if (isPanelMode || clean.length !== 10) {
-        if (!isPanelMode) {
+      if (isPanelMode || isQuickOnboard || clean.length !== 10) {
+        if (!isPanelMode && !isQuickOnboard) {
           setPhoneCheckResult(null);
         }
         return;
@@ -398,7 +402,7 @@ export function MerchantBasicDetails({
         setPhoneCheckResult(null);
       }
     },
-    [checkPhone, isPanelMode, setPhoneCheckResult, updateFormData],
+    [checkPhone, isPanelMode, isQuickOnboard, setPhoneCheckResult, updateFormData],
   );
 
   const handleSendPhoneOtp = async () => {
@@ -410,7 +414,7 @@ export function MerchantBasicDetails({
       }));
       return;
     }
-    if (phoneCheckResult?.exists && !applicationId) {
+    if (phoneCheckResult?.exists && !applicationId && !isQuickOnboard) {
       pushToast({
         variant: "warning",
         title: "Application already exists",
@@ -593,9 +597,7 @@ export function MerchantBasicDetails({
       }
     }
     if (!formData.shop_name || formData.shop_name.trim().length < 2) {
-      e.shop_name = isQuickOnboard
-        ? "Store name must be at least 2 characters."
-        : "Display name must be at least 2 characters.";
+      e.shop_name = "Store name must be at least 2 characters.";
     }
     if (!formData.sector_id) {
       e.sector = "Select a business category.";
@@ -611,12 +613,8 @@ export function MerchantBasicDetails({
       e.phone = "Enter a valid 10-digit Indian mobile number starting with 6-9.";
     } else if (requiresPhoneOtpVerification && !formData.merchant_phone_verified) {
       e.phone = "Please verify your mobile number via OTP.";
-    } else if (
-      !isPanelMode &&
-      formData.channel === "merchant" &&
-      !formData.merchant_phone_verified
-    ) {
-      e.phone = "Please verify your mobile number in the Identity step.";
+    } else if (isQuickOnboard && !formData.merchant_phone_verified) {
+      e.phone = "Please go back and verify your mobile number.";
     }
 
     const email = formData.owner_email.trim();
@@ -781,7 +779,6 @@ export function MerchantBasicDetails({
       if (isQuickOnboard && !formData.legal_name?.trim()) {
         updateFormData({ legal_name: formData.shop_name.trim() });
       }
-      completeStep("basic_details");
       onNext();
       return;
     }
@@ -930,7 +927,7 @@ export function MerchantBasicDetails({
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {isPanelMode
-            ? "Complete your shop profile to start using the merchant panel. Your mobile number was verified at login."
+            ? "Complete your store profile to start using the merchant panel. Your mobile number was verified at login."
             : isQuickOnboard
               ? "Just the essentials — bank, KYC, and discounts can be set up in your portal after login."
               : "Tell us about your business. Phone number is mandatory; email is optional but must be verified if provided."}
@@ -953,17 +950,13 @@ export function MerchantBasicDetails({
       )}
 
       <FieldWithInfo
-        fieldInfo={isQuickOnboard ? ONBOARDING_FIELDS.store_name : ONBOARDING_FIELDS.display_name}
+        fieldInfo={ONBOARDING_FIELDS.store_name}
         required
         showTooltip={!isQuickOnboard}
         error={errors.shop_name}
       >
         <Input
-          placeholder={
-            isQuickOnboard
-              ? ONBOARDING_FIELDS.store_name.placeholder
-              : ONBOARDING_FIELDS.display_name.placeholder
-          }
+          placeholder={ONBOARDING_FIELDS.store_name.placeholder}
           value={formData.shop_name}
           onChange={(e) => {
             const name = e.target.value;
@@ -1172,20 +1165,20 @@ export function MerchantBasicDetails({
             maxLength={10}
             disabled={
               isPanelMode ||
-              formData.channel === "merchant" ||
+              isQuickOnboard ||
               (requiresPhoneOtpVerification && formData.merchant_phone_verified)
             }
             verified={
               isPanelMode ||
-              formData.channel === "merchant" ||
+              isQuickOnboard ||
               (requiresPhoneOtpVerification && formData.merchant_phone_verified)
             }
           />
 
-          {formData.channel === "merchant" && formData.merchant_phone_verified && (
+          {(isQuickOnboard || (formData.merchant_phone_verified && requiresPhoneOtpVerification)) && (
             <p className="text-xs text-success flex items-center gap-1">
               <FontAwesomeIcon icon={faCircleCheck} className="w-3 h-3" />
-              Verified in Identity step
+              Mobile verified
             </p>
           )}
 
@@ -1198,7 +1191,7 @@ export function MerchantBasicDetails({
                   size="sm"
                   onClick={handleSendPhoneOtp}
                   loading={sendOtp.isPending}
-                  disabled={formData.phone.length !== 10 || !!phoneCheckResult?.exists}
+                  disabled={formData.phone.length !== 10}
                 >
                   Send Phone OTP
                 </Button>
@@ -1248,7 +1241,7 @@ export function MerchantBasicDetails({
         </div>
       </FieldWithInfo>
 
-      {phoneCheckResult?.exists && !applicationId && (
+      {phoneCheckResult?.exists && !applicationId && !isQuickOnboard && (
         <DuplicateAlert
           status={
             phoneCheckResult.status as
@@ -1334,12 +1327,12 @@ export function MerchantBasicDetails({
 
       <div className="space-y-3 rounded-lg border border-border p-3">
         <p className="text-sm font-medium text-foreground">
-          Shop Location <span className="text-error">*</span>
+          Store Location <span className="text-error">*</span>
         </p>
         <p className="text-xs text-muted-foreground">
           {isQuickOnboard
-            ? "Tap below to pin your shop — we will fill in the address automatically."
-            : "Pick your shop location on the map or fetch coordinates from your current location."}
+            ? "Tap below to pin your store — we will fill in the address automatically."
+            : "Pick your store location on the map or fetch coordinates from your current location."}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="primary" onClick={pickCurrentLocation}>
@@ -1447,7 +1440,7 @@ export function MerchantBasicDetails({
       </div>
 
       <MultiPhotoCapture
-        label={isQuickOnboard ? "Shop Photos" : "Storefront Photos"}
+        label="Store Photos"
         values={formData.storefront_photo_urls}
         onChange={updateStorefrontPhotos}
         onLocationCaptured={(coords) => {
@@ -1459,10 +1452,10 @@ export function MerchantBasicDetails({
         error={errors.storefront_photo}
         hint={
           isQuickOnboard
-            ? "Snap or upload up to 5 photos of your shop front."
+            ? "Snap or upload up to 5 photos of your store front."
             : isPanelMode
-              ? "Take or upload photos of your shop front (up to 5). The same images are saved to your store media gallery when you submit."
-              : "Take or upload photos of your shop front. You can add up to 5 images. Photos are stored securely after submission."
+              ? "Take or upload photos of your store front (up to 5). The same images are saved to your store media gallery when you submit."
+              : "Take or upload photos of your store front. You can add up to 5 images. Photos are stored securely after submission."
         }
         useDeviceCamera
       />
@@ -1512,7 +1505,7 @@ export function MerchantBasicDetails({
       )}
 
       <div className="flex justify-between pt-4">
-        {!isPanelMode ? (
+        {!isPanelMode && !isQuickOnboard ? (
           <Button variant="ghost" onClick={onBack}>
             Back
           </Button>
@@ -1522,7 +1515,14 @@ export function MerchantBasicDetails({
         <Button
           variant="primary"
           onClick={handleSubmit}
-          loading={isPanelMode ? panelSaving : createApp.isPending || updateApp.isPending}
+          loading={
+            isPanelMode
+              ? panelSaving
+              : isQuickOnboard
+                ? isSaving
+                : createApp.isPending || updateApp.isPending
+          }
+          disabled={isQuickOnboard && isSaving}
         >
           {isQuickOnboard
             ? "Preview & Continue"

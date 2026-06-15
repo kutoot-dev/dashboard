@@ -168,6 +168,11 @@ function setAuthCookie(user: AuthUser): void {
   document.cookie = `${AUTH_SESSION_COOKIE}=1; ${flags}`;
 }
 
+/** Update the client auth cookie after switching active store context. */
+export function updateAuthUserCookie(user: AuthUser): void {
+  setAuthCookie(user);
+}
+
 function clearAuthCookie(): void {
   if (typeof document === "undefined") return;
   const flags = cookieFlags(0);

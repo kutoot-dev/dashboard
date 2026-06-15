@@ -8,7 +8,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useSelectedLocationStore } from "@/lib/stores/selected-location.store";
 
 export function LocationPicker() {
-  const { user } = useAuth();
+  const { user, switchStore } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const selectedLocationId = useSelectedLocationStore((s) => s.selectedLocationId);
@@ -25,7 +25,7 @@ export function LocationPicker() {
     }));
   }, [user?.attached_locations]);
 
-  if (!user || user.role !== "operations_hub" || options.length === 0) {
+  if (!user || options.length <= 1) {
     return null;
   }
 
@@ -36,9 +36,10 @@ export function LocationPicker() {
       <SearchableSelect
         value={value}
         options={options}
-        placeholder="Select store"
+        placeholder="Switch store"
         onChange={(next) => {
           setSelectedLocationId(next);
+          switchStore(next);
           void queryClient.invalidateQueries();
           router.refresh();
         }}

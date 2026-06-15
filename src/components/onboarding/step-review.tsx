@@ -131,6 +131,7 @@ export function StepReview({ onBack }: StepReviewProps) {
         bank_account_name: formData.bank_account_name,
         bank_account_number: formData.bank_account_number,
         bank_ifsc: formData.bank_ifsc,
+        upi_id: formData.upi_id || undefined,
         bank_name: formData.bank_name,
         preferred_settlement_method: formData.preferred_settlement_method || undefined,
         qr_serial: formData.qr_serial || undefined,
@@ -334,7 +335,7 @@ export function StepReview({ onBack }: StepReviewProps) {
       </div>
 
       {/* Identity section — shown first for correct step-order matching */}
-      {!isFeVisitOnly && (
+      {!isFeVisitOnly && !isMerchantSelfServe && (
         <Section title="Identity" onEdit={() => goToStep("identity")}>
           <Row
             label="Channel"
@@ -384,9 +385,19 @@ export function StepReview({ onBack }: StepReviewProps) {
         </Section>
       )}
 
+      {/* Mobile (merchant self-serve) */}
+      {isMerchantSelfServe && formData.phone && (
+        <Section title="Mobile Number" onEdit={() => goToStep("mobile_verify")}>
+          <Row label="Phone" value={`+91 ${formData.phone}`} />
+          <Row label="Status" value="Verified" valueClass="text-success" />
+        </Section>
+      )}
+
       {/* Basic Details Section */}
       <Section title="Basic Details" onEdit={() => goToStep("basic_details")}>
-        {formData.phone && <Row label="Phone" value={`+91 ${formData.phone}`} />}
+        {!isMerchantSelfServe && formData.phone && (
+          <Row label="Phone" value={`+91 ${formData.phone}`} />
+        )}
         {formData.owner_name && (
           <Row label={isMerchantSelfServe ? "Your Name" : "Owner Name"} value={formData.owner_name} />
         )}
@@ -445,7 +456,7 @@ export function StepReview({ onBack }: StepReviewProps) {
           </>
         )}
         <Row
-          label={isMerchantSelfServe ? "Shop Photos" : "Storefront Photos"}
+          label="Store Photos"
           value={
             formData.storefront_photo_urls.length > 0 || formData.storefront_photo_url
               ? `${Math.max(formData.storefront_photo_urls.length, formData.storefront_photo_url ? 1 : 0)} uploaded`
@@ -550,6 +561,7 @@ export function StepReview({ onBack }: StepReviewProps) {
             <Row label="Account Name" value={formData.bank_account_name} />
             <Row label="Account Number" value={formData.bank_account_number} />
             <Row label="IFSC" value={formData.bank_ifsc} />
+            {formData.upi_id && <Row label="UPI ID" value={formData.upi_id} />}
             {formData.bank_name && <Row label="Bank" value={formData.bank_name} />}
             {formData.bank_branch_name && (
               <Row label="Branch" value={formData.bank_branch_name} />
