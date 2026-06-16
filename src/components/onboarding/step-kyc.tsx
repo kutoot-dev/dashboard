@@ -57,7 +57,7 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
       gst_number: path === "gst" ? formData.gst_number : "",
       gst_enrollment_number: path === "enrollment" ? formData.gst_enrollment_number : "",
       gst_registration_status:
-        path === "enrollment" ? "enrollment_pending" : path === "none" ? null : formData.gst_registration_status,
+        path === "enrollment" ? "enrollment_pending" : path === "none" ? "" : formData.gst_registration_status,
       gst_doc_photo_url: path === "none" ? null : formData.gst_doc_photo_url,
       aadhaar_number: path === "none" ? formData.aadhaar_number : "",
     });
@@ -86,7 +86,7 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
       onSuccess: (res) => {
         const d = res.data;
         updateFormData({
-          gst_status: normalizeKycReviewStatus(d.status ?? (d.valid ? "approved" : "rejected")),
+          gst_status: normalizeKycReviewStatus(d.status),
           gst_business_name: null,
           gst_business_address: d.business_address || null,
         });
@@ -122,7 +122,7 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
         onSuccess: (res) => {
           const d = res.data;
           updateFormData({
-            pan_status: normalizeKycReviewStatus(d.status ?? (d.valid ? "approved" : "rejected")),
+            pan_status: normalizeKycReviewStatus(d.status),
             pan_holder_name: null,
           });
           setPanVerificationDeferred(false);

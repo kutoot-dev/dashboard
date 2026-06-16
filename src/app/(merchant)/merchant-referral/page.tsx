@@ -22,7 +22,7 @@ export default function MerchantReferralPage() {
   const branchId = useEffectiveBranchId();
 
   const dashboardQuery = useQuery({
-    queryKey: ["merchant-dashboard"],
+    queryKey: ["merchant-dashboard", branchId],
     queryFn: getMerchantDashboard,
     refetchInterval: 30_000,
     retry: false,

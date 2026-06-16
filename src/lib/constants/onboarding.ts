@@ -141,15 +141,15 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
     },
   },
   sector: {
-    label: "Business Category",
-    placeholder: "Select category...",
+    label: "Store Category",
+    placeholder: "Select store category...",
     tooltip: {
-      title: "Type of Business",
+      title: "Your Store Type",
       description:
-        "Select the category that best describes your primary business activity. This determines your scoring cohort.",
-      example: "Grocery, Electronics, Clothing, Restaurant",
+        "Select the category that best describes your store. This is how customers find you in the Kutoot app.",
+      example: "Restaurant, Grocery, Pharmacy, Salon",
       whyNeeded:
-        "Used for fair performance comparison. You are scored against similar businesses, not different industries.",
+        "Shown in the Kutoot app for browsing and fair performance comparison with similar stores.",
     },
   },
   locality: {

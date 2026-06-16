@@ -57,17 +57,6 @@ export function emptyDiscountBand(sortOrder = 0): DiscountProgramBandForm {
   };
 }
 
-function toEditableBand(band: DiscountProgramBand): DiscountProgramBandForm {
-  return {
-    ...band,
-    min_amount: band.min_amount,
-    max_amount: band.max_amount,
-    discount_min_percentage: band.discount_min_percentage,
-    discount_max_percentage: band.discount_max_percentage,
-    offer_probability: band.offer_probability,
-  };
-}
-
 interface EditableNumberInputProps {
   label: string;
   value: EditableNumber;
@@ -120,9 +109,20 @@ function EditableNumberInput({
 
 type DiscountProgramFormInput = Partial<{
   discount_program_enabled: boolean;
-  discount_bands: DiscountProgramBand[];
-  bands: DiscountProgramBand[];
+  discount_bands: Array<DiscountProgramBand | DiscountProgramBandForm>;
+  bands: Array<DiscountProgramBand | DiscountProgramBandForm>;
 }>;
+
+function normalizeBand(band: DiscountProgramBand | DiscountProgramBandForm): DiscountProgramBandForm {
+  return {
+    ...band,
+    min_amount: band.min_amount,
+    max_amount: band.max_amount,
+    discount_min_percentage: band.discount_min_percentage,
+    discount_max_percentage: band.discount_max_percentage,
+    offer_probability: band.offer_probability,
+  };
+}
 
 export function toDiscountProgramFormState(
   settings: DiscountProgramFormInput,
@@ -131,7 +131,7 @@ export function toDiscountProgramFormState(
 
   return {
     discount_program_enabled: Boolean(settings.discount_program_enabled),
-    discount_bands: bands.map((band) => toEditableBand(band)),
+    discount_bands: bands.map(normalizeBand),
   };
 }
 

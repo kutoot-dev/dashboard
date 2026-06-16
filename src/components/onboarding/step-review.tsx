@@ -11,13 +11,11 @@ import {
   toDiscountProgramFormState,
 } from "@/components/discount-program/discount-program-fields";
 import { useToastStore } from "@/lib/stores/toast.store";
-import { useCreateApplication, useMerchantCategories, useRazorpayBusinessCategories, useUpdateApplication } from "@/lib/hooks";
+import { useCreateApplication, useMerchantCategories, useUpdateApplication } from "@/lib/hooks";
 import {
   businessOwnershipTypeLabel,
   formatKycReviewStatus,
   ONBOARDING_STRINGS,
-  razorpayBusinessCategoryLabel,
-  razorpayBusinessSubcategoryLabel,
   SECTOR_OPTIONS,
   VOLUME_RANGES,
   VISIT_OUTCOME_OPTIONS,
@@ -43,7 +41,6 @@ export function StepReview({ onBack }: StepReviewProps) {
   const createApp = useCreateApplication();
   const updateApp = useUpdateApplication();
   const { categories: merchantCategories } = useMerchantCategories();
-  const { categories: razorpayBusinessCategories } = useRazorpayBusinessCategories();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [duplicatePhoneError, setDuplicatePhoneError] = useState<string | null>(null);
@@ -102,8 +99,6 @@ export function StepReview({ onBack }: StepReviewProps) {
       shop_no: formData.shop_no || null,
       year_of_establishment: formData.year_of_establishment || null,
       business_ownership_type: formData.business_ownership_type || null,
-      razorpay_business_category: formData.razorpay_business_category || null,
-      razorpay_business_subcategory: formData.razorpay_business_subcategory || null,
       sector_id: formData.sector_id,
       sector_name: formData.sector_name,
       locality: formData.locality,
@@ -431,22 +426,7 @@ export function StepReview({ onBack }: StepReviewProps) {
           label="Business type"
           value={businessOwnershipTypeLabel(formData.business_ownership_type)}
         />
-        <Row
-          label="Razorpay category"
-          value={razorpayBusinessCategoryLabel(
-            razorpayBusinessCategories,
-            formData.razorpay_business_category,
-          )}
-        />
-        <Row
-          label="Razorpay subcategory"
-          value={razorpayBusinessSubcategoryLabel(
-            razorpayBusinessCategories,
-            formData.razorpay_business_category,
-            formData.razorpay_business_subcategory,
-          )}
-        />
-        <Row label="Category" value={sectorLabel} />
+        <Row label="Store Category" value={sectorLabel} />
         {formData.locality && <Row label="Locality" value={formData.locality} />}
         <Row label="City" value={formData.city} />
         <Row label="State" value={formData.state} />

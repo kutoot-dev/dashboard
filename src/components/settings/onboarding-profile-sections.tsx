@@ -9,12 +9,12 @@ interface OnboardingProfileSectionsProps {
   sections: OnboardingProfileSection[];
 }
 
-function statusVariant(value: string): "gain" | "loss" | "warning" | "default" {
+function statusVariant(value: string): "gain" | "loss" | "warning" | "neutral" {
   const normalized = value.toLowerCase();
   if (normalized === "approved") return "gain";
   if (normalized === "rejected") return "loss";
   if (normalized === "pending") return "warning";
-  return "default";
+  return "neutral";
 }
 
 export function OnboardingProfileSections({ sections }: OnboardingProfileSectionsProps) {

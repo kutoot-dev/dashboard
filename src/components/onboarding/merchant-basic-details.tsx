@@ -19,7 +19,6 @@ import {
   useCities,
   useCreateApplication,
   useMerchantCategories,
-  useRazorpayBusinessCategories,
   useSendEmailOtp,
   useSendOtp,
   useStates,
@@ -29,7 +28,7 @@ import {
 } from "@/lib/hooks";
 import { savePanelBasicDetails } from "@/lib/api/services/merchant.service";
 import { resolveAddressFromCoords } from "@/lib/utils/resolve-address-from-coords";
-import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES, BUSINESS_OWNERSHIP_TYPE_OPTIONS, suggestRazorpayBusinessCategoryFromSector } from "@/lib/constants/onboarding";
+import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES, BUSINESS_OWNERSHIP_TYPE_OPTIONS } from "@/lib/constants/onboarding";
 import type { ApplicationStatus, OnboardingApplication, WizardStepId } from "@/lib/types";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -112,11 +111,6 @@ export function MerchantBasicDetails({
     isLoading: categoriesLoading,
     isError: categoriesError,
   } = useMerchantCategories();
-  const {
-    categories: razorpayBusinessCategories,
-    isLoading: razorpayCategoriesLoading,
-    isError: razorpayCategoriesError,
-  } = useRazorpayBusinessCategories();
   const { states, isLoading: statesLoading } = useStates();
   const [selectedStateId, setSelectedStateId] = useState<number | null>(null);
   const { cities, isLoading: citiesLoading } = useCities(selectedStateId);
@@ -148,26 +142,6 @@ export function MerchantBasicDetails({
     }
     return options;
   }, [formData.sector_id, formData.sector_name, merchantCategories]);
-
-  const razorpayCategorySelectOptions = useMemo(
-    () =>
-      razorpayBusinessCategories.map((category) => ({
-        value: category.value,
-        label: category.label,
-      })),
-    [razorpayBusinessCategories],
-  );
-
-  const razorpaySubcategorySelectOptions = useMemo(() => {
-    const selected = razorpayBusinessCategories.find(
-      (category) => category.value === formData.razorpay_business_category,
-    );
-
-    return (selected?.subcategories ?? []).map((subcategory) => ({
-      value: subcategory.value,
-      label: subcategory.label,
-    }));
-  }, [formData.razorpay_business_category, razorpayBusinessCategories]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -619,16 +593,10 @@ export function MerchantBasicDetails({
       e.shop_name = "Store name must be at least 2 characters.";
     }
     if (!formData.sector_id) {
-      e.sector = "Select a business category.";
+      e.sector = "Select a store category.";
     }
     if (!isFeVisitOnly && !formData.business_ownership_type) {
       e.business_ownership_type = "Select a business type.";
-    }
-    if (!isFeVisitOnly && !formData.razorpay_business_category) {
-      e.razorpay_business_category = "Select a Razorpay business category.";
-    }
-    if (!isFeVisitOnly && !formData.razorpay_business_subcategory) {
-      e.razorpay_business_subcategory = "Select a Razorpay business subcategory.";
     }
     if (
       !formData.owner_name ||
@@ -822,8 +790,6 @@ export function MerchantBasicDetails({
       gst_business_name: formData.legal_name.trim(),
       shop_name: formData.shop_name.trim(),
       business_ownership_type: formData.business_ownership_type || undefined,
-      razorpay_business_category: formData.razorpay_business_category || undefined,
-      razorpay_business_subcategory: formData.razorpay_business_subcategory || undefined,
       year_of_establishment: formData.year_of_establishment || undefined,
       sector_id: formData.sector_id,
       sector_name: formData.sector_name,
@@ -1025,75 +991,10 @@ export function MerchantBasicDetails({
         </FieldWithInfo>
       )}
 
-      {!isFeVisitOnly && (
-        <>
-          <FieldWithInfo
-            fieldInfo={ONBOARDING_FIELDS.razorpay_business_category}
-            required
-            showTooltip={!isSimplifiedMerchantForm}
-            error={errors.razorpay_business_category}
-          >
-            {razorpayCategoriesError && (
-              <p className="mb-2 text-sm text-destructive">
-                Could not load Razorpay business categories. Check your connection and refresh the page.
-              </p>
-            )}
-            <Select
-              options={razorpayCategorySelectOptions}
-              value={formData.razorpay_business_category}
-              onChange={(value) => {
-                updateFormData({
-                  razorpay_business_category: value,
-                  razorpay_business_subcategory: "",
-                });
-                if (value) {
-                  setErrors((prev) => {
-                    const next = { ...prev };
-                    delete next.razorpay_business_category;
-                    delete next.razorpay_business_subcategory;
-                    return next;
-                  });
-                }
-              }}
-              placeholder={razorpayCategoriesLoading ? "Loading categories..." : "Select Razorpay category"}
-              disabled={razorpayCategoriesLoading || razorpayCategorySelectOptions.length === 0}
-            />
-          </FieldWithInfo>
-
-          <FieldWithInfo
-            fieldInfo={ONBOARDING_FIELDS.razorpay_business_subcategory}
-            required
-            showTooltip={!isSimplifiedMerchantForm}
-            error={errors.razorpay_business_subcategory}
-          >
-            <Select
-              options={razorpaySubcategorySelectOptions}
-              value={formData.razorpay_business_subcategory}
-              onChange={(value) => {
-                updateFormData({ razorpay_business_subcategory: value });
-                if (value) {
-                  setErrors((prev) => {
-                    const next = { ...prev };
-                    delete next.razorpay_business_subcategory;
-                    return next;
-                  });
-                }
-              }}
-              placeholder={
-                !formData.razorpay_business_category
-                  ? "Select a category first"
-                  : "Select Razorpay subcategory"
-              }
-              disabled={!formData.razorpay_business_category || razorpaySubcategorySelectOptions.length === 0}
-            />
-          </FieldWithInfo>
-        </>
-      )}
-
       <FieldWithInfo fieldInfo={ONBOARDING_FIELDS.sector} required showTooltip={!isSimplifiedMerchantForm} error={errors.sector}>
         {categoriesError && (
           <p className="mb-2 text-sm text-destructive">
-            Could not load business categories. Check your connection and refresh the page.
+            Could not load store categories. Check your connection and refresh the page.
           </p>
         )}
         <Select
@@ -1116,16 +1017,6 @@ export function MerchantBasicDetails({
               (formData.commission_rate == null || formData.commission_rate < categoryMin)
             ) {
               patch.commission_rate = categoryMin;
-            }
-            if (!formData.razorpay_business_category) {
-              const suggested = suggestRazorpayBusinessCategoryFromSector(
-                razorpayBusinessCategories,
-                opt?.name,
-              );
-              if (suggested) {
-                patch.razorpay_business_category = suggested.category;
-                patch.razorpay_business_subcategory = suggested.subcategory;
-              }
             }
             updateFormData(patch);
             setCommissionInput(
