@@ -32,6 +32,7 @@ interface StepMobileVerifyProps {
 
 export function StepMobileVerify({ onNext }: StepMobileVerifyProps) {
   const { formData, updateFormData } = useOnboardingStore();
+  const applicationId = useOnboardingStore((s) => s.applicationId);
   const channel = useOnboardingStore((s) => s.formData.channel);
   const pushToast = useToastStore((s) => s.push);
   const sendOtp = useSendOtp();
@@ -121,7 +122,13 @@ export function StepMobileVerify({ onNext }: StepMobileVerifyProps) {
           merchant_phone_verified: true,
           merchant_otp_phone: formData.phone,
         });
-        if (channel === "merchant") {
+        const mode = new URLSearchParams(window.location.search).get("mode");
+        // In explicit new onboarding, do not hydrate by phone after OTP verify.
+        // Hydration can pick an older draft for this phone and overwrite the
+        // just-verified local state back to false.
+        const shouldHydrateFromPhone =
+          channel === "merchant" && mode !== "new" && Boolean(applicationId);
+        if (shouldHydrateFromPhone) {
           void hydrateOnboardingFromPhone(formData.phone, { preserveCurrentStep: true });
         }
         setPhoneOtpSent(false);
