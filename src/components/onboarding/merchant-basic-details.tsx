@@ -27,6 +27,7 @@ import {
   useVerifyOtp,
 } from "@/lib/hooks";
 import { savePanelBasicDetails } from "@/lib/api/services/merchant.service";
+import { hydrateOnboardingFromPhone } from "@/lib/onboarding/hydrate-onboarding-application";
 import { resolveAddressFromCoords } from "@/lib/utils/resolve-address-from-coords";
 import { ONBOARDING_FIELDS, ONBOARDING_STRINGS, VALIDATION_RULES, BUSINESS_OWNERSHIP_TYPE_OPTIONS } from "@/lib/constants/onboarding";
 import type { ApplicationStatus, OnboardingApplication, WizardStepId } from "@/lib/types";
@@ -148,6 +149,7 @@ export function MerchantBasicDetails({
   const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
   const [legalComplete, setLegalComplete] = useState(false);
   const draftCreateStarted = useRef(false);
+  const existingApplicationHydratedRef = useRef(false);
 
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [phoneOtp, setPhoneOtp] = useState("");
@@ -182,6 +184,26 @@ export function MerchantBasicDetails({
       updateFormData({ commission_model: "flat" });
     }
   }, [formData.commission_model, updateFormData]);
+
+  useEffect(() => {
+    if (
+      isPanelMode ||
+      !isQuickOnboard ||
+      existingApplicationHydratedRef.current ||
+      !formData.merchant_phone_verified ||
+      formData.phone.length !== 10
+    ) {
+      return;
+    }
+
+    existingApplicationHydratedRef.current = true;
+    void hydrateOnboardingFromPhone(formData.phone, { preserveCurrentStep: true });
+  }, [
+    formData.merchant_phone_verified,
+    formData.phone,
+    isPanelMode,
+    isQuickOnboard,
+  ]);
 
   useEffect(() => {
     if (isPanelMode) {
@@ -928,6 +950,14 @@ export function MerchantBasicDetails({
             : "Tell us about your business. Phone number is mandatory; email is optional but must be verified if provided."}
         </p>
       </div>
+
+      {isQuickOnboard && applicationId && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <p className="text-sm text-foreground">
+            We found your existing application and pre-filled the details below. Update and continue.
+          </p>
+        </div>
+      )}
 
       {!isSimplifiedMerchantForm && (
         <FieldWithInfo

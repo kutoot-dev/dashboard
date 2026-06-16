@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBranchPayouts } from "@/lib/api/services/branches.service";
@@ -73,7 +74,14 @@ export default function PayoutsPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <PageHeader title={PAYOUTS.TITLE_BRANCH} subtitle={PAYOUTS.SUBTITLE_BRANCH} />
+      <PageHeader title={PAYOUTS.TITLE_BRANCH} subtitle={PAYOUTS.SUBTITLE_BRANCH}>
+        <Link
+          href="/payouts/guide"
+          className="text-xs font-medium text-accent hover:underline"
+        >
+          {PAYOUTS.GUIDE_TITLE}
+        </Link>
+      </PageHeader>
 
       {/* Hero — today's expected payout */}
       {showSkeleton ? (

@@ -7,6 +7,7 @@ import { FieldWithInfo } from "./field-with-info";
 import { OtpInput } from "./otp-input";
 import { useOnboardingStore } from "@/lib/stores/onboarding.store";
 import { useSendOtp, useVerifyOtp } from "@/lib/hooks";
+import { hydrateOnboardingFromPhone } from "@/lib/onboarding/hydrate-onboarding-application";
 import { ONBOARDING_FIELDS, VALIDATION_RULES } from "@/lib/constants/onboarding";
 import { useToastStore } from "@/lib/stores/toast.store";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -31,6 +32,7 @@ interface StepMobileVerifyProps {
 
 export function StepMobileVerify({ onNext }: StepMobileVerifyProps) {
   const { formData, updateFormData } = useOnboardingStore();
+  const channel = useOnboardingStore((s) => s.formData.channel);
   const pushToast = useToastStore((s) => s.push);
   const sendOtp = useSendOtp();
   const verifyOtp = useVerifyOtp();
@@ -119,6 +121,9 @@ export function StepMobileVerify({ onNext }: StepMobileVerifyProps) {
           merchant_phone_verified: true,
           merchant_otp_phone: formData.phone,
         });
+        if (channel === "merchant") {
+          void hydrateOnboardingFromPhone(formData.phone, { preserveCurrentStep: true });
+        }
         setPhoneOtpSent(false);
         setPhoneOtp("");
         setPhoneOtpMessage("");

@@ -20,6 +20,7 @@ import { useApplication, useUpdateApplication, useCreateApplication } from "@/li
 import { useToastStore } from "@/lib/stores/toast.store";
 import { ApiError } from "@/lib/api/client";
 import { getActiveOnboardingSteps } from "@/lib/onboarding/get-active-steps";
+import { hydrateOnboardingFromApplication } from "@/lib/onboarding/hydrate-onboarding-application";
 import { resolveOnboardingStageForStep } from "@/lib/onboarding/resolve-onboarding-stage";
 import { WIZARD_STEP_CONFIG } from "@/lib/types";
 import type {
@@ -43,6 +44,7 @@ export default function OnboardPage() {
   const { resolvedTheme, setTheme } = useTheme();
   const pushToast = useToastStore((s) => s.push);
   const referralHydratedRef = useRef(false);
+  const applicationHydratedRef = useRef<string | null>(null);
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -173,6 +175,15 @@ export default function OnboardPage() {
     if (!STATUS_LOCKED_STAGES.has(stage)) return null;
     return stage as MerchantStage;
   }, [resumedApp.data]);
+
+  useEffect(() => {
+    if (!applicationId || !resumedApp.data || applicationHydratedRef.current === applicationId) {
+      return;
+    }
+
+    applicationHydratedRef.current = applicationId;
+    void hydrateOnboardingFromApplication(applicationId, { preserveCurrentStep: true });
+  }, [applicationId, resumedApp.data]);
 
   // Compute which steps are active for this session
   const activeStepIds = useMemo(

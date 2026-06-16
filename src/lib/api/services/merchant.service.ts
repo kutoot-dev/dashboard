@@ -354,6 +354,35 @@ export async function getPanelBasicDetails(branchId: string) {
   return res.data;
 }
 
+export interface PanelBankDetailsForm {
+  bank_account_name: string;
+  bank_name: string;
+  bank_branch_name: string;
+  account_number: string;
+  ifsc_code: string;
+  upi_id: string;
+  bank_status?: string;
+  penny_drop_status?: string;
+}
+
+export async function getPanelBankDetails(branchId: string) {
+  const res = await apiClient.get<ApiResponse<{ form: PanelBankDetailsForm }>>(
+    `/merchant/${branchId}/bank-details`,
+  );
+  return res.data;
+}
+
+export async function savePanelBankDetails(
+  branchId: string,
+  payload: Omit<PanelBankDetailsForm, "bank_status" | "penny_drop_status">,
+) {
+  const res = await apiClient.put<ApiResponse<{ form: PanelBankDetailsForm }>>(
+    `/merchant/${branchId}/bank-details`,
+    payload,
+  );
+  return res.data;
+}
+
 export async function savePanelBasicDetails(
   branchId: string,
   payload: PanelBasicDetailsForm,

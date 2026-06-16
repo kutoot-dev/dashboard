@@ -245,6 +245,18 @@ export const PAYOUTS = {
   INVOICE_PENDING: "Not raised",
   DOWNLOAD_INVOICE: "Download PDF",
   EMPTY: "No bonus payout records yet.",
+
+  GUIDE_TITLE: "How Payouts Work",
+  GUIDE_SUBTITLE: "Live rules from the platform configuration — updated when settings change",
+  GUIDE_ELIGIBLE: "Your branch is eligible for daily bonus payouts.",
+  GUIDE_NOT_ELIGIBLE: "Your branch is not currently eligible for bonus payouts.",
+  GUIDE_REFRESHED: "Configuration snapshot",
+  GUIDE_SCHEDULE: "When payouts run",
+  GUIDE_POOL: "How the daily pool is built",
+  GUIDE_ELIGIBILITY: "Who qualifies",
+  GUIDE_ALLOCATION: "How your share is calculated",
+  GUIDE_PARAMETERS: "Current payout settings",
+  GUIDE_VIEW_BONUS: "View bonus payout history",
 } as const;
 
 // ── Achievements ──────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import {
   faBookOpen,
   faBriefcase,
   faChartBar,
+  faCircleInfo,
   faClipboardCheck,
   faComments,
   faGear,
@@ -27,6 +28,11 @@ export interface NavItem {
   label: string;
   href: string;
   icon: IconDefinition;
+}
+
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
 }
 
 const CORE_BRANCH_NAV: NavItem[] = [
@@ -66,11 +72,6 @@ const CORE_BRANCH_NAV: NavItem[] = [
     icon: faWallet,
   },
   {
-    label: "Bonus Payout",
-    href: "/payouts",
-    icon: faMoneyBillTransfer,
-  },
-  {
     label: "Team",
     href: "/team",
     icon: faUsers,
@@ -86,6 +87,22 @@ const CORE_BRANCH_NAV: NavItem[] = [
     icon: faGear,
   },
 ];
+
+const PAYOUT_NAV_GROUP: NavGroup = {
+  label: "Payouts",
+  items: [
+    {
+      label: "Bonus Payout",
+      href: "/payouts",
+      icon: faMoneyBillTransfer,
+    },
+    {
+      label: "How Payouts Work",
+      href: "/payouts/guide",
+      icon: faCircleInfo,
+    },
+  ],
+};
 
 const DEALS_NAV_ITEM: NavItem = {
   label: "Deals",
@@ -107,14 +124,62 @@ export const STORE_TEAM_MEMBER_NAV: NavItem[] = [
   },
 ];
 
+function buildBranchNav(): NavItem[] {
+  const base = MERCHANT_DEALS_ENABLED
+    ? [
+        ...CORE_BRANCH_NAV.slice(0, 4),
+        DEALS_NAV_ITEM,
+        ...CORE_BRANCH_NAV.slice(4),
+      ]
+    : [...CORE_BRANCH_NAV];
+
+  const walletIndex = base.findIndex((item) => item.href === "/wallet");
+  const insertAt = walletIndex >= 0 ? walletIndex + 1 : base.length;
+
+  return [
+    ...base.slice(0, insertAt),
+    ...PAYOUT_NAV_GROUP.items,
+    ...base.slice(insertAt),
+  ];
+}
+
 /** Branch tab navigation items */
-export const BRANCH_NAV: NavItem[] = MERCHANT_DEALS_ENABLED
-  ? [
-      ...CORE_BRANCH_NAV.slice(0, 4),
-      DEALS_NAV_ITEM,
-      ...CORE_BRANCH_NAV.slice(4),
-    ]
-  : CORE_BRANCH_NAV;
+export const BRANCH_NAV: NavItem[] = buildBranchNav();
+
+export function getBranchNavGroups(): NavGroup[] {
+  const items = buildBranchNav();
+  const payoutHrefs = new Set(PAYOUT_NAV_GROUP.items.map((item) => item.href));
+  const beforePayout: NavItem[] = [];
+  const afterPayout: NavItem[] = [];
+  let reachedPayout = false;
+
+  for (const item of items) {
+    if (payoutHrefs.has(item.href)) {
+      reachedPayout = true;
+      continue;
+    }
+
+    if (!reachedPayout) {
+      beforePayout.push(item);
+    } else {
+      afterPayout.push(item);
+    }
+  }
+
+  const groups: NavGroup[] = [];
+
+  if (beforePayout.length > 0) {
+    groups.push({ label: "", items: beforePayout });
+  }
+
+  groups.push(PAYOUT_NAV_GROUP);
+
+  if (afterPayout.length > 0) {
+    groups.push({ label: "", items: afterPayout });
+  }
+
+  return groups;
+}
 
 export const OPS_HUB_PORTFOLIO_NAV: NavItem = {
   label: "Portfolio",
@@ -134,6 +199,23 @@ export function getMerchantNav(
     return STORE_TEAM_MEMBER_NAV;
   }
   return BRANCH_NAV;
+}
+
+/** Grouped merchant navigation for sidebar rendering. */
+export function getMerchantNavGroups(
+  role: UserRole = "merchant",
+  storeRole?: StorePivotRole,
+): NavGroup[] {
+  if (role === "operations_hub") {
+    return [
+      { label: "", items: [OPS_HUB_PORTFOLIO_NAV] },
+      ...getBranchNavGroups(),
+    ];
+  }
+  if (storeRole === "manager" || storeRole === "staff") {
+    return [{ label: "", items: STORE_TEAM_MEMBER_NAV }];
+  }
+  return getBranchNavGroups();
 }
 
 /** Branch tab navigation items for the current session. */

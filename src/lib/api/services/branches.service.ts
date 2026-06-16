@@ -122,6 +122,51 @@ export async function getBranchPayouts(id: string) {
   return res.data;
 }
 
+export interface PayoutGuideParameter {
+  key: string;
+  label: string;
+  value: number | string;
+  unit: string;
+  description: string;
+}
+
+export interface PayoutGuideData {
+  is_payout_eligible: boolean;
+  guide: {
+    generated_at: string;
+    schedule: Array<{ time: string; command: string; description: string }>;
+    eligibility: {
+      summary: string;
+      requirements: string[];
+      eligible_branch_count: number;
+      note?: string;
+    };
+    pool: {
+      formula: string;
+      payout_wallet_name: string | null;
+      payout_wallet_share_percentage: number | null;
+      today_accumulated_net: number;
+      today_projected_pool: number;
+      fallback?: string | null;
+    };
+    allocation: {
+      formula: string;
+      min_score_threshold: number;
+      max_single_branch_share: number;
+      max_single_branch_share_percent: number;
+      fallbacks: string[];
+    };
+    parameters: PayoutGuideParameter[];
+  };
+}
+
+export async function getBranchPayoutGuide(id: string) {
+  const res = await apiClient.get<ApiResponse<PayoutGuideData>>(
+    `/branches/${id}/payout-guide`,
+  );
+  return res.data;
+}
+
 export async function downloadPayoutInvoice(branchId: string, payoutId: string) {
   return apiClient.get(`/merchant/${branchId}/payouts/${payoutId}/invoice`, {
     responseType: "blob",

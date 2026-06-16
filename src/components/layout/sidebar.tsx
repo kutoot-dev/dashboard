@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KutootIcon, KutootLogo } from "@/components/branding";
 import { Icon } from "@/components/ui/icon";
-import { getMerchantNav } from "@/lib/constants/navigation";
+import { getMerchantNavGroups } from "@/lib/constants/navigation";
 import { faChevronLeft } from "@/lib/icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -14,7 +14,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
-  const navItems = getMerchantNav(user?.role ?? "merchant", user?.store_role);
+  const navGroups = getMerchantNavGroups(user?.role ?? "merchant", user?.store_role);
 
   return (
     <aside
@@ -39,31 +39,42 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3">
-        {!isLoading && navItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "mx-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
-                isActive
-                  ? "border border-accent/35 bg-linear-to-r from-primary/22 via-secondary/18 to-accent/22 text-foreground shadow-[0_14px_26px_rgba(9,13,38,0.32)]"
-                  : "border border-transparent text-muted-foreground hover:border-accent/35 hover:bg-card-hover/70 hover:text-foreground"
-              )}
-              title={sidebarCollapsed ? item.label : undefined}
-            >
-              <Icon
-                icon={item.icon}
-                className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]")}
-              />
-              {!sidebarCollapsed && (
-                <span className="text-xs tracking-[0.08em]">{item.label}</span>
-              )}
-            </Link>
-          );
-        })}
+        {!isLoading &&
+          navGroups.map((group) => (
+            <div key={group.label || "main"} className="mb-2">
+              {!sidebarCollapsed && group.label ? (
+                <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+                  {group.label}
+                </p>
+              ) : null}
+              {group.items.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  (pathname.startsWith(`${item.href}/`) && item.href !== "/payouts");
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "mx-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
+                      isActive
+                        ? "border border-accent/35 bg-linear-to-r from-primary/22 via-secondary/18 to-accent/22 text-foreground shadow-[0_14px_26px_rgba(9,13,38,0.32)]"
+                        : "border border-transparent text-muted-foreground hover:border-accent/35 hover:bg-card-hover/70 hover:text-foreground"
+                    )}
+                    title={sidebarCollapsed ? item.label : undefined}
+                  >
+                    <Icon
+                      icon={item.icon}
+                      className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]")}
+                    />
+                    {!sidebarCollapsed && (
+                      <span className="text-xs tracking-[0.08em]">{item.label}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
       </nav>
 
       {/* Collapse toggle */}
