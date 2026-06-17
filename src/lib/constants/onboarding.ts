@@ -272,13 +272,14 @@ export const ONBOARDING_FIELDS: Record<string, FieldInfo> = {
   },
   bank_account_name: {
     label: "Account Holder Name",
-    placeholder: "Rajesh Kumar Sharma",
+    placeholder: "Exactly as on bank passbook / cheque",
     tooltip: {
       title: "Name on Bank Account",
       description:
-        "The name exactly as it appears on your bank account. Should match your PAN name.",
+        "The name exactly as it appears on your bank account. Kutoot uses this as both the Razorpay Route legal business name and settlement beneficiary name.",
       example: "RAJESH KUMAR SHARMA",
-      whyNeeded: "Required for payout disbursement. Must match bank records.",
+      whyNeeded:
+        "Required for payout disbursement. Must match bank records exactly.",
     },
   },
   bank_account_number: {
