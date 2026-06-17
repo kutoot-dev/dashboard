@@ -53,10 +53,10 @@ const ALL_SUB_SCORES: Array<{
   },
   {
     key: "discount",
-    label: "Discount aggression",
+    label: "Discount health",
     weightKey: "discount_aggression_weight",
-    formula: "1 − penalty(depth of discounts vs sustainable band)",
-    example: "Heavy coupons lower this sub-score; sustainable pricing keeps it near 1.0.",
+    formula: "1 − penalty(merchant discount depth vs sustainable band threshold)",
+    example: "Deep merchant discount band offers lower this sub-score; sustainable band pricing keeps it near 1.0.",
   },
   {
     key: "referral",

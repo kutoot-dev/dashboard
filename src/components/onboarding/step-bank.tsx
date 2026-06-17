@@ -56,6 +56,12 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
         bank_name: match.bank,
         bank_branch_name: match.branch,
       });
+      clearFieldError("bank_name");
+    } else {
+      setFieldError(
+        "bank_name",
+        "Bank name is required. Enter a valid IFSC code to auto-detect the bank.",
+      );
     }
   };
 
@@ -77,6 +83,9 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
     }
     if (!VALIDATION_RULES.bank_ifsc.pattern.test(ifsc)) {
       e.bank_ifsc = "Enter a valid 11-character IFSC code.";
+    }
+    if (!(formData.bank_name ?? "").trim()) {
+      e.bank_name = "Bank name is required. Enter a valid IFSC code to auto-detect the bank.";
     }
 
     const upiId = (formData.upi_id ?? "").trim();
@@ -208,6 +217,9 @@ export function StepBank({ onNext, onBack }: StepBankProps) {
           <p className="mt-1 text-xs text-muted-foreground">
             Bank: {formData.bank_name}
           </p>
+        )}
+        {errors.bank_name && (
+          <p className="mt-1 text-xs text-loss">{errors.bank_name}</p>
         )}
       </FieldWithInfo>
 
