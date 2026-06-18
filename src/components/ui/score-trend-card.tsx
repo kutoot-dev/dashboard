@@ -159,7 +159,7 @@ export function ScoreTrendCard({
           score: Number(segment.score.toFixed(2)),
           weight: segment.weight,
           weightPercent: segment.weight * 100,
-          contribution: Number(segment.contribution.toFixed(2)),
+          contribution: Number(segment.contribution.toFixed(4)),
         }));
       }
 
@@ -173,7 +173,7 @@ export function ScoreTrendCard({
           score: Number(score.toFixed(2)),
           weight,
           weightPercent: Math.round(weight * 100),
-          contribution: Number(contribution.toFixed(2)),
+          contribution: Number(contribution.toFixed(4)),
         };
       });
     },

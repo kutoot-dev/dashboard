@@ -213,7 +213,7 @@ export function ScoreInsightsCard({
                     aria-hidden
                   />
                   {segment.label}
-                  <span className="font-tabular text-warning">{segment.value.toFixed(0)}/100</span>
+                  <span className="font-tabular text-warning">{formatScore(segment.value)}/100</span>
                 </button>
               ))}
             </div>
@@ -246,7 +246,7 @@ export function ScoreInsightsCard({
                   aria-hidden
                 />
                 <span className="max-w-[7rem] truncate">{segment.label}</span>
-                <span className="font-tabular">{segment.value.toFixed(0)}/100</span>
+                <span className="font-tabular">{formatScore(segment.value)}/100</span>
               </button>
             );
           })}
@@ -304,7 +304,7 @@ export function ScoreInsightsCard({
 
                 <p className="mt-3 font-tabular text-3xl font-semibold sm:text-4xl">
                   <span className={scoreTone(activeSegment.value).text}>
-                    {activeSegment.value.toFixed(0)}
+                    {formatScore(activeSegment.value)}
                   </span>
                   <span className="text-lg font-medium text-muted-foreground sm:text-xl">
                     {" "}
@@ -320,10 +320,10 @@ export function ScoreInsightsCard({
                   <div className="rounded-lg bg-background/50 px-2 py-2 text-center">
                     <dt className="text-[10px] text-muted-foreground">Points earned</dt>
                     <dd className="font-tabular text-sm font-semibold text-foreground">
-                      {activeSegment.contribution.toFixed(1)}
+                      {formatScore(activeSegment.contribution)}
                       <span className="text-xs font-normal text-muted-foreground">
                         {" "}
-                        / {maxContribution.toFixed(1)}
+                        / {formatScore(maxContribution)}
                       </span>
                     </dd>
                   </div>
@@ -339,7 +339,7 @@ export function ScoreInsightsCard({
                       <InfoTooltip text="How many more points this signal could add if it reached 100/100 at its current weight." />
                     </dt>
                     <dd className="font-tabular text-sm font-semibold text-foreground">
-                      {(maxContribution - activeSegment.contribution).toFixed(1)} pts
+                      {formatScore(maxContribution - activeSegment.contribution)} pts
                     </dd>
                   </div>
                 </dl>
@@ -348,7 +348,7 @@ export function ScoreInsightsCard({
                   <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>Progress toward max points</span>
                     <span className="font-tabular text-foreground">
-                      {activeSegment.contribution.toFixed(1)} / {maxContribution.toFixed(1)}
+                      {formatScore(activeSegment.contribution)} / {formatScore(maxContribution)}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted/70">
@@ -379,7 +379,7 @@ export function ScoreInsightsCard({
                     How to improve
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    You are at {activeSegment.value.toFixed(0)} out of 100 on this signal.
+                    You are at {formatScore(activeSegment.value)} out of 100 on this signal.
                   </p>
                   <ul className="mt-3 space-y-2">
                     {activeTips.map((tip) => (

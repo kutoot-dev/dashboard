@@ -54,6 +54,14 @@ export function formatScore(score?: number | null): string {
   return score.toFixed(2);
 }
 
+/** Format a score as a whole number (e.g., "73") */
+export function formatScoreWhole(score?: number | null): string {
+  if (typeof score !== "number" || Number.isNaN(score) || !Number.isFinite(score)) {
+    return "--";
+  }
+  return Math.round(score).toString();
+}
+
 /** Format large numbers compactly (e.g., "1.2L", "50K") */
 export function formatCompact(num?: number | null): string {
   if (typeof num !== "number" || Number.isNaN(num)) return "--";

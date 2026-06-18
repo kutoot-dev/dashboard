@@ -164,10 +164,10 @@ export function ScorePie({
                   <div className="rounded-md border border-border bg-card/95 px-3 py-2 text-xs shadow-lg">
                     <div className="font-semibold text-foreground">{row.label}</div>
                     <div className="font-mono text-[11px] text-muted-foreground">
-                      {row.value.toFixed(0)} / 100
+                      {formatScore(row.value)} / 100
                     </div>
                     <div className="font-mono text-[10px] text-accent">
-                      weight {Math.round(row.weight * 100)}% · contribution {row.contribution.toFixed(1)}
+                      weight {Math.round(row.weight * 100)}% · contribution {formatScore(row.contribution)}
                     </div>
                   </div>
                 );
@@ -182,14 +182,14 @@ export function ScorePie({
             {active ? active.label : "Composite"}
           </span>
           <span className="font-mono text-3xl font-bold text-foreground leading-tight">
-            {active ? active.value.toFixed(0) : formatScore(computedComposite)}
+            {active ? formatScore(active.value) : formatScore(computedComposite)}
           </span>
           {!active && typeof rank === "number" && rank > 0 && (
             <span className="font-mono text-[10px] text-accent">
               Rank #{rank}
             </span>
           )}
-          {active && <span className="font-mono text-[10px] text-accent">{active.contribution.toFixed(1)}</span>}
+          {active && <span className="font-mono text-[10px] text-accent">{formatScore(active.contribution)}</span>}
         </div>
       </div>
 
@@ -214,7 +214,7 @@ export function ScorePie({
               />
               <span className="truncate font-medium text-foreground">{s.label}</span>
               <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                {s.value.toFixed(0)}
+                {formatScore(s.value)}
                 <span className="text-accent"> · {Math.round(s.weight * 100)}%</span>
               </span>
             </button>

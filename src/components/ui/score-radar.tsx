@@ -205,7 +205,7 @@ export function ScoreRadar({ scores, className }: ScoreRadarProps) {
         {scores.map((s) => {
           const weight = getScoringWeight(s.key, SUB_SCORE_ORDER, weights);
           const weightPct = Math.round(weight * 100);
-          const contribution = (s.value * weight).toFixed(1);
+          const contribution = (s.value * weight).toFixed(4);
           return (
             <div
               key={s.key}

@@ -85,7 +85,7 @@ function TransactionAmounts({ row }: { row: Transaction }) {
         <dd className="font-mono text-foreground">{formatINRDecimal(discounted)}</dd>
       </div>
       <div>
-        <dt className="text-muted-foreground">Platform fee + GST</dt>
+        <dt className="text-muted-foreground">Convenience fee + GST</dt>
         <dd className="font-mono text-foreground">{formatINRDecimal(platformFee + platformGst)}</dd>
       </div>
       <div>
@@ -155,7 +155,7 @@ function TransactionRowCard({
           <p className="font-mono font-semibold text-foreground">{formatINRDecimal(row.total_paid)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Platform fee</p>
+          <p className="text-xs text-muted-foreground">Convenience fee</p>
           <p className="font-mono">{formatINRDecimal(platformFee)}</p>
           {platformGst > 0 && (
             <p className="text-[11px] text-muted-foreground">+ GST {formatINRDecimal(platformGst)}</p>
@@ -386,8 +386,8 @@ export default function TransactionsPage() {
     { label: "Discounts", value: formatINRDecimal(totals.discount), hint: "Coupon savings" },
     { label: "Customer paid", value: formatINRDecimal(totals.userPaid), hint: "Collected via payment gateway" },
     { label: "Your settlement", value: formatINRDecimal(totals.settlement), hint: "After KC and taxes" },
-    { label: "Platform fee", value: formatINRDecimal(totals.platformFee), hint: "Kutoot service fee" },
-    { label: "GST on platform fee", value: formatINRDecimal(totals.platformGst), hint: "Tax on service fee" },
+    { label: "Convenience fee", value: formatINRDecimal(totals.platformFee), hint: "Convenience charge" },
+    { label: "GST on convenience fee", value: formatINRDecimal(totals.platformGst), hint: "Tax on convenience fee" },
     { label: "KC commission", value: formatINRDecimal(totals.commission), hint: "Kutoot Coins fee" },
     { label: "GST on KC", value: formatINRDecimal(totals.commissionGst), hint: "Tax on commission" },
   ];
@@ -604,7 +604,7 @@ export default function TransactionsPage() {
                     <th className="px-2 py-2">Gross</th>
                     <th className="px-2 py-2">Discount</th>
                     <th className="px-2 py-2">Customer paid</th>
-                    <th className="px-2 py-2">Platform fee</th>
+                    <th className="px-2 py-2">Convenience fee</th>
                     <th className="px-2 py-2">Settlement</th>
                     <th className="px-2 py-2">Payment</th>
                     <th className="px-2 py-2">Invoice</th>
