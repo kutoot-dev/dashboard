@@ -25,7 +25,7 @@ import { Card } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { FilterChip } from "@/components/ui/filter-chip";
-import { formatINR, formatINRDecimal } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import {
   getPaymentStatusDisplay,
   getPaymentStatusGuide,
@@ -65,10 +65,15 @@ function triggerDownload(response: AxiosResponse<Blob>, fallbackName: string): s
   return fileName;
 }
 
-function TransactionAmounts({ row }: { row: Transaction }) {
-  const discounted = Number(row.discounted_bill_amount ?? row.bill_amount - row.discount);
+function getPlatformFeeParts(row: Transaction) {
   const platformFee = Number(row.platform_fee ?? 0);
   const platformGst = Number(row.platform_fee_gst_amount ?? row.gst_amount ?? 0);
+  return { platformFee, platformGst };
+}
+
+function TransactionAmounts({ row }: { row: Transaction }) {
+  const discounted = Number(row.discounted_bill_amount ?? row.bill_amount - row.discount);
+  const { platformFee, platformGst } = getPlatformFeeParts(row);
   const commission = Number(row.commission ?? 0);
   const commissionGst = Number(row.commission_gst_amount ?? 0);
   const settlement = Number(row.merchant_settlement_wallet ?? 0);
@@ -89,7 +94,7 @@ function TransactionAmounts({ row }: { row: Transaction }) {
       </div>
       <div>
         <dt className="text-muted-foreground">Customer paid</dt>
-        <dd className="font-mono font-medium text-foreground">{formatINR(row.total_paid)}</dd>
+        <dd className="font-mono font-medium text-foreground">{formatINRDecimal(row.total_paid)}</dd>
       </div>
       <div>
         <dt className="text-muted-foreground">Your settlement</dt>
@@ -109,6 +114,7 @@ function TransactionRowCard({
   downloading: boolean;
 }) {
   const status = getPaymentStatusDisplay(row.status);
+  const { platformFee, platformGst } = getPlatformFeeParts(row);
 
   return (
     <article className="rounded-lg border border-border/70 bg-muted/20 p-4">
@@ -138,15 +144,22 @@ function TransactionRowCard({
       <div className="mt-3 flex flex-wrap gap-4 border-t border-border/50 pt-3 text-sm">
         <div>
           <p className="text-xs text-muted-foreground">Gross bill</p>
-          <p className="font-mono font-medium">{formatINR(row.bill_amount)}</p>
+          <p className="font-mono font-medium">{formatINRDecimal(row.bill_amount)}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Discount</p>
-          <p className="font-mono">{formatINR(row.discount)}</p>
+          <p className="font-mono">{formatINRDecimal(row.discount)}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Customer paid</p>
-          <p className="font-mono font-semibold text-foreground">{formatINR(row.total_paid)}</p>
+          <p className="font-mono font-semibold text-foreground">{formatINRDecimal(row.total_paid)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Platform fee</p>
+          <p className="font-mono">{formatINRDecimal(platformFee)}</p>
+          {platformGst > 0 && (
+            <p className="text-[11px] text-muted-foreground">+ GST {formatINRDecimal(platformGst)}</p>
+          )}
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Settlement</p>
@@ -167,7 +180,7 @@ export default function TransactionsPage() {
   const pushToast = useToastStore((s) => s.push);
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("paid");
   const [page, setPage] = useState(1);
   const [range, setRange] = useState(DEFAULT_FILTER_DATE_RANGE);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<number | null>(null);
@@ -512,7 +525,7 @@ export default function TransactionsPage() {
               Transaction trend
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {chartTotals.count} payments · {formatINR(chartTotals.amount)} gross in selected range
+              {chartTotals.count} payments · {formatINRDecimal(chartTotals.amount)} gross in selected range
             </p>
           </div>
           <div className="flex gap-2" role="tablist" aria-label="Chart metric">
@@ -564,7 +577,7 @@ export default function TransactionsPage() {
         </div>
 
         {showTransactionsSkeleton ? (
-          <TableRowsSkeleton rows={8} columns={7} minWidth="min-w-[960px]" />
+          <TableRowsSkeleton rows={8} columns={8} minWidth="min-w-[1080px]" />
         ) : rows.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             No transactions match your filters. Try a wider date range or another payment status.
@@ -583,7 +596,7 @@ export default function TransactionsPage() {
             </div>
 
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[960px] text-sm">
+              <table className="w-full min-w-[1080px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="px-2 py-2">Date</th>
@@ -591,6 +604,7 @@ export default function TransactionsPage() {
                     <th className="px-2 py-2">Gross</th>
                     <th className="px-2 py-2">Discount</th>
                     <th className="px-2 py-2">Customer paid</th>
+                    <th className="px-2 py-2">Platform fee</th>
                     <th className="px-2 py-2">Settlement</th>
                     <th className="px-2 py-2">Payment</th>
                     <th className="px-2 py-2">Invoice</th>
@@ -600,6 +614,7 @@ export default function TransactionsPage() {
                   {rows.map((row) => {
                     const paymentStatus = getPaymentStatusDisplay(row.status);
                     const discounted = Number(row.discounted_bill_amount ?? row.bill_amount - row.discount);
+                    const { platformFee, platformGst } = getPlatformFeeParts(row);
 
                     return (
                       <tr key={row.id} className="border-b border-border/60 align-top hover:bg-muted/15">
@@ -617,11 +632,17 @@ export default function TransactionsPage() {
                             </p>
                           )}
                         </td>
-                        <td className="px-2 py-3 font-mono whitespace-nowrap">{formatINR(row.bill_amount)}</td>
-                        <td className="px-2 py-3 font-mono whitespace-nowrap">{formatINR(row.discount)}</td>
+                        <td className="px-2 py-3 font-mono whitespace-nowrap">{formatINRDecimal(row.bill_amount)}</td>
+                        <td className="px-2 py-3 font-mono whitespace-nowrap">{formatINRDecimal(row.discount)}</td>
                         <td className="px-2 py-3">
-                          <p className="font-mono font-medium whitespace-nowrap">{formatINR(row.total_paid)}</p>
+                          <p className="font-mono font-medium whitespace-nowrap">{formatINRDecimal(row.total_paid)}</p>
                           <p className="text-[11px] text-muted-foreground">Bill {formatINRDecimal(discounted)} after discount</p>
+                        </td>
+                        <td className="px-2 py-3">
+                          <p className="font-mono whitespace-nowrap">{formatINRDecimal(platformFee)}</p>
+                          {platformGst > 0 && (
+                            <p className="text-[11px] text-muted-foreground">+ GST {formatINRDecimal(platformGst)}</p>
+                          )}
                         </td>
                         <td className="px-2 py-3 font-mono font-medium whitespace-nowrap">
                           {formatINRDecimal(Number(row.merchant_settlement_wallet ?? 0))}

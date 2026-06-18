@@ -94,15 +94,15 @@ export default function DashboardPage() {
   const netAmount = totalAmount - discounts;
   const walkins = Number(dashboard?.today?.transactions ?? 0);
   const statsCards = [
-    { label: "Total amount", value: formatINR(totalAmount), helper: "Gross sales today" },
-    { label: "Discounts", value: formatINR(discounts), helper: "Offers redeemed today" },
+    { label: "Total amount", value: formatINR(totalAmount), helper: "Captured sales today" },
+    { label: "Discounts", value: formatINR(discounts), helper: "Captured offers today" },
     {
       label: "Net amount",
       value: formatINR(Math.max(0, netAmount)),
-      helper: "After discounts",
+      helper: "After discounts (captured)",
       emphasis: true,
     },
-    { label: "Walk-ins", value: walkins.toLocaleString("en-IN"), helper: "Customer visits / bills" },
+    { label: "Walk-ins", value: walkins.toLocaleString("en-IN"), helper: "Captured visits / bills" },
   ];
   const merchantReferralCode = dashboard?.merchant_referral_code ?? null;
   const referralShareUrl = toAbsoluteShareUrl(dashboard?.referral_share_url);

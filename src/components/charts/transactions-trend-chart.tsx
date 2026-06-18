@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatINR } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import type { TransactionChartPoint } from "@/lib/utils/transactions-chart";
 
 export type TransactionChartMetric = "count" | "amount";
@@ -48,7 +48,7 @@ function ChartTooltip({
         <span className="text-foreground">{point.count}</span> transaction{point.count === 1 ? "" : "s"}
       </p>
       <p className="text-muted-foreground">
-        Gross bill <span className="font-mono text-foreground">{formatINR(point.amount)}</span>
+        Gross bill <span className="font-mono text-foreground">{formatINRDecimal(point.amount)}</span>
       </p>
     </div>
   );

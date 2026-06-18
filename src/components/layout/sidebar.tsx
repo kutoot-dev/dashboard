@@ -40,8 +40,11 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3">
         {!isLoading &&
-          navGroups.map((group) => (
-            <div key={group.label || "main"} className="mb-2">
+          navGroups.map((group, index) => (
+            <div
+              key={group.label || group.items.map((item) => item.href).join("|") || `nav-${index}`}
+              className="mb-2"
+            >
               {!sidebarCollapsed && group.label ? (
                 <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
                   {group.label}
