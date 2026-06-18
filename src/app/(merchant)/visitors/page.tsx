@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { formatINR } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import { TableRowsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 import { DEFAULT_FILTER_DATE_RANGE } from "@/lib/utils/date-range";
@@ -58,7 +58,7 @@ export default function VisitorsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Visitors"
-        subtitle="Track repeat customer footfall, spend, and redemption behavior."
+        subtitle="Repeat customers with captured payments — visits and spend exclude failed or pending checkouts."
       />
 
       <Card className="space-y-3 overflow-visible">
@@ -92,18 +92,17 @@ export default function VisitorsPage() {
         </div>
 
         {showSkeleton ? (
-          <TableRowsSkeleton rows={8} columns={6} minWidth="min-w-[900px]" />
+          <TableRowsSkeleton rows={8} columns={5} minWidth="min-w-[760px]" />
         ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-2 py-2">Visitor</th>
                 <th className="px-2 py-2">Phone</th>
                 <th className="px-2 py-2">Visits</th>
                 <th className="px-2 py-2">Last visited</th>
-                <th className="px-2 py-2">Total spend</th>
-                <th className="px-2 py-2">Redeemed</th>
+                <th className="px-2 py-2">Captured spend</th>
               </tr>
             </thead>
             <tbody>
@@ -115,18 +114,13 @@ export default function VisitorsPage() {
                   <td className="px-2 py-3 text-xs text-muted-foreground">
                     {row.last_visited ? new Date(row.last_visited).toLocaleString("en-IN") : "--"}
                   </td>
-                  <td className="px-2 py-3 font-mono text-foreground">{formatINR(row.total_spend)}</td>
-                  <td className="px-2 py-3">
-                    <span className={row.redeemed ? "text-gain" : "text-muted-foreground"}>
-                      {row.redeemed ? "Yes" : "No"}
-                    </span>
-                  </td>
+                  <td className="px-2 py-3 font-mono text-foreground">{formatINRDecimal(row.total_spend)}</td>
                 </tr>
               ))}
 
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-2 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={5} className="px-2 py-8 text-center text-sm text-muted-foreground">
                     No visitors found for this filter.
                   </td>
                 </tr>

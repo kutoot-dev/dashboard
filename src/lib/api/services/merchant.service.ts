@@ -148,7 +148,6 @@ export interface Visitor {
   visit_count: number;
   last_visited: string;
   total_spend: number;
-  redeemed: boolean;
 }
 
 // ── Deals ────────────────────────────────────────────────────────────────────
