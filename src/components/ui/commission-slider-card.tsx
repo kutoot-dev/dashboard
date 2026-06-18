@@ -13,6 +13,7 @@ import { SUB_SCORE_ORDER } from "@/lib/constants/scoring";
 import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
 import { getScoringWeight } from "@/lib/utils/scoring-weights";
 import { formatDecimal, formatPercent } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/cn";
 import type { LegalAcceptResult, LegalDocumentSummary } from "@/lib/types";
 
 const INCENTIVE_AGREEMENT_SLUG = "merchant_incentive_agreement";
@@ -176,11 +177,10 @@ export function CommissionSliderCard({ className, ceiling = 100 }: CommissionSli
         <div className="flex items-baseline justify-between">
           <div>
             <p className="font-mono text-3xl font-bold text-accent">
-              {value.toFixed(2)}
-              <span className="ml-1 text-base text-muted-foreground">%</span>
+              {formatPercent(value)}
             </p>
             <p className="font-mono text-[10px] text-muted-foreground">
-              currently {current.toFixed(2)}% · min {min.toFixed(2)}% · max {max.toFixed(2)}%
+              currently {formatPercent(current)} · min {formatPercent(min)} · max {formatPercent(max)}
             </p>
           </div>
           <div className="text-right">
@@ -198,8 +198,8 @@ export function CommissionSliderCard({ className, ceiling = 100 }: CommissionSli
             Growth value
           </p>
           <p className="mt-1 text-xs text-foreground">
-            Commission drives <span className="font-mono font-semibold">{Math.round(commissionWeight * 100)}%</span> of total score.
-            Current boost level: <span className="font-mono font-semibold text-accent">{weightedInfluence.toFixed(1)} / {(commissionWeight * 100).toFixed(0)}</span> score-share potential.
+            Commission drives <span className="font-mono font-semibold">{formatPercent(commissionWeight * 100)}</span> of total score.
+            Current boost level: <span className="font-mono font-semibold text-accent">{formatDecimal(weightedInfluence)} / {formatDecimal(commissionWeight * 100)}</span> score-share potential.
           </p>
         </div>
 
@@ -215,9 +215,9 @@ export function CommissionSliderCard({ className, ceiling = 100 }: CommissionSli
             aria-label="Commission percentage"
           />
           <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
-            <span>{min.toFixed(2)}%</span>
-            <span>{((min + max) / 2).toFixed(2)}%</span>
-            <span>{max.toFixed(2)}%</span>
+            <span>{formatPercent(min)}</span>
+            <span>{formatPercent((min + max) / 2)}</span>
+            <span>{formatPercent(max)}</span>
           </div>
         </div>
 
