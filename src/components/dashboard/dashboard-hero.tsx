@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { formatScore } from "@/lib/utils/format";
+import { formatScorePercent } from "@/lib/utils/format";
 import { formatRank } from "@/lib/utils/format-rank";
 import { cn } from "@/lib/utils/cn";
 
@@ -60,7 +60,7 @@ export function DashboardHero({
             Score
           </span>
           <span className="font-tabular text-lg font-semibold text-foreground">
-            {formatScore(compositeScore)}
+            {formatScorePercent(compositeScore)}
           </span>
         </div>
 

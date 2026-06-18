@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ScorePie } from "@/components/ui/score-pie";
 import { IMPROVEMENT_TIPS } from "@/lib/constants/scoring";
-import { formatScore } from "@/lib/utils/format";
+import { formatPercent, formatScorePercent } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
 /** Matches ScorePie slice colours for cross-reference. */
@@ -40,8 +39,9 @@ interface ScoreInsightsCardProps {
   onImproveClick: (key: string, label: string) => void;
 }
 
-function scoreTone(value: number) {
-  if (value >= 75) {
+/** API sub-scores are 0–1; tone bands match 0–100 display scale. */
+function scoreTonePercent(valuePercent: number) {
+  if (valuePercent >= 75) {
     return {
       text: "text-gain",
       bar: "bg-gain",
@@ -49,7 +49,7 @@ function scoreTone(value: number) {
       label: "Strong",
     };
   }
-  if (value >= 50) {
+  if (valuePercent >= 50) {
     return {
       text: "text-accent",
       bar: "bg-accent",
@@ -57,7 +57,7 @@ function scoreTone(value: number) {
       label: "Good",
     };
   }
-  if (value >= 25) {
+  if (valuePercent >= 25) {
     return {
       text: "text-warning",
       bar: "bg-warning",
@@ -136,7 +136,7 @@ export function ScoreInsightsCard({
   const focusAreas = useMemo(
     () =>
       [...segments]
-        .filter((segment) => segment.value < 50)
+        .filter((segment) => segment.value < 0.5)
         .sort((a, b) => a.value - b.value)
         .slice(0, 2),
     [segments],
@@ -157,8 +157,6 @@ export function ScoreInsightsCard({
       "Check back after your next busy period to see movement.",
     ]);
 
-  const maxContribution = activeSegment ? activeSegment.weight * 100 : 0;
-
   return (
     <Card className="space-y-4 border border-primary/28 bg-card/72 p-4 sm:space-y-5 sm:p-5">
       <header className="space-y-3">
@@ -177,7 +175,7 @@ export function ScoreInsightsCard({
                 Total score
               </p>
               <p className="font-tabular text-xl font-semibold text-foreground sm:text-2xl">
-                {formatScore(compositeScore)}
+                {formatScorePercent(compositeScore)}
               </p>
             </div>
             {typeof compositeRank === "number" && (
@@ -213,7 +211,7 @@ export function ScoreInsightsCard({
                     aria-hidden
                   />
                   {segment.label}
-                  <span className="font-tabular text-warning">{formatScore(segment.value)}/100</span>
+                  <span className="font-tabular text-warning">{formatScorePercent(segment.value)}</span>
                 </button>
               ))}
             </div>
@@ -246,7 +244,7 @@ export function ScoreInsightsCard({
                   aria-hidden
                 />
                 <span className="max-w-[7rem] truncate">{segment.label}</span>
-                <span className="font-tabular">{formatScore(segment.value)}/100</span>
+                <span className="font-tabular">{formatScorePercent(segment.value)}</span>
               </button>
             );
           })}
@@ -287,82 +285,41 @@ export function ScoreInsightsCard({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h4 className="text-sm font-semibold text-foreground">{activeSegment.label}</h4>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {activeSegment.weightPercent.toFixed(0)}% of your total score
-                    </p>
                   </div>
                   <span
                     className={cn(
                       "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                      scoreTone(activeSegment.value).bg,
-                      scoreTone(activeSegment.value).text,
+                      scoreTonePercent(activeSegment.value * 100).bg,
+                      scoreTonePercent(activeSegment.value * 100).text,
                     )}
                   >
-                    {scoreTone(activeSegment.value).label}
+                    {scoreTonePercent(activeSegment.value * 100).label}
                   </span>
                 </div>
 
-                <p className="mt-3 font-tabular text-3xl font-semibold sm:text-4xl">
-                  <span className={scoreTone(activeSegment.value).text}>
-                    {formatScore(activeSegment.value)}
-                  </span>
-                  <span className="text-lg font-medium text-muted-foreground sm:text-xl">
-                    {" "}
-                    / 100
-                  </span>
-                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-background/50 px-3 py-2.5 text-center">
+                    <p className="text-[10px] text-muted-foreground">Scored</p>
+                    <p
+                      className={cn(
+                        "font-tabular text-2xl font-semibold sm:text-3xl",
+                        scoreTonePercent(activeSegment.value * 100).text,
+                      )}
+                    >
+                      {formatScorePercent(activeSegment.value)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-background/50 px-3 py-2.5 text-center">
+                    <p className="text-[10px] text-muted-foreground">Weight</p>
+                    <p className="font-tabular text-2xl font-semibold text-foreground sm:text-3xl">
+                      {formatPercent(activeSegment.weightPercent)}
+                    </p>
+                  </div>
+                </div>
 
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                   {activeSegment.description}
                 </p>
-
-                <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  <div className="rounded-lg bg-background/50 px-2 py-2 text-center">
-                    <dt className="text-[10px] text-muted-foreground">Points earned</dt>
-                    <dd className="font-tabular text-sm font-semibold text-foreground">
-                      {formatScore(activeSegment.contribution)}
-                      <span className="text-xs font-normal text-muted-foreground">
-                        {" "}
-                        / {formatScore(maxContribution)}
-                      </span>
-                    </dd>
-                  </div>
-                  <div className="rounded-lg bg-background/50 px-2 py-2 text-center">
-                    <dt className="text-[10px] text-muted-foreground">Weight</dt>
-                    <dd className="font-tabular text-sm font-semibold text-foreground">
-                      {activeSegment.weightPercent.toFixed(0)}%
-                    </dd>
-                  </div>
-                  <div className="col-span-2 rounded-lg bg-background/50 px-2 py-2 text-center sm:col-span-1">
-                    <dt className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                      Room to grow
-                      <InfoTooltip text="How many more points this signal could add if it reached 100/100 at its current weight." />
-                    </dt>
-                    <dd className="font-tabular text-sm font-semibold text-foreground">
-                      {formatScore(maxContribution - activeSegment.contribution)} pts
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="mt-3 space-y-1">
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Progress toward max points</span>
-                    <span className="font-tabular text-foreground">
-                      {formatScore(activeSegment.contribution)} / {formatScore(maxContribution)}
-                    </span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted/70">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all",
-                        scoreTone(activeSegment.value).bar,
-                      )}
-                      style={{
-                        width: `${maxContribution > 0 ? Math.min(100, (activeSegment.contribution / maxContribution) * 100) : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
 
                 <button
                   type="button"
@@ -379,7 +336,7 @@ export function ScoreInsightsCard({
                     How to improve
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    You are at {formatScore(activeSegment.value)} out of 100 on this signal.
+                    You are at {formatScorePercent(activeSegment.value)} on this signal.
                   </p>
                   <ul className="mt-3 space-y-2">
                     {activeTips.map((tip) => (

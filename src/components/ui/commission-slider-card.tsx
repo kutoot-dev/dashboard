@@ -12,7 +12,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { SUB_SCORE_ORDER } from "@/lib/constants/scoring";
 import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
 import { getScoringWeight } from "@/lib/utils/scoring-weights";
-import { cn } from "@/lib/utils/cn";
+import { formatDecimal, formatPercent } from "@/lib/utils/format";
 import type { LegalAcceptResult, LegalDocumentSummary } from "@/lib/types";
 
 const INCENTIVE_AGREEMENT_SLUG = "merchant_incentive_agreement";

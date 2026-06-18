@@ -32,26 +32,72 @@ export function formatINRDecimal(amount?: number | null): string {
   }).format(amount);
 }
 
-/** Format score with +/- sign (e.g., "+3.24" or "-1.50") */
+const SCORE_MAX_DECIMALS = 3;
+
+/** Format a number with up to 3 decimals, trimming trailing zeros (e.g. "72", "72.5", "72.543"). */
+export function formatDecimal(value?: number | null, maxDecimals = SCORE_MAX_DECIMALS): string {
+  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+    return "--";
+  }
+  return new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxDecimals,
+  }).format(value);
+}
+
+/** Format score with +/- sign (e.g., "+3.24" or "-1.5") */
 export function formatScoreChange(change?: number | null): string {
   if (typeof change !== "number" || Number.isNaN(change)) return "--";
   const sign = change > 0 ? "+" : "";
-  return `${sign}${change.toFixed(2)}`;
+  return `${sign}${formatDecimal(change)}`;
 }
 
-/** Format percentage with +/- sign (e.g., "+4.6%") */
+/** Format percentage with +/- sign (e.g., "+4.625%") */
 export function formatPercentChange(change?: number | null): string {
   if (typeof change !== "number" || Number.isNaN(change)) return "--";
   const sign = change > 0 ? "+" : "";
-  return `${sign}${change.toFixed(1)}%`;
+  return `${sign}${formatDecimal(change)}%`;
 }
 
-/** Format a score as a fixed 2-decimal number (e.g., "72.54") */
-export function formatScore(score?: number | null): string {
-  if (typeof score !== "number" || Number.isNaN(score) || !Number.isFinite(score)) {
+/**
+ * Format a 0–1 score fraction as a percentage with up to 3 decimals (e.g. 0.345 → "34.5%").
+ */
+export function formatScorePercent(fraction?: number | null, maxDecimals = SCORE_MAX_DECIMALS): string {
+  if (typeof fraction !== "number" || Number.isNaN(fraction) || !Number.isFinite(fraction)) {
     return "--";
   }
-  return score.toFixed(2);
+  return formatPercent(fraction * 100, maxDecimals);
+}
+
+/**
+ * Format a signed 0–1 score delta as percentage points (e.g. 0.02 → "+2%").
+ */
+export function formatScorePercentDelta(delta?: number | null, maxDecimals = SCORE_MAX_DECIMALS): string {
+  if (typeof delta !== "number" || Number.isNaN(delta) || !Number.isFinite(delta)) {
+    return "--";
+  }
+  const sign = delta > 0 ? "+" : "";
+  return `${sign}${formatDecimal(delta * 100, maxDecimals)}%`;
+}
+
+/** Format a 0–100 value as a whole-number percentage (e.g. "72%", "1%"). */
+export function formatPercentWhole(value?: number | null): string {
+  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+    return "--";
+  }
+  return `${Math.round(value)}%`;
+}
+
+/** Format a 0–100 value as a percentage with up to 3 decimals (e.g. "72%", "72.5%", "0.1%"). */
+export function formatPercent(value?: number | null, maxDecimals = SCORE_MAX_DECIMALS): string {
+  const formatted = formatDecimal(value, maxDecimals);
+  if (formatted === "--") return "--";
+  return `${formatted}%`;
+}
+
+/** Format a score with up to 3 decimals (e.g., "72", "72.54", "72.543") */
+export function formatScore(score?: number | null): string {
+  return formatDecimal(score);
 }
 
 /** Format a score as a whole number (e.g., "73") */

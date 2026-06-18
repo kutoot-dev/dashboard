@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils/cn";
 import { SUB_SCORE_LABELS, SUB_SCORE_ORDER, SUB_SCORE_DESCRIPTIONS } from "@/lib/constants/scoring";
 import { useScoringWeights } from "@/lib/hooks/use-scoring-weights";
 import { getScoringWeight } from "@/lib/utils/scoring-weights";
+import { formatScore } from "@/lib/utils/format";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface ScoreRadarProps {
@@ -185,7 +186,12 @@ export function ScoreRadar({ scores, className }: ScoreRadarProps) {
             fontWeight="bold"
             fontFamily="monospace"
           >
-            {(scores.reduce((sum, s) => sum + s.value * getScoringWeight(s.key, SUB_SCORE_ORDER, weights), 0)).toFixed(1)}
+            {formatScore(
+              scores.reduce(
+                (sum, s) => sum + s.value * getScoringWeight(s.key, SUB_SCORE_ORDER, weights),
+                0,
+              ),
+            )}
           </text>
           <text
             x={cx}
@@ -226,7 +232,7 @@ export function ScoreRadar({ scores, className }: ScoreRadarProps) {
               </div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className={cn("font-mono text-lg font-bold", getTextColor(s.value))}>
-                  {s.value.toFixed(1)}
+                  {formatScore(s.value)}
                 </span>
                 <span className="font-mono text-[10px] text-muted-foreground">
                   / 100

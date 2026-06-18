@@ -25,6 +25,7 @@ import {
 } from "@/lib/api/services/merchant.service";
 import type { ScoreBreakdown } from "@/lib/types";
 import { getScoringWeight, type ScoringWeights } from "@/lib/utils/scoring-weights";
+import { formatScorePercent, formatScorePercentDelta } from "@/lib/utils/format";
 
 type ScoreInsight = {
   key: string;
@@ -156,7 +157,7 @@ export function ScoreTrendCard({
         return scoreInsights.map((segment) => ({
           key: segment.key,
           label: SUB_SCORE_LABELS[segment.key] ?? segment.key,
-          score: Number(segment.score.toFixed(2)),
+          score: Number(segment.score.toFixed(3)),
           weight: segment.weight,
           weightPercent: segment.weight * 100,
           contribution: Number(segment.contribution.toFixed(4)),
@@ -170,7 +171,7 @@ export function ScoreTrendCard({
         return {
           key,
           label: SUB_SCORE_LABELS[key] ?? key,
-          score: Number(score.toFixed(2)),
+          score: Number(score.toFixed(3)),
           weight,
           weightPercent: Math.round(weight * 100),
           contribution: Number(contribution.toFixed(4)),
@@ -234,7 +235,7 @@ export function ScoreTrendCard({
     };
   }, [history, headerComposite]);
 
-  const windowDelta = Number((headerComposite - openComposite).toFixed(2));
+  const windowDelta = Number((headerComposite - openComposite).toFixed(3));
   const isUp = windowDelta >= 0;
   const lineStroke = isUp ? colors.gain : colors.loss;
 
@@ -305,7 +306,7 @@ export function ScoreTrendCard({
               const minute = Number(items[0].parsed.x);
               return `IST ${formatMinuteLabel(minute)}`;
             },
-            label: (item) => `Composite ${Number(item.parsed.y).toFixed(2)}`,
+            label: (item) => `Composite ${formatScorePercent(Number(item.parsed.y))}`,
           },
         },
         zoom: {
@@ -373,7 +374,7 @@ export function ScoreTrendCard({
           },
           ticks: {
             color: colors.text,
-            callback: (value) => Number(value).toFixed(2),
+            callback: (value) => formatScorePercent(Number(value)),
           },
         },
       },
@@ -417,10 +418,9 @@ export function ScoreTrendCard({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Badge variant="neutral">Now {headerComposite.toFixed(2)}</Badge>
+          <Badge variant="neutral">Now {formatScorePercent(headerComposite)}</Badge>
           <Badge variant={isUp ? "gain" : "loss"}>
-            {isUp ? "+" : ""}
-            {windowDelta.toFixed(2)} today
+            {formatScorePercentDelta(windowDelta)} today
           </Badge>
         </div>
       </div>
@@ -473,15 +473,15 @@ export function ScoreTrendCard({
       <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
         <div className="rounded-md border border-accent/35 bg-accent/10 px-2.5 py-2">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Open (00:00)</p>
-          <p className="font-tabular text-sm font-semibold text-accent">{openComposite.toFixed(2)}</p>
+          <p className="font-tabular text-sm font-semibold text-accent">{formatScorePercent(openComposite)}</p>
         </div>
         <div className="rounded-md border border-gain/35 bg-gain/10 px-2.5 py-2">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Day High</p>
-          <p className="font-tabular text-sm font-semibold text-gain">{dayHigh.toFixed(2)}</p>
+          <p className="font-tabular text-sm font-semibold text-gain">{formatScorePercent(dayHigh)}</p>
         </div>
         <div className="rounded-md border border-loss/35 bg-loss/10 px-2.5 py-2">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Day Low</p>
-          <p className="font-tabular text-sm font-semibold text-loss">{dayLow.toFixed(2)}</p>
+          <p className="font-tabular text-sm font-semibold text-loss">{formatScorePercent(dayLow)}</p>
         </div>
         
       </div>
