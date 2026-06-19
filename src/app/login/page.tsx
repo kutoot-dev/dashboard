@@ -57,7 +57,7 @@ export default function LoginPage() {
   }
 
   async function handleSendOtp() {
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
+    if (!/^\d{10}$/.test(mobile)) {
       setError("Enter a valid 10-digit mobile number.");
       return;
     }
