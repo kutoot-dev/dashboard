@@ -14,7 +14,7 @@ import { ScoringEngineCommands } from "@/components/scoring-engine/scoring-engin
 import { ScoringEngineFormulaGuide } from "@/components/scoring-engine/scoring-engine-formula-guide";
 import { ScoringEngineSchedule } from "@/components/scoring-engine/scoring-engine-schedule";
 import { canAccessScoringEngine } from "@/lib/utils/scoring-engine-access";
-import { formatINR } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import { StatCardsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
 
@@ -70,17 +70,17 @@ export default function ScoringEnginePage() {
             {[
               {
                 label: "Today's bonus pool",
-                value: formatINR(data.today.pool),
-                hint: `${data.today.txn_count} txns · ${formatINR(data.today.accumulated_net)} kutoot net`,
+                value: formatINRDecimal(data.today.pool),
+                hint: `${data.today.txn_count} txns · ${formatINRDecimal(data.today.accumulated_net)} kutoot net`,
               },
               {
                 label: "Your projected share",
-                value: formatINR(data.today.your_share),
+                value: formatINRDecimal(data.today.your_share),
                 hint: `Live rank ${formatRank(data.today.live_rank)} · composite ${data.today.live_composite?.toFixed(4) ?? "—"}`,
               },
               {
                 label: "Projected distributed",
-                value: formatINR(data.today.projected_distributed),
+                value: formatINRDecimal(data.today.projected_distributed),
                 hint: data.today.projected_distributed < data.today.pool ? "Pool leftover possible" : "Full pool allocated",
               },
               {
@@ -130,7 +130,7 @@ export default function ScoringEnginePage() {
                     Projected payouts today (all branches)
                   </h3>
                   <span className="font-mono text-[10px] text-muted-foreground">
-                    {data.today.active_branch_count} active · pool {formatINR(data.today.pool)}
+                    {data.today.active_branch_count} active · pool {formatINRDecimal(data.today.pool)}
                   </span>
                 </div>
                 <p className="mt-1 text-[10px] text-muted-foreground">
@@ -170,7 +170,7 @@ export default function ScoringEnginePage() {
                             {row.pool_pct > 0 ? `${row.pool_pct.toFixed(1)}%` : "—"}
                           </td>
                           <td className="py-2 text-right font-semibold text-gain">
-                            {formatINR(row.projected_share)}
+                            {formatINRDecimal(row.projected_share)}
                           </td>
                         </tr>
                       ))}
@@ -191,7 +191,7 @@ export default function ScoringEnginePage() {
                     >
                       <span className="text-foreground">{p.date}</span>
                       <span className="text-muted-foreground">{p.status}</span>
-                      <span className="text-gain">{formatINR(p.pool_amount)}</span>
+                      <span className="text-gain">{formatINRDecimal(p.pool_amount)}</span>
                       <span className="text-muted-foreground">{p.payout_count} branches</span>
                     </li>
                   ))}

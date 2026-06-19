@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatINR } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import type { BonusPayoutChartPoint } from "@/lib/utils/payouts-chart";
 
 export type BonusPayoutChartView = "share" | "pool" | "both";
@@ -51,11 +51,11 @@ function ChartTooltip({
       </p>
       <p className="mt-1.5 text-muted-foreground">
         Your share{" "}
-        <span className="font-mono font-semibold text-gold">{formatINR(point.share)}</span>
+        <span className="font-mono font-semibold text-gold">{formatINRDecimal(point.share)}</span>
       </p>
       <p className="text-muted-foreground">
         Bonus pool{" "}
-        <span className="font-mono text-foreground">{formatINR(point.pool)}</span>
+        <span className="font-mono text-foreground">{formatINRDecimal(point.pool)}</span>
       </p>
       {typeof point.rank === "number" ? (
         <p className="mt-1 text-muted-foreground">

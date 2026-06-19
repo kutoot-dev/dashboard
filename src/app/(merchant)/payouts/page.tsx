@@ -16,7 +16,7 @@ import {
 } from "@/components/payouts/bonus-payout-trend-chart";
 import { BonusPayoutStatCard } from "@/components/payouts/bonus-payout-stat-card";
 import { BonusPayoutHistory } from "@/components/payouts/bonus-payout-history";
-import { formatINR } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import { buildBonusPayoutSeries, summarizePayoutSeries } from "@/lib/utils/payouts-chart";
 import { StatCardsSkeleton, TableRowsSkeleton } from "@/components/ui/loading-skeletons";
 import { useQuerySkeleton } from "@/lib/hooks/use-query-skeleton";
@@ -117,7 +117,7 @@ export default function PayoutsPage() {
               {todayExpected ? (
                 <>
                   <p className="font-mono text-4xl font-bold tracking-tight text-gold sm:text-5xl">
-                    {formatINR(todayExpected.your_share)}
+                    {formatINRDecimal(todayExpected.your_share)}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground lg:justify-end">
                     {typeof todayExpected.accumulated_net === "number" ? (
@@ -125,7 +125,7 @@ export default function PayoutsPage() {
                         <span>
                           {PAYOUTS.TODAY_ACCUMULATED_NET}{" "}
                           <span className="font-mono text-foreground">
-                            {formatINR(todayExpected.accumulated_net)}
+                            {formatINRDecimal(todayExpected.accumulated_net)}
                           </span>
                         </span>
                         <span className="hidden text-border sm:inline">·</span>
@@ -133,7 +133,7 @@ export default function PayoutsPage() {
                     ) : null}
                     <span>
                       {PAYOUTS.TODAY_POOL}{" "}
-                      <span className="font-mono text-foreground">{formatINR(todayExpected.daily_pool)}</span>
+                      <span className="font-mono text-foreground">{formatINRDecimal(todayExpected.daily_pool)}</span>
                       {todayExpected.payout_wallet_name ? (
                         <span className="text-muted-foreground"> ({todayExpected.payout_wallet_name})</span>
                       ) : null}
@@ -171,17 +171,17 @@ export default function PayoutsPage() {
             variant="gold"
             icon={<Icon icon={faMoneyBillTransfer} className="h-5 w-5 text-gold" aria-hidden />}
             label={PAYOUTS.TOTAL_BONUS_RECEIVED}
-            value={formatINR(payload?.total_bonus_received ?? 0)}
+            value={formatINRDecimal(payload?.total_bonus_received ?? 0)}
             helper="Lifetime bonus credited from daily pools"
           />
           <BonusPayoutStatCard
             variant="accent"
             icon={<Icon icon={faCalendarDay} className="h-5 w-5 text-accent" aria-hidden />}
             label={PAYOUTS.LATEST_DAY_SHARE}
-            value={latest ? formatINR(latest.your_share) : "—"}
+            value={latest ? formatINRDecimal(latest.your_share) : "—"}
             helper={
               latest
-                ? `${latest.date} · ${PAYOUTS.LATEST_RANK} ${formatRank(latest.rank)} · ${PAYOUTS.LATEST_POOL} ${formatINR(latest.daily_pool)}`
+                ? `${latest.date} · ${PAYOUTS.LATEST_RANK} ${formatRank(latest.rank)} · ${PAYOUTS.LATEST_POOL} ${formatINRDecimal(latest.daily_pool)}`
                 : PAYOUTS.EMPTY
             }
           />
@@ -189,7 +189,7 @@ export default function PayoutsPage() {
             variant="default"
             icon={<Icon icon={faChartLine} className="h-5 w-5 text-foreground" aria-hidden />}
             label={PAYOUTS.AVG_DAILY_SHARE}
-            value={chartData.length ? formatINR(chartSummary.avgShare) : "—"}
+            value={chartData.length ? formatINRDecimal(chartSummary.avgShare) : "—"}
             helper={
               chartData.length
                 ? `${chartData.length} ${PAYOUTS.TREND_DAYS}${

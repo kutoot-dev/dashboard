@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PAYOUTS } from "@/lib/constants/strings";
-import { formatINR } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
 function formatGeneratedAt(iso: string) {
@@ -77,7 +77,7 @@ export function PayoutGuideContent() {
         </Card>
         <Card className="p-4">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Today&apos;s pool</p>
-          <p className="mt-1 font-mono text-2xl font-semibold">{formatINR(pool.today_projected_pool)}</p>
+          <p className="mt-1 font-mono text-2xl font-semibold">{formatINRDecimal(pool.today_projected_pool)}</p>
         </Card>
       </div>
 
@@ -114,7 +114,7 @@ export function PayoutGuideContent() {
           </div>
           <div>
             <dt className="text-muted-foreground">Today Kutoot net</dt>
-            <dd className="font-mono">{formatINR(pool.today_accumulated_net)}</dd>
+            <dd className="font-mono">{formatINRDecimal(pool.today_accumulated_net)}</dd>
           </div>
         </dl>
         {pool.fallback ? (

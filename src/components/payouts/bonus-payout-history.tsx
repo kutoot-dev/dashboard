@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/services/branches.service";
 import { useEffectiveBranchId } from "@/lib/hooks/use-effective-branch-id";
 import { useToastStore } from "@/lib/stores/toast.store";
-import { formatINR } from "@/lib/utils/format";
+import { formatINRDecimal } from "@/lib/utils/format";
 import { PAYOUTS } from "@/lib/constants/strings";
 import { cn } from "@/lib/utils/cn";
 import { faTrophy } from "@/lib/icons";
@@ -89,7 +89,7 @@ function InvoiceCell({
           <p className="text-[11px] text-muted-foreground">{invoice.invoice_date}</p>
         ) : null}
         <p className="text-[11px] text-muted-foreground">
-          {formatINR(invoice.total_amount)} · {PAYOUTS.INVOICE_RAISED}
+          {formatINRDecimal(invoice.total_amount)} · {PAYOUTS.INVOICE_RAISED}
         </p>
       </div>
       <Button variant="outline" size="sm" loading={downloading} onClick={onDownload}>
@@ -159,11 +159,11 @@ export function BonusPayoutHistory({ rows }: BonusPayoutHistoryProps) {
             <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
               <div>
                 <dt className="text-muted-foreground">{PAYOUTS.COL_DAILY_POOL}</dt>
-                <dd className="mt-0.5 font-mono text-foreground">{formatINR(row.daily_pool)}</dd>
+                <dd className="mt-0.5 font-mono text-foreground">{formatINRDecimal(row.daily_pool)}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">{PAYOUTS.COL_YOUR_SHARE}</dt>
-                <dd className="mt-0.5 font-mono text-lg font-semibold text-gold">{formatINR(row.your_share)}</dd>
+                <dd className="mt-0.5 font-mono text-lg font-semibold text-gold">{formatINRDecimal(row.your_share)}</dd>
               </div>
             </dl>
             <div className="mt-3 border-t border-border/50 pt-3">
@@ -205,9 +205,9 @@ export function BonusPayoutHistory({ rows }: BonusPayoutHistoryProps) {
               >
                 <td className="px-3 py-3.5 font-medium text-foreground">{row.date || row.period_id}</td>
                 <td className={cn("px-3 py-3.5 font-mono", rankTone(row.rank))}>{formatRank(row.rank)}</td>
-                <td className="px-3 py-3.5 font-mono text-foreground">{formatINR(row.daily_pool)}</td>
+                <td className="px-3 py-3.5 font-mono text-foreground">{formatINRDecimal(row.daily_pool)}</td>
                 <td className="px-3 py-3.5 font-mono text-base font-semibold text-gold">
-                  {formatINR(row.your_share)}
+                  {formatINRDecimal(row.your_share)}
                 </td>
                 <td className="px-3 py-3.5">
                   <Badge variant={statusBadgeVariant(row.status || "")}>
