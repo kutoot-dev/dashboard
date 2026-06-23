@@ -72,6 +72,11 @@ const CORE_BRANCH_NAV: NavItem[] = [
     icon: faWallet,
   },
   {
+    label: "Affiliate Program",
+    href: "/affiliate-program",
+    icon: faHandshake,
+  },
+  {
     label: "Team",
     href: "/team",
     icon: faUsers,

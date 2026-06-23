@@ -268,7 +268,7 @@ export default function DashboardPage() {
             referralShareUrl={referralShareUrl}
             referralIosAppUrl={referralIosAppUrl}
             referralAndroidAppUrl={referralAndroidAppUrl}
-            onOpenReferral={() => router.push("/merchant-referral")}
+            onOpenReferral={() => router.push("/affiliate-program")}
             onCopyCode={() => void handleCopyReferralCode()}
             onCopyShareMessage={() => void handleCopyReferralShareMessage()}
           />
