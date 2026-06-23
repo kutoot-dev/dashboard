@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,14 +52,9 @@ export function BankDetailsCard({
   onSave,
 }: BankDetailsCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<BankFormState>(toFormState(bankDetails));
+  const [form, setForm] = useState<BankFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isEditing) return;
-    setForm(toFormState(bankDetails));
-  }, [bankDetails, isEditing]);
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
@@ -138,7 +133,12 @@ export function BankDetailsCard({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsEditing(true)}
+            onClick={() => {
+              setForm(toFormState(bankDetails));
+              setErrors({});
+              setSubmitError(null);
+              setIsEditing(true);
+            }}
             disabled={disabled}
           >
             {hasBankDetails ? "Edit" : "Add details"}

@@ -16,6 +16,7 @@ import {
   faClipboardCheck,
   faComments,
   faGear,
+  faHandshake,
   faHouse,
   faMoneyBillTransfer,
   faTag,

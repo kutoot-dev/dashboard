@@ -12,10 +12,11 @@ import {
   getAffiliateProfile,
   getAffiliateProfileStatus,
   getAffiliateReferralLink,
+  requestAffiliateWithdraw,
   registerAffiliateProgram,
   type AffiliateBankDetailsInput,
   updateAffiliateBankDetails,
-} from "@/lib/api/services/affiliate.service";
+} from "@/utils/dashboardApi";
 import { toAbsoluteAffiliateUrl } from "@/lib/utils/affiliate";
 import { RegistrationCard } from "@/components/affiliate/registration-card";
 import { ReferralCodeCard } from "@/components/affiliate/referral-code-card";
@@ -112,6 +113,27 @@ export default function AffiliateProgramPage() {
     },
   });
 
+  const withdrawMutation = useMutation({
+    mutationFn: (amount?: number) => requestAffiliateWithdraw(amount),
+    onSuccess: () => {
+      pushToast({
+        variant: "success",
+        title: "Payout requested",
+        description: "Your affiliate withdrawal request has been submitted.",
+      });
+      void profileQuery.refetch();
+      void analyticsQuery.refetch();
+      void payoutsQuery.refetch();
+    },
+    onError: (error) => {
+      pushToast({
+        variant: "error",
+        title: "Payout request failed",
+        description: error instanceof Error ? error.message : "Could not submit withdrawal request.",
+      });
+    },
+  });
+
   const profile = profileQuery.data?.success ? profileQuery.data.data : null;
   const status = statusQuery.data?.success ? statusQuery.data.data : null;
   const referralData = referralLinkQuery.data?.success ? referralLinkQuery.data.data : null;
@@ -139,6 +161,10 @@ export default function AffiliateProgramPage() {
   const minWithdrawalAmount = parseNumber(
     analytics?.min_withdrawal_amount ?? profile?.min_withdrawal_amount,
   );
+  const canRequestWithdraw =
+    isRegistered &&
+    pendingBalance > 0 &&
+    (minWithdrawalAmount <= 0 || pendingBalance >= minWithdrawalAmount);
 
   const payoutItems = (
     payoutsResponse?.items ??
@@ -240,6 +266,12 @@ export default function AffiliateProgramPage() {
           totalEarned={totalEarned}
           pendingBalance={pendingBalance}
           minWithdrawalAmount={minWithdrawalAmount}
+          canRequestWithdraw={canRequestWithdraw}
+          isRequestingWithdraw={withdrawMutation.isPending}
+          onRequestWithdraw={() => {
+            if (!canRequestWithdraw) return;
+            withdrawMutation.mutate(pendingBalance > 0 ? pendingBalance : undefined);
+          }}
         />
 
         <ReferralStats
