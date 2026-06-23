@@ -83,7 +83,9 @@ apiClient.interceptors.request.use((config) => {
         };
 
         const needsLocationScope =
-          config.url?.startsWith("/merchant") || config.url?.startsWith("/leaderboard");
+          config.url?.startsWith("/merchant") ||
+          config.url?.startsWith("/leaderboard") ||
+          config.url?.startsWith("/affiliate");
 
         if (needsLocationScope) {
           let locationId: string | null = null;
