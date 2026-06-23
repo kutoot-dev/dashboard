@@ -87,6 +87,7 @@ interface OnboardingFormData {
   pan_holder_name: string | null;
   pan_doc_photo_url: string | null;
   aadhaar_number: string;
+  aadhaar_number_masked: string;
   aadhaar_status: string;
   aadhaar_doc_photo_url: string | null;
 
@@ -221,6 +222,7 @@ const initialFormData: OnboardingFormData = {
   pan_holder_name: null,
   pan_doc_photo_url: null,
   aadhaar_number: "",
+  aadhaar_number_masked: "",
   aadhaar_status: "pending",
   aadhaar_doc_photo_url: null,
 
@@ -333,6 +335,21 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
           if (key === "sector_id" && incoming != null && incoming !== "") {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (formUpdate as any)[key] = String(incoming);
+            continue;
+          }
+
+          if (key === "aadhaar_number" && typeof incoming === "string") {
+            const aadhaarDigits = incoming.replace(/\D/g, "");
+            // Masked Aadhaar may come back from API on resume; keep raw field empty
+            // unless we have all 12 digits so KYC edit doesn't fail validation.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (formUpdate as any)[key] = aadhaarDigits.length === 12 ? aadhaarDigits : "";
+            continue;
+          }
+
+          if (key === "aadhaar_number_masked" && typeof incoming === "string") {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (formUpdate as any)[key] = incoming.trim();
             continue;
           }
 

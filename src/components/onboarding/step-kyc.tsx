@@ -50,6 +50,9 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
   const verifyPan = useVerifyPan();
 
   const aadhaarRequired = gstPath === "none";
+  const aadhaarDigits = (formData.aadhaar_number ?? "").replace(/\D/g, "");
+  const hasStoredAadhaarMask = Boolean((formData.aadhaar_number_masked ?? "").trim());
+  const hasSavedAadhaar = hasStoredAadhaarMask || Boolean(formData.aadhaar_doc_photo_url);
 
   const selectGstPath = (path: GstPath) => {
     setGstPath(path);
@@ -194,15 +197,17 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
     }
 
     if (aadhaarRequired) {
-      if (
-        !formData.aadhaar_number ||
-        !VALIDATION_RULES.aadhaar_number.pattern.test(formData.aadhaar_number)
-      ) {
+      if (!aadhaarDigits && !hasSavedAadhaar) {
         e.aadhaar_number = "Aadhaar is required when GST number and enrollment number are not provided.";
+      } else if (
+        aadhaarDigits &&
+        !VALIDATION_RULES.aadhaar_number.pattern.test(aadhaarDigits)
+      ) {
+        e.aadhaar_number = "Aadhaar must be exactly 12 digits.";
       }
     } else if (
-      formData.aadhaar_number &&
-      !VALIDATION_RULES.aadhaar_number.pattern.test(formData.aadhaar_number)
+      aadhaarDigits &&
+      !VALIDATION_RULES.aadhaar_number.pattern.test(aadhaarDigits)
     ) {
       e.aadhaar_number = "Aadhaar must be exactly 12 digits.";
     }
@@ -365,17 +370,22 @@ export function StepKyc({ onNext, onBack }: StepKycProps) {
         >
           <Input
             placeholder="XXXX XXXX 1234"
-            value={formData.aadhaar_number}
+            value={aadhaarDigits}
             onChange={(e) =>
               updateFormData({
                 aadhaar_number: e.target.value.replace(/\D/g, "").slice(0, 12),
+                aadhaar_number_masked: "",
               })
             }
             maxLength={14}
             inputMode="numeric"
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Required because GST was skipped. Only last 4 digits are stored.
+            {hasSavedAadhaar && !aadhaarDigits
+              ? `Aadhaar already on file${
+                hasStoredAadhaarMask ? ` (${formData.aadhaar_number_masked})` : ""
+              }. Re-enter only if you want to replace it.`
+              : "Required because GST was skipped. Only last 4 digits are stored."}
           </p>
         </FieldWithInfo>
       ) : null}

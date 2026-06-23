@@ -556,6 +556,10 @@ export function StepReview({ onBack }: StepReviewProps) {
               value={
                 formData.aadhaar_number
                   ? formData.aadhaar_number
+                  : formData.aadhaar_number_masked
+                    ? formData.aadhaar_number_masked
+                    : formData.aadhaar_doc_photo_url
+                      ? "Already submitted"
                   : "Not provided"
               }
             />

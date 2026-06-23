@@ -17,6 +17,7 @@ import { DashboardReferralCard } from "@/components/dashboard/dashboard-referral
 import { DashboardTabPanel } from "@/components/dashboard/dashboard-tab-panel";
 import { ImprovementModal } from "@/components/dashboard/improvement-modal";
 import { getMerchantDashboard, type MerchantScoreInsight } from "@/lib/api/services/merchant.service";
+import { getLeaderboard } from "@/lib/api/services/leaderboard.service";
 import { MERCHANT_DEALS_ENABLED } from "@/lib/constants/features";
 import { SUB_SCORE_DESCRIPTIONS, SUB_SCORE_LABELS } from "@/lib/constants/scoring";
 import { formatINR } from "@/lib/utils/format";
@@ -34,11 +35,25 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const pushToast = useToastStore((s) => s.push);
   const branchId = useEffectiveBranchId();
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [activeTab, setActiveTab] = useState<DashboardSectionId>("stats-strip");
 
   const { data, isLoading } = useQuery({
     queryKey: ["merchant-dashboard", branchId],
     queryFn: getMerchantDashboard,
+    refetchInterval: 30_000,
+    retry: false,
+    enabled: Boolean(branchId),
+  });
+  const { data: leaderboardRankResponse } = useQuery({
+    queryKey: ["merchant-dashboard-approved-rank", branchId, todayIso],
+    queryFn: () =>
+      getLeaderboard({
+        limit: 1,
+        parameter: "all",
+        start_date: todayIso,
+        end_date: todayIso,
+      }),
     refetchInterval: 30_000,
     retry: false,
     enabled: Boolean(branchId),
@@ -88,7 +103,9 @@ export default function DashboardPage() {
     [],
   );
   const compositeScore = dashboard?.live.composite_score ?? 0;
-  const compositeRank = dashboard?.live.rank ?? null;
+  const compositeRank = leaderboardRankResponse?.success
+    ? (leaderboardRankResponse.data.my_entry?.rank ?? null)
+    : null;
   const totalAmount = Number(dashboard?.today?.gmv ?? 0);
   const discounts = Number(dashboard?.today?.discount ?? 0);
   const netAmount = totalAmount - discounts;
