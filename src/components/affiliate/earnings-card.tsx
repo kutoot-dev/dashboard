@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatINR } from "@/lib/utils/format";
 
@@ -5,12 +6,18 @@ interface EarningsCardProps {
   totalEarned: number;
   pendingBalance: number;
   minWithdrawalAmount: number;
+  canRequestWithdraw: boolean;
+  isRequestingWithdraw: boolean;
+  onRequestWithdraw: () => void;
 }
 
 export function EarningsCard({
   totalEarned,
   pendingBalance,
   minWithdrawalAmount,
+  canRequestWithdraw,
+  isRequestingWithdraw,
+  onRequestWithdraw,
 }: EarningsCardProps) {
   const safeThreshold = minWithdrawalAmount > 0 ? minWithdrawalAmount : 1;
   const progress = Math.max(0, Math.min(100, (pendingBalance / safeThreshold) * 100));
@@ -46,6 +53,23 @@ export function EarningsCard({
             {progress.toFixed(0)}% of minimum payout reached
           </p>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {canRequestWithdraw
+            ? "You can request a payout now."
+            : "Reach the minimum threshold to request payout."}
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          onClick={onRequestWithdraw}
+          loading={isRequestingWithdraw}
+          disabled={!canRequestWithdraw}
+        >
+          Request payout
+        </Button>
       </div>
     </Card>
   );
