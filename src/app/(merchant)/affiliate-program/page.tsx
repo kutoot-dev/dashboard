@@ -37,7 +37,7 @@ export default function AffiliateProgramPage() {
 
   const statusQuery = useQuery({
     queryKey: ["affiliate-status", branchId],
-    queryFn: getAffiliateProfileStatus,
+    queryFn: () => getAffiliateProfileStatus(branchId!),
     enabled: Boolean(branchId),
     refetchInterval: 30_000,
     retry: false,
@@ -45,7 +45,7 @@ export default function AffiliateProgramPage() {
 
   const profileQuery = useQuery({
     queryKey: ["affiliate-profile", branchId],
-    queryFn: getAffiliateProfile,
+    queryFn: () => getAffiliateProfile(branchId!),
     enabled: Boolean(branchId),
     refetchInterval: 30_000,
     retry: false,
@@ -57,14 +57,14 @@ export default function AffiliateProgramPage() {
 
   const referralLinkQuery = useQuery({
     queryKey: ["affiliate-referral-link", branchId],
-    queryFn: getAffiliateReferralLink,
+    queryFn: () => getAffiliateReferralLink(branchId!),
     enabled: Boolean(branchId) && isRegistered,
     retry: false,
   });
 
   const analyticsQuery = useQuery({
     queryKey: ["affiliate-analytics", branchId],
-    queryFn: getAffiliateAnalytics,
+    queryFn: () => getAffiliateAnalytics(branchId!),
     enabled: Boolean(branchId) && isRegistered,
     refetchInterval: 30_000,
     retry: false,
@@ -72,13 +72,13 @@ export default function AffiliateProgramPage() {
 
   const payoutsQuery = useQuery({
     queryKey: ["affiliate-payouts", branchId],
-    queryFn: () => getAffiliatePayouts({ limit: 50 }),
+    queryFn: () => getAffiliatePayouts(branchId!, { limit: 50 }),
     enabled: Boolean(branchId) && isRegistered,
     retry: false,
   });
 
   const registerMutation = useMutation({
-    mutationFn: registerAffiliateProgram,
+    mutationFn: () => registerAffiliateProgram(branchId!),
     onSuccess: () => {
       pushToast({
         variant: "success",
@@ -102,7 +102,7 @@ export default function AffiliateProgramPage() {
 
   const bankDetailsMutation = useMutation({
     mutationFn: (payload: AffiliateBankDetailsInput) =>
-      updateAffiliateBankDetails(payload),
+      updateAffiliateBankDetails(branchId!, payload),
     onSuccess: () => {
       pushToast({
         variant: "success",
@@ -114,7 +114,7 @@ export default function AffiliateProgramPage() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: (amount?: number) => requestAffiliateWithdraw(amount),
+    mutationFn: (amount?: number) => requestAffiliateWithdraw(branchId!, amount),
     onSuccess: () => {
       pushToast({
         variant: "success",

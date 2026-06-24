@@ -18,21 +18,19 @@ export interface AffiliateRegistrationStatus {
 
 export interface AffiliateBankDetails {
   bank_account_name: string;
-  bank_name: string;
-  bank_branch_name: string;
   account_number: string;
   ifsc_code: string;
   upi_id?: string | null;
+  pan_number: string;
   bank_status?: string | null;
 }
 
 export interface AffiliateBankDetailsInput {
   bank_account_name: string;
-  bank_name: string;
-  bank_branch_name: string;
   account_number: string;
   ifsc_code: string;
   upi_id?: string;
+  pan_number: string;
 }
 
 export interface AffiliateProfile {
@@ -79,55 +77,72 @@ export interface AffiliatePayouts {
   payouts?: AffiliatePayoutItem[];
 }
 
-export async function getAffiliateProfile() {
-  const res = await apiClient.get<ApiResponse<AffiliateProfile>>("/affiliate/profile");
+export async function getAffiliateProfile(branchId: string | number) {
+  const res = await apiClient.get<ApiResponse<AffiliateProfile>>(
+    `/merchant/${branchId}/affiliate/profile`
+  );
   return res.data;
 }
 
-export async function getAffiliateProfileStatus() {
+export async function getAffiliateProfileStatus(branchId: string | number) {
   const res = await apiClient.get<ApiResponse<AffiliateRegistrationStatus>>(
-    "/affiliate/profile/status",
+    `/merchant/${branchId}/affiliate/profile/status`
   );
   return res.data;
 }
 
-export async function registerAffiliateProgram() {
-  const res = await apiClient.post<ApiResponse<AffiliateProfile>>("/affiliate/register");
+export async function registerAffiliateProgram(branchId: string | number) {
+  const res = await apiClient.post<ApiResponse<AffiliateProfile>>(
+    `/merchant/${branchId}/affiliate/register`
+  );
   return res.data;
 }
 
-export async function getAffiliateReferralLink() {
+export async function getAffiliateReferralLink(branchId: string | number) {
   const res = await apiClient.get<ApiResponse<AffiliateReferralLink>>(
-    "/affiliate/referral-link",
+    `/merchant/${branchId}/affiliate/referral-link`
   );
   return res.data;
 }
 
-export async function getAffiliateAnalytics() {
+export async function getAffiliateAnalytics(branchId: string | number) {
   const res = await apiClient.get<ApiResponse<AffiliateAnalytics>>(
-    "/affiliate/analytics",
+    `/merchant/${branchId}/affiliate/analytics`
   );
   return res.data;
 }
 
-export async function getAffiliatePayouts(params?: { limit?: number; page?: number }) {
-  const res = await apiClient.get<ApiResponse<AffiliatePayouts>>("/affiliate/payouts", {
-    params,
-  });
+export async function getAffiliatePayouts(
+  branchId: string | number,
+  params?: { limit?: number; page?: number }
+) {
+  const res = await apiClient.get<ApiResponse<AffiliatePayouts>>(
+    `/merchant/${branchId}/affiliate/payouts/history`,
+    { params }
+  );
   return res.data;
 }
 
-export async function updateAffiliateBankDetails(payload: AffiliateBankDetailsInput) {
+export async function updateAffiliateBankDetails(
+  branchId: string | number,
+  payload: AffiliateBankDetailsInput
+) {
   const res = await apiClient.put<ApiResponse<{ bank_details: AffiliateBankDetails }>>(
-    "/affiliate/bank-details",
-    payload,
+    `/merchant/${branchId}/affiliate/bank-details`,
+    payload
   );
   return res.data;
 }
 
-export async function requestAffiliateWithdraw(amount?: number) {
+export async function requestAffiliateWithdraw(
+  branchId: string | number,
+  amount?: number
+) {
   const res = await apiClient.post<
     ApiResponse<{ id: string | number; amount: number; status: string; requested_at?: string | null }>
-  >("/affiliate/withdraw", amount != null ? { amount } : undefined);
+  >(
+    `/merchant/${branchId}/affiliate/payouts/request`,
+    amount != null ? { amount } : undefined
+  );
   return res.data;
 }

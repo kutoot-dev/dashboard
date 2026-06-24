@@ -17,31 +17,28 @@ interface BankDetailsCardProps {
 
 interface BankFormState {
   bank_account_name: string;
-  bank_name: string;
-  bank_branch_name: string;
   account_number: string;
   ifsc_code: string;
   upi_id: string;
+  pan_number: string;
 }
 
 const EMPTY_FORM: BankFormState = {
   bank_account_name: "",
-  bank_name: "",
-  bank_branch_name: "",
   account_number: "",
   ifsc_code: "",
   upi_id: "",
+  pan_number: "",
 };
 
 function toFormState(value: AffiliateBankDetails | null): BankFormState {
   if (!value) return EMPTY_FORM;
   return {
     bank_account_name: value.bank_account_name ?? "",
-    bank_name: value.bank_name ?? "",
-    bank_branch_name: value.bank_branch_name ?? "",
     account_number: value.account_number ?? "",
     ifsc_code: value.ifsc_code ?? "",
     upi_id: value.upi_id ?? "",
+    pan_number: value.pan_number ?? "",
   };
 }
 
@@ -61,12 +58,6 @@ export function BankDetailsCard({
     if (!form.bank_account_name.trim()) {
       nextErrors.bank_account_name = "Account holder name is required.";
     }
-    if (!form.bank_name.trim()) {
-      nextErrors.bank_name = "Bank name is required.";
-    }
-    if (!form.bank_branch_name.trim()) {
-      nextErrors.bank_branch_name = "Branch name is required.";
-    }
     if (!VALIDATION_RULES.bank_account_number.pattern.test(form.account_number)) {
       nextErrors.account_number = "Enter a valid account number (9-18 digits).";
     }
@@ -77,6 +68,10 @@ export function BankDetailsCard({
     const upiId = form.upi_id.trim().toLowerCase();
     if (upiId && !VALIDATION_RULES.upi_id.pattern.test(upiId)) {
       nextErrors.upi_id = "Enter a valid UPI ID (e.g. name@bank).";
+    }
+    const pan = form.pan_number.trim().toUpperCase();
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan)) {
+      nextErrors.pan_number = "Enter a valid 10-character PAN card number.";
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -99,11 +94,10 @@ export function BankDetailsCard({
     try {
       await onSave({
         bank_account_name: form.bank_account_name.trim(),
-        bank_name: form.bank_name.trim(),
-        bank_branch_name: form.bank_branch_name.trim(),
         account_number: form.account_number.trim(),
         ifsc_code: form.ifsc_code.trim().toUpperCase(),
         upi_id: form.upi_id.trim() ? form.upi_id.trim().toLowerCase() : undefined,
+        pan_number: form.pan_number.trim().toUpperCase(),
       });
       setIsEditing(false);
     } catch (error) {
@@ -115,9 +109,9 @@ export function BankDetailsCard({
   const hasBankDetails = Boolean(
     bankDetails &&
       (bankDetails.bank_account_name ||
-        bankDetails.bank_name ||
         bankDetails.account_number ||
-        bankDetails.ifsc_code),
+        bankDetails.ifsc_code ||
+        bankDetails.pan_number),
   );
 
   return (
@@ -150,10 +144,9 @@ export function BankDetailsCard({
         hasBankDetails ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <InfoRow label="Account holder" value={bankDetails?.bank_account_name} />
-            <InfoRow label="Bank name" value={bankDetails?.bank_name} />
-            <InfoRow label="Branch" value={bankDetails?.bank_branch_name} />
             <InfoRow label="Account number" value={bankDetails?.account_number} />
             <InfoRow label="IFSC" value={bankDetails?.ifsc_code} />
+            <InfoRow label="PAN Number" value={bankDetails?.pan_number} />
             <InfoRow label="UPI" value={bankDetails?.upi_id ?? "--"} />
           </div>
         ) : (
@@ -171,26 +164,6 @@ export function BankDetailsCard({
           />
           {errors.bank_account_name ? (
             <p className="-mt-2 text-xs text-loss">{errors.bank_account_name}</p>
-          ) : null}
-
-          <Input
-            label="Bank name"
-            value={form.bank_name}
-            onChange={(event) => setField("bank_name", event.target.value)}
-            placeholder="Enter bank name"
-          />
-          {errors.bank_name ? (
-            <p className="-mt-2 text-xs text-loss">{errors.bank_name}</p>
-          ) : null}
-
-          <Input
-            label="Branch name"
-            value={form.bank_branch_name}
-            onChange={(event) => setField("bank_branch_name", event.target.value)}
-            placeholder="Enter branch name"
-          />
-          {errors.bank_branch_name ? (
-            <p className="-mt-2 text-xs text-loss">{errors.bank_branch_name}</p>
           ) : null}
 
           <Input
@@ -217,6 +190,19 @@ export function BankDetailsCard({
           />
           {errors.ifsc_code ? (
             <p className="-mt-2 text-xs text-loss">{errors.ifsc_code}</p>
+          ) : null}
+
+          <Input
+            label="PAN Number"
+            value={form.pan_number}
+            onChange={(event) =>
+              setField("pan_number", event.target.value.toUpperCase())
+            }
+            placeholder="Enter 10-character PAN"
+            maxLength={10}
+          />
+          {errors.pan_number ? (
+            <p className="-mt-2 text-xs text-loss">{errors.pan_number}</p>
           ) : null}
 
           <Input
