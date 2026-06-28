@@ -3,6 +3,8 @@ import { MERCHANT_DEALS_ENABLED } from "@/lib/constants/features";
 
 const AUTH_COOKIE = "kutoot_auth";
 const SESSION_COOKIE = "kutoot_session";
+const COMMUNITY_AUTH_COOKIE = "kutoot_user_auth";
+const COMMUNITY_SESSION_COOKIE = "kutoot_user_session";
 
 const MERCHANT_ROUTES = [
   "/complete-basic-details",
@@ -45,6 +47,12 @@ function hasActiveSession(request: NextRequest): boolean {
   return user !== null && session?.value === "1";
 }
 
+function hasActiveCommunitySession(request: NextRequest): boolean {
+  const user = parseAuthUser(request.cookies.get(COMMUNITY_AUTH_COOKIE));
+  const session = request.cookies.get(COMMUNITY_SESSION_COOKIE);
+  return user !== null && session?.value === "1";
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -54,6 +62,23 @@ export function middleware(request: NextRequest) {
   }
 
   const isAuthenticated = hasActiveSession(request);
+  const isCommunityAuthenticated = hasActiveCommunitySession(request);
+
+  if (pathname.startsWith("/community")) {
+    if (pathname === "/community/login") {
+      return isCommunityAuthenticated
+        ? NextResponse.redirect(new URL("/community/feed", request.url))
+        : NextResponse.next();
+    }
+
+    if (!isCommunityAuthenticated) {
+      const loginUrl = new URL("/community/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  }
 
   if (pathname === "/") {
     const user = parseAuthUser(request.cookies.get(AUTH_COOKIE));
@@ -125,5 +150,6 @@ export const config = {
     "/operations-hub",
     "/operations-hub/:path*",
     "/login",
+    "/community/:path*",
   ],
 };
