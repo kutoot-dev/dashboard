@@ -19,6 +19,7 @@ import {
   faHandshake,
   faHouse,
   faMoneyBillTransfer,
+  faRocket,
   faTag,
   faTags,
   faUsers,
@@ -51,6 +52,11 @@ const CORE_BRANCH_NAV: NavItem[] = [
     label: "Discover",
     href: "/discover",
     icon: faComments,
+  },
+  {
+    label: "Community Build",
+    href: "/community-build",
+    icon: faRocket,
   },
   {
     label: "Academy",
