@@ -7,8 +7,10 @@ const links = [
   { href: "/community/feed", label: "Feed" },
   { href: "/community/create", label: "Create" },
   { href: "/community/conversations", label: "Chat" },
+  { href: "/community/rewards", label: "Rewards" },
   { href: "/community/stamps", label: "Stamps" },
   { href: "/community/leaderboards", label: "Leaders" },
+  { href: "/community/reward-media", label: "Media" },
 ];
 
 export function CommunityShell({ children }: { children: React.ReactNode }) {
